@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AdminNavigationSearch } from './AdminNavigationSearch';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
@@ -34,7 +35,7 @@ export function AdminDesktopNavigation({
     const activeGroup = activeGroupForPath(pathname, navGroups);
     const [openGroup, setOpenGroup] = useState<string | null>(() => activeGroup ?? navGroups[0]?.[0] ?? null);
 
-    const linkClass = (active: boolean) => `block rounded-lg border px-3 py-2 text-sm transition-colors ${active ? 'border-foreground/10 bg-foreground/[0.06] font-semibold text-foreground' : 'border-transparent text-muted-foreground hover:border-foreground/10 hover:bg-foreground/[0.05] hover:text-foreground'}`;
+    const linkClass = (active: boolean) => `block min-h-11 rounded-lg border px-3 py-2 text-sm transition-colors ${active ? 'border-foreground/10 bg-foreground/[0.06] font-semibold text-foreground' : 'border-transparent text-muted-foreground hover:border-foreground/10 hover:bg-foreground/[0.05] hover:text-foreground'}`;
 
     return (
         <aside className="hidden h-dvh max-h-dvh min-h-0 flex-col overflow-hidden border-r border-foreground/10 bg-foreground/[0.015] lg:sticky lg:top-0 lg:flex">
@@ -42,7 +43,7 @@ export function AdminDesktopNavigation({
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                         <p className="truncate text-[10px] uppercase tracking-[0.35em] text-muted-foreground">{siteName}</p>
-                        <h1 className="mt-1.5 text-lg font-semibold">Portfolio CMS</h1>
+                        <h1 className="mt-1.5 text-lg font-semibold">NecrotixLab Admin</h1>
                         <p className="mt-1 text-xs text-muted-foreground">{role}</p>
                     </div>
                     <AdminThemeToggle />
@@ -50,8 +51,9 @@ export function AdminDesktopNavigation({
             </div>
 
             <div className="admin-sidebar-scroll min-h-0 flex-1 touch-pan-y overflow-y-scroll overscroll-y-contain px-4 pb-4 [scrollbar-gutter:stable]">
-                <nav className="grid gap-2 py-2">
-                    <Link href={dashboardItem[1]} onClick={() => setOpenGroup(null)} className={linkClass(pathname === dashboardItem[1])}>{dashboardItem[0]}</Link>
+                <AdminNavigationSearch dashboardItem={dashboardItem} navGroups={navGroups} />
+                <nav aria-label="Admin pages" className="grid gap-2 py-2">
+                    <Link href={dashboardItem[1]} onClick={() => setOpenGroup(null)} aria-current={pathname === dashboardItem[1] ? 'page' : undefined} className={linkClass(pathname === dashboardItem[1])}>{dashboardItem[0]}</Link>
 
                     {navGroups.map(([groupLabel, items]) => {
                         const isOpen = openGroup === groupLabel || (openGroup === null && activeGroup === groupLabel);
@@ -60,7 +62,7 @@ export function AdminDesktopNavigation({
                                 <button
                                     type="button"
                                     onClick={() => setOpenGroup((current) => current === groupLabel ? null : groupLabel)}
-                                    className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground transition hover:text-foreground"
+                                    className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground transition hover:text-foreground"
                                     aria-expanded={isOpen}
                                 >
                                     <span>{groupLabel}</span>
@@ -73,7 +75,7 @@ export function AdminDesktopNavigation({
                                                 key={href}
                                                 href={href}
                                                 onClick={() => setOpenGroup(groupLabel)}
-                                                className={linkClass(isItemActive(pathname, href, items))}
+                                                aria-current={isItemActive(pathname, href, items) ? 'page' : undefined} className={linkClass(isItemActive(pathname, href, items))}
                                             >
                                                 {label}
                                             </Link>
