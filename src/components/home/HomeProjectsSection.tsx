@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Project } from '@/types';
+import { ProjectStatusBadge } from '@/components/projects/ProjectStatusBadge';
 
 type Props = {
     projects: Project[];
@@ -50,7 +51,7 @@ export function HomeProjectsSection({ projects, onProjectOpen }: Props) {
                                 <div className="min-w-0">
                                     <div className="mb-1.5 flex flex-wrap items-center gap-2.5">
                                         <h3 className="truncate text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary sm:text-xl">{project.title}</h3>
-                                        <span className={cn('rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider sm:text-[10px]', isOngoing ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-blue-500/25 bg-blue-500/10 text-blue-600 dark:text-blue-400')}>{project.status === 'completed' ? 'done' : project.status}</span>
+                                        <ProjectStatusBadge status={project.status} />
                                     </div>
                                     <p className="line-clamp-2 text-sm leading-5 text-muted-foreground sm:text-[15px] sm:leading-6">{project.description}</p>
                                     {project.techStack.length > 0 ? <p className={cn('mt-1.5 hidden truncate font-mono text-[10px] tracking-wide md:block', isOngoing ? 'text-emerald-600/60 dark:text-emerald-400/60' : 'text-blue-600/60 dark:text-blue-400/60')}>{project.techStack.join(' • ')}</p> : null}

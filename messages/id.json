@@ -212,6 +212,8 @@
             "installation": "Instruksi Instalasi",
             "projectAccess": "Akses Proyek",
             "technologies": "Teknologi",
+            "stackAndTools": "Teknologi & alat",
+            "keyOutcomes": "Hasil utama",
             "contents": "Daftar Isi",
             "moreProjects": "Proyek Lainnya",
             "backToProjects": "Kembali ke Proyek",
@@ -222,8 +224,10 @@
             "sourceCode": "Kode Sumber"
         },
         "status": {
-            "ongoing": "Pengembangan Aktif",
-            "completed": "Proyek Selesai"
+            "planned": "Direncanakan",
+            "ongoing": "Sedang Dikerjakan",
+            "completed": "Selesai",
+            "archived": "Diarsipkan"
         },
         "metadata": {
             "role": "Peran",

@@ -199,11 +199,15 @@ export function ProjectForm({ project, categories = [], action, submitLabel }: {
                 </section>
 
                 <section className={`grid gap-5 md:grid-cols-2 ${panel}`}>
-                    <label className="block"><span className="text-sm text-white/55">Status</span><select className={selectField} name="status" defaultValue={project?.status ?? 'PLANNED'}><option value="PLANNED">Planned</option><option value="ONGOING">Ongoing</option><option value="COMPLETED">Completed</option><option value="ARCHIVED">Archived</option></select></label>
+                    <label className="block"><span className="text-sm text-white/55">Status</span><select className={selectField} name="status" defaultValue={project?.status ?? 'PLANNED'}><option value="PLANNED">Planned</option><option value="ONGOING">In progress</option><option value="COMPLETED">Completed</option><option value="ARCHIVED">Archived</option></select><span className="mt-2 block text-xs leading-relaxed text-muted-foreground">Planned has not started; In progress is active; Completed is finished; Archived is kept for reference.</span></label>
                     <label className="block"><span className="text-sm text-white/55">Sort order</span><input className={field} type="number" name="sortOrder" defaultValue={project?.sortOrder ?? 0} /></label>
-                    <div className="md:col-span-2"><TagInput name="technologies" initialTags={project?.technologies ?? []} label="Technologies" /></div>
-                    <div className="md:col-span-2"><TagInput name="tools" initialTags={project?.tools ?? []} label="Tools" /></div>
-                    <div className="md:col-span-2"><TagInput name="highlights" initialTags={project?.highlights ?? []} label="Highlights" /></div>
+                    <div className="border-t border-foreground/10 pt-5 md:col-span-2">
+                        <h3 className="text-sm font-semibold text-foreground/85">Stack and outcomes</h3>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Use one tag per item. Technologies and tools appear together publicly; duplicate names are removed when the project is saved.</p>
+                    </div>
+                    <div className="md:col-span-2"><TagInput name="technologies" initialTags={project?.technologies ?? []} label="Technologies & platforms" helperText="What the project runs on or is built with, for example Next.js, TypeScript, PostgreSQL or Android." /></div>
+                    <div className="md:col-span-2"><TagInput name="tools" initialTags={project?.tools ?? []} label="Tools & services" helperText="Software and services used to design, test or deliver it, for example Figma, GitHub Actions, Docker or Cloudflare." /></div>
+                    <div className="md:col-span-2"><TagInput name="highlights" initialTags={project?.highlights ?? []} label="Key outcomes" helperText="Concrete results or notable capabilities, for example Mobile-first admin, Automated deployment or 40% faster checkout. Do not repeat stack names." /></div>
                 </section>
 
                 <section className={`grid gap-5 md:grid-cols-2 ${panel}`}>

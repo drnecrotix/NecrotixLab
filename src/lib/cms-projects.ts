@@ -1,6 +1,7 @@
 import type { Project as PrismaProject } from '@prisma/client';
 import sanitizeHtml from 'sanitize-html';
 import type { Project, ProjectContentBlock } from '@/types';
+import { normalizeProjectStatus } from '@/lib/project-status';
 
 type ProjectContent = {
     image?: string;
@@ -76,12 +77,7 @@ export function cmsProjectToPortfolioProject(project: PrismaProject): Project {
         image: content.image,
         techStack: project.technologies,
         tools: project.tools,
-        status:
-            project.status === 'ONGOING'
-                ? 'ongoing'
-                : project.status === 'COMPLETED'
-                  ? 'completed'
-                  : 'planned',
+        status: normalizeProjectStatus(project.status),
         demoUrl: project.demoUrl ?? undefined,
         downloadUrl: content.downloadUrl,
         repoUrl: project.repoUrl ?? undefined,

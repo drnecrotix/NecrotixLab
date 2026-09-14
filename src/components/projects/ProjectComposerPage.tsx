@@ -9,6 +9,7 @@ import {
     Box,
     Clock,
     Code,
+    CheckCircle2,
     Download,
     ExternalLink,
     Github,
@@ -24,6 +25,8 @@ import {
 import type { Project, ProjectContentBlock } from '@/types';
 import { cn, formatDate } from '@/lib/utils';
 import { ProjectPlaceholder } from './ProjectPlaceholder';
+import { ProjectStatusBadge } from './ProjectStatusBadge';
+import { uniqueProjectLabels } from '@/lib/project-labels';
 
 const BLOCK_TOKEN = /^\[\[(mission|features|chronicles|installation)\]\]$/i;
 const BLOCK_SPLIT = /(\[\[(?:mission|features|chronicles|installation)\]\])/gi;
@@ -166,7 +169,7 @@ export function ProjectComposerPage({ project }: { project: Project }) {
     const layout = project.contentLayout?.trim() || project.description;
     const parts = layoutParts(layout);
     const blocks = project.contentBlocks ?? [];
-    const isOngoing = project.status === 'ongoing';
+    const stackAndTools = uniqueProjectLabels(project.techStack, project.tools);
 
     const handleExit = () => {
         if (typeof window !== 'undefined' && document.referrer.includes('/projects')) router.back();
@@ -179,10 +182,7 @@ export function ProjectComposerPage({ project }: { project: Project }) {
                 <button onClick={handleExit} className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/50 bg-secondary/10 px-3.5 py-2 text-sm text-muted-foreground transition hover:bg-secondary/20 hover:text-foreground">
                     <ArrowLeft className="h-4 w-4" /> {t('sections.backToProjects')}
                 </button>
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-black/20 bg-secondary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:border-border/40 dark:bg-secondary/5">
-                    <span className={cn('h-2 w-2 rounded-full', isOngoing ? 'animate-pulse bg-emerald-500' : 'bg-blue-500')} />
-                    {isOngoing ? t('status.ongoing') : t('status.completed')}
-                </div>
+                <ProjectStatusBadge status={project.status} className="mb-6" />
                 <h1 className="mb-6 break-words text-4xl font-black uppercase leading-none tracking-tight md:text-5xl lg:text-7xl">{project.title}</h1>
                 <p className="max-w-3xl text-xl font-light leading-relaxed text-muted-foreground/80 md:text-2xl">{project.description}</p>
             </header>
@@ -255,10 +255,26 @@ export function ProjectComposerPage({ project }: { project: Project }) {
                                 </div>
                             )}
 
-                            <div>
-                                <h3 className="mb-5 border-b border-border/40 pb-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('sections.technologies')}</h3>
-                                <div className="flex flex-wrap gap-2">{project.techStack.map((tech) => <span key={tech} className="rounded-lg border border-border/40 bg-secondary/10 px-3 py-1.5 text-xs text-muted-foreground">{tech}</span>)}</div>
-                            </div>
+                            {stackAndTools.length > 0 && (
+                                <div>
+                                    <h3 className="mb-5 border-b border-border/40 pb-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('sections.stackAndTools')}</h3>
+                                    <div className="flex flex-wrap gap-2">{stackAndTools.map((item) => <span key={item.toLocaleLowerCase()} className="rounded-lg border border-border/40 bg-secondary/10 px-3 py-1.5 text-xs text-muted-foreground">{item}</span>)}</div>
+                                </div>
+                            )}
+
+                            {project.highlights && project.highlights.length > 0 && (
+                                <div>
+                                    <h3 className="mb-5 border-b border-border/40 pb-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('sections.keyOutcomes')}</h3>
+                                    <ul className="space-y-3">
+                                        {uniqueProjectLabels(project.highlights).map((highlight) => (
+                                            <li key={highlight.toLocaleLowerCase()} className="flex items-start gap-2.5 text-sm leading-6 text-muted-foreground">
+                                                <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-500" aria-hidden="true" />
+                                                <span>{highlight}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
                             {(blocks.length > 0 || project.galleryImages?.length) && (
                                 <div>
