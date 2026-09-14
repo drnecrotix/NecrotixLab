@@ -150,7 +150,7 @@ export function StoryShare(props: Props) {
     };
 
     return <>
-        <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-fuchsia-500/25 px-3 text-xs text-foreground transition hover:bg-fuchsia-500/10 focus-visible:outline focus-visible:outline-2">
+        <button type="button" onClick={() => { setReady(null); setError(''); setOpen(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-fuchsia-500/25 px-3 text-xs text-foreground transition hover:bg-fuchsia-500/10 focus-visible:outline focus-visible:outline-2">
             <ImagePlus aria-hidden="true" className="size-4" />{label}
         </button>
         <dialog ref={dialog} onCancel={() => setOpen(false)} aria-label={label} className="fixed inset-0 m-auto max-h-[92dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border border-foreground/15 bg-background p-5 text-foreground backdrop:bg-black/80" data-watermark-ignore="true">
