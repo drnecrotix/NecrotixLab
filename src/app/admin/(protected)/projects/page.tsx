@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { normalizeProjectStatus } from '@/lib/project-status';
+import { ProjectStatusBadge } from '@/components/projects/ProjectStatusBadge';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +40,7 @@ export default async function AdminProjectsPage() {
                                     </div>
                                     <div className="md:block">
                                         <span className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground md:hidden">Status</span>
-                                        <span className="text-xs font-semibold uppercase tracking-wide text-foreground/70">{project.status}</span>
+                                        <ProjectStatusBadge status={normalizeProjectStatus(project.status)} />
                                     </div>
                                     <div className="col-span-2 md:block">
                                         <span className="text-xs text-muted-foreground">{project._count.revisions} revisions</span>

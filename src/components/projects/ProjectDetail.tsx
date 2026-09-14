@@ -9,6 +9,8 @@ import { cn, formatDate } from '@/lib/utils';
 import { Project } from '@/types';
 import { portfolioData } from '@/data/portfolio';
 import { TechStack } from './TechStack';
+import { PROJECT_STATUS_DETAILS } from '@/lib/project-status';
+import { ProjectStatusBadge } from './ProjectStatusBadge';
 
 // --- Animated Terminal Component ---
 const TerminalBlock = ({ title, code }: { title: string; code: string }) => {
@@ -310,14 +312,7 @@ export function ProjectDetail({ project, onClose, isLowPowerMode }: { project: P
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.4 }}
                         >
-                            <span className={cn(
-                                "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
-                                isOngoing
-                                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                                    : "border-blue-500/30 bg-blue-500/10 text-blue-400"
-                            )}>
-                                {isOngoing ? 'Development' : 'Released'}
-                            </span>
+                            <ProjectStatusBadge status={project.status} />
                             <span className="flex items-center gap-2">
                                 <Calendar className="w-3.5 h-3.5" />
                                 {formatDate(project.startDate)}
@@ -436,7 +431,7 @@ export function ProjectDetail({ project, onClose, isLowPowerMode }: { project: P
                                                 { label: 'Role', value: project.role || 'Full Stack Dev', icon: Code },
                                                 { label: 'Timeline', value: project.customTimeline || '3 Months', icon: Calendar },
                                                 { label: 'Tech', value: project.techStack?.[0] || 'Next.js', icon: Cpu },
-                                                { label: 'Status', value: project.status === 'ongoing' ? 'Ongoing' : 'Finished', icon: Info },
+                                                { label: 'Status', value: PROJECT_STATUS_DETAILS[project.status].label, icon: Info },
                                             ].map((item, idx) => (
                                                 <div key={idx} className="flex flex-col items-center gap-3">
                                                     <div className="flex items-center gap-2 text-slate-500 dark:text-muted-foreground">

@@ -8,6 +8,8 @@ import { cn, formatDate } from '@/lib/utils';
 import { Project } from '@/types';
 import { TechStack } from './TechStack';
 import { ProjectPlaceholder } from './ProjectPlaceholder';
+import { ProjectStatusBadge } from './ProjectStatusBadge';
+import { uniqueProjectLabels } from '@/lib/project-labels';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { portfolioData } from '@/data/portfolio';
@@ -175,6 +177,7 @@ export function ProjectPageContent({ project, isLowPowerMode }: { project: Proje
     const tCommon = useTranslations('common');
     const router = useRouter();
     const isOngoing = project.status === 'ongoing';
+    const stackAndTools = uniqueProjectLabels(project.techStack, project.tools);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -217,10 +220,7 @@ export function ProjectPageContent({ project, isLowPowerMode }: { project: Proje
                     {/* Title & Description - REMOVED max-w-4xl constraint for Title */}
                     <div className="w-full">
                         {/* Status Badge */}
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-6 border bg-secondary/10 dark:bg-secondary/5 border-black/20 dark:border-border/40 text-muted-foreground">
-                            <span className={cn("w-2 h-2 rounded-full", isOngoing ? "bg-emerald-500 animate-pulse" : "bg-blue-500")} />
-                            {isOngoing ? t('status.ongoing') : t('status.completed')}
-                        </div>
+                        <ProjectStatusBadge status={project.status} className="mb-6" />
 
                         {/* Full Width Layout for Title */}
                         <h1 className="text-4xl md:text-5xl lg:text-7xl font-black tracking-tight text-foreground mb-6 leading-[1.0] break-words uppercase">
@@ -468,17 +468,16 @@ export function ProjectPageContent({ project, isLowPowerMode }: { project: Proje
                                 </div>
                             </div>
 
-                            {/* Tech Stack Tags */}
-                            <div>
-                                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-6 pb-4 border-b border-black/25 dark:border-white/5">{t('sections.technologies')}</h3>
+                            {stackAndTools.length > 0 && <div>
+                                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-6 pb-4 border-b border-black/25 dark:border-white/5">{t('sections.stackAndTools')}</h3>
                                 <div className="flex flex-wrap gap-2">
-                                    {project.techStack.map(tech => (
-                                        <div key={tech} className="px-3 py-1.5 bg-secondary/20 dark:bg-secondary/5 border border-black/20 dark:border-white/5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:border-black/30 dark:hover:border-white/10 transition-colors cursor-default">
-                                            {tech}
+                                    {stackAndTools.map(item => (
+                                        <div key={item.toLocaleLowerCase()} className="px-3 py-1.5 bg-secondary/20 dark:bg-secondary/5 border border-black/20 dark:border-white/5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:border-black/30 dark:hover:border-white/10 transition-colors cursor-default">
+                                            {item}
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </div>}
 
                             {/* Table of Contents (Functional) */}
                             <div>
@@ -563,14 +562,7 @@ export function ProjectPageContent({ project, isLowPowerMode }: { project: Proje
                                 {/* Content Overlay */}
                                 <div className="absolute bottom-0 left-0 w-full p-5 flex flex-col justify-end">
                                     <div className="mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
-                                        <span className={cn(
-                                            "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium backdrop-blur-md",
-                                            p.status === 'ongoing'
-                                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                                                : "border-blue-500/30 bg-blue-500/10 text-blue-400"
-                                        )}>
-                                            {p.status === 'ongoing' ? 'In Progress' : 'Completed'}
-                                        </span>
+                                        <ProjectStatusBadge status={p.status} />
                                     </div>
                                     <h3 className="font-bold text-lg leading-tight text-white mb-1 group-hover:text-primary transition-colors line-clamp-1">
                                         {p.title}

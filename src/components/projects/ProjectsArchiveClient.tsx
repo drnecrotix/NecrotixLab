@@ -6,12 +6,15 @@ import { motion } from 'framer-motion';
 import { ArrowRight, ArrowUpRight, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Project } from '@/types';
+import { ProjectStatusBadge } from './ProjectStatusBadge';
+import { uniqueProjectLabels } from '@/lib/project-labels';
 
-type FilterType = 'all' | 'ongoing' | 'completed';
+type FilterType = 'all' | 'planned' | 'ongoing' | 'completed';
 
 function ProjectListItem({ project, index, onClick }: { project: Project; index: number; onClick: () => void }) {
     const [isHovered, setIsHovered] = useState(false);
     const isOngoing = project.status === 'ongoing';
+    const stackAndTools = uniqueProjectLabels(project.techStack, project.tools);
     const displayIndex = String(index + 1).padStart(2, '0');
 
     return (
@@ -22,10 +25,10 @@ function ProjectListItem({ project, index, onClick }: { project: Project; index:
                 <div className="min-w-0 flex-1">
                     <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-4">
                         <motion.h2 animate={{ x: isHovered ? 8 : 0 }} transition={{ duration: 0.25 }} className="min-w-0 break-words text-lg font-bold tracking-tight text-foreground sm:text-2xl md:text-3xl lg:text-4xl">{project.title}</motion.h2>
-                        <span className={cn('shrink-0 rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wider sm:text-xs', isOngoing ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400')}>{isOngoing ? 'ongoing' : project.status === 'completed' ? 'done' : 'planned'}</span>
+                        <ProjectStatusBadge status={project.status} />
                     </div>
                     <p className="line-clamp-3 max-w-3xl text-xs leading-5 text-muted-foreground sm:text-base sm:leading-6">{project.description}</p>
-                    {project.techStack.length > 0 && <p className={cn('mt-3 hidden break-words font-mono text-xs tracking-wide sm:block', isOngoing ? 'text-emerald-600/60 dark:text-emerald-400/60' : 'text-blue-600/60 dark:text-blue-400/60')}>{project.techStack.join(' • ')}</p>}
+                    {stackAndTools.length > 0 && <p className={cn('mt-3 hidden break-words font-mono text-xs tracking-wide sm:block', isOngoing ? 'text-emerald-600/60 dark:text-emerald-400/60' : 'text-blue-600/60 dark:text-blue-400/60')}>{stackAndTools.join(' • ')}</p>}
                 </div>
 
                 <motion.div animate={{ x: isHovered ? 5 : 0, opacity: isHovered ? 1 : 0.45 }} transition={{ duration: 0.25 }} className="hidden shrink-0 items-center gap-2 sm:flex"><span className="text-sm font-medium text-muted-foreground transition-colors group-hover:text-foreground">view</span><ArrowRight className={cn('h-5 w-5 transition-colors', isHovered ? (isOngoing ? 'text-emerald-500 dark:text-emerald-400' : 'text-blue-500 dark:text-blue-400') : 'text-muted-foreground')} /></motion.div>
@@ -66,7 +69,7 @@ export function ProjectsArchiveClient({ projects }: { projects: Project[] }) {
 
                         <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[420px]">
                             <label className="relative block"><Search className="pointer-events-none absolute left-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search projects..." className="w-full border-b border-foreground/10 bg-transparent py-3 pl-7 pr-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-foreground lg:min-w-[320px]" /></label>
-                            <div className="grid grid-cols-3 rounded-xl border border-foreground/10 p-1">{(['all', 'ongoing', 'completed'] as FilterType[]).map((filter) => <button key={filter} type="button" onClick={() => setStatusFilter(filter)} className={cn('min-w-0 rounded-lg px-2 py-2 text-[11px] font-medium capitalize transition-colors sm:px-4 sm:text-sm', statusFilter === filter ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground')}>{filter}</button>)}</div>
+                            <div className="grid grid-cols-2 rounded-xl border border-foreground/10 p-1 sm:grid-cols-4">{(['all', 'planned', 'ongoing', 'completed'] as FilterType[]).map((filter) => <button key={filter} type="button" onClick={() => setStatusFilter(filter)} className={cn('min-h-10 min-w-0 rounded-lg px-2 py-2 text-[11px] font-medium capitalize transition-colors sm:px-4 sm:text-sm', statusFilter === filter ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground')}>{filter === 'ongoing' ? 'In progress' : filter}</button>)}</div>
                         </div>
                     </div>
                 </header>

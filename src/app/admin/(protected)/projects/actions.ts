@@ -11,6 +11,7 @@ import {
     normalizeProjectUrl,
     safeProjectContent,
 } from '@/lib/cms-projects';
+import { uniqueProjectLabels, withoutProjectLabelDuplicates } from '@/lib/project-labels';
 
 const PROJECT_STATUSES = ['PLANNED', 'ONGOING', 'COMPLETED', 'ARCHIVED'] as const;
 type ProjectStatusValue = (typeof PROJECT_STATUSES)[number];
@@ -79,6 +80,9 @@ function readProjectForm(formData: FormData) {
     const rawSortOrder = Number(formData.get('sortOrder') ?? 0);
     const sortOrder = Number.isFinite(rawSortOrder) ? Math.max(-10_000, Math.min(10_000, Math.trunc(rawSortOrder))) : 0;
 
+    const technologies = uniqueProjectLabels(csvToList(formData.get('technologies')));
+    const tools = withoutProjectLabelDuplicates(csvToList(formData.get('tools')), technologies);
+
     return {
         title,
         slug,
@@ -86,9 +90,9 @@ function readProjectForm(formData: FormData) {
         longDescription,
         status,
         category: readCategory(formData),
-        technologies: csvToList(formData.get('technologies')),
-        tools: csvToList(formData.get('tools')),
-        highlights: csvToList(formData.get('highlights')),
+        technologies,
+        tools,
+        highlights: uniqueProjectLabels(csvToList(formData.get('highlights'))),
         repoUrl: normalizeProjectUrl(formData.get('repoUrl')),
         demoUrl: normalizeProjectUrl(formData.get('demoUrl')),
         role: text(formData.get('role'), 160, 'Role') || null,

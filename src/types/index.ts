@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ProjectStatus } from '@/lib/project-status';
 
 export type ProjectContentBlock = 'mission' | 'features' | 'chronicles' | 'installation';
 
@@ -13,7 +14,7 @@ export interface Project {
     image?: string;
     techStack: string[];
     tools: string[];
-    status: 'ongoing' | 'completed' | 'planned';
+    status: ProjectStatus;
     demoUrl?: string;
     downloadUrl?: string;
     repoUrl?: string;

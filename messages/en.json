@@ -212,6 +212,8 @@
             "installation": "Installation Instructions",
             "projectAccess": "Project Access",
             "technologies": "Technologies",
+            "stackAndTools": "Stack & tools",
+            "keyOutcomes": "Key outcomes",
             "contents": "Table of Contents",
             "moreProjects": "More Projects",
             "backToProjects": "Back to Projects",
@@ -222,8 +224,10 @@
             "sourceCode": "Source Code"
         },
         "status": {
-            "ongoing": "Active Development",
-            "completed": "Completed Project"
+            "planned": "Planned",
+            "ongoing": "In progress",
+            "completed": "Completed",
+            "archived": "Archived"
         },
         "metadata": {
             "role": "Role",
