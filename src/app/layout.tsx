@@ -7,11 +7,15 @@ import { defaultSeoDefaults, normalizeSeoDefaults } from '@/lib/seo-settings';
 import { defaultGeneralSiteSettings, normalizeGeneralSiteSettings } from '@/lib/site-settings';
 import { defaultHomepageContent, normalizeHomepageContent, parseCustomMetaTags } from '@/lib/homepage-content';
 import { absoluteSocialMediaUrl, getPublicSiteUrl, socialImageDescriptor } from '@/lib/social-metadata';
+import { defaultPwaSettings } from '@/lib/pwa-settings';
+import { getPwaSettings } from '@/lib/pwa-settings.server';
+import { NativePwaLayer } from '@/components/pwa/NativePwaLayer';
 
 import '@/styles/globals.css';
 import '@/styles/mobile-polish.css';
 import '@/styles/footer-alignment.css';
 import '@/styles/blog-mobile.css';
+import '@/styles/pwa-native.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains', display: 'swap' });
@@ -24,12 +28,17 @@ export async function generateMetadata(): Promise<Metadata> {
     let seo = defaultSeoDefaults;
     let general = defaultGeneralSiteSettings;
     let homepage = defaultHomepageContent;
+    let pwa = defaultPwaSettings;
 
     try {
-        const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
+        const [settings, pwaSettings] = await Promise.all([
+            prisma.siteSettings.findUnique({ where: { id: 'default' } }),
+            getPwaSettings(),
+        ]);
         seo = normalizeSeoDefaults(settings?.seoDefaults);
         general = normalizeGeneralSiteSettings(settings);
         homepage = normalizeHomepageContent(settings?.homepageContent);
+        pwa = pwaSettings;
     } catch {
         // Keep the public site renderable when the CMS database is temporarily unavailable.
     }
@@ -72,7 +81,7 @@ export async function generateMetadata(): Promise<Metadata> {
         keywords: seo.keywords,
         applicationName: seo.applicationName,
         manifest: '/manifest.webmanifest',
-        appleWebApp: { capable: true, title: 'NecrotixLab', statusBarStyle: 'default' },
+        appleWebApp: { capable: true, title: pwa.shortName, statusBarStyle: pwa.statusBarStyle },
         authors: [{ name: seo.authorName }],
         creator: seo.creatorName,
         publisher: seo.publisherName,
@@ -97,17 +106,26 @@ export async function generateMetadata(): Promise<Metadata> {
         },
         robots,
         verification: seo.googleVerification ? { google: seo.googleVerification } : undefined,
-        icons: { icon: [{ url: favicon }], shortcut: [{ url: favicon }], apple: [{ url: favicon }] },
+        icons: { icon: [{ url: favicon }], shortcut: [{ url: favicon }], apple: [{ url: pwa.appleIconUrl || favicon }] },
     };
 }
 
-export const viewport: Viewport = {
-    themeColor: [
-        { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-        { media: '(prefers-color-scheme: dark)', color: '#0a0a0f' },
-    ],
-    width: 'device-width', initialScale: 1, minimumScale: 1,
-};
+export async function generateViewport(): Promise<Viewport> {
+    let pwa = defaultPwaSettings;
+    try {
+        pwa = await getPwaSettings();
+    } catch {
+        // Keep the existing light/dark theme-color pair when CMS is unavailable.
+    }
+    return {
+        themeColor: [
+            { media: '(prefers-color-scheme: light)', color: pwa.themeColorLight },
+            { media: '(prefers-color-scheme: dark)', color: pwa.themeColor },
+        ],
+        width: 'device-width', initialScale: 1, minimumScale: 1,
+        viewportFit: 'cover',
+    };
+}
 
 import { ThemeAwareClickSpark } from '@/components/ui/ThemeAwareClickSpark';
 import { ConditionalNavigation } from '@/components/layout/ConditionalNavigation';
@@ -120,11 +138,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     const messages = await getMessages();
     let general = defaultGeneralSiteSettings;
     let homepage = defaultHomepageContent;
+    let pwa = defaultPwaSettings;
 
     try {
-        const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
+        const [settings, pwaSettings] = await Promise.all([
+            prisma.siteSettings.findUnique({ where: { id: 'default' } }),
+            getPwaSettings(),
+        ]);
         general = normalizeGeneralSiteSettings(settings);
         homepage = normalizeHomepageContent(settings?.homepageContent);
+        pwa = pwaSettings;
     } catch {
         // Theme and public rendering keep safe defaults when CMS storage is unavailable.
     }
@@ -132,7 +155,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     const customMetaTags = parseCustomMetaTags(homepage.customMetaTags);
 
     return (
-        <html lang={locale} data-scroll-behavior="smooth" suppressHydrationWarning>
+        <html
+            lang={locale}
+            data-scroll-behavior="smooth"
+            data-pwa-native={pwa.nativeChrome ? 'on' : 'off'}
+            data-pwa-hide-site={pwa.hideSiteChrome ? 'on' : 'off'}
+            suppressHydrationWarning
+        >
             <head>
                 {customMetaTags.map((tag, index) => {
                     const key = `${tag.attribute}-${tag.key}-${index}`;
@@ -151,6 +180,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                                 </ArcPreloaderWrapper>
                                 <TrafficAnalyticsTracker />
                                 <ChatBot headless />
+                                <NativePwaLayer settings={pwa} />
                             </ThemeAwareClickSpark>
                         </SmoothScrollProvider>
                     </I18nProvider>

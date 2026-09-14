@@ -124,7 +124,7 @@ export function Navbar() {
                 animate={!isPreloading && (isVisible || isMenuOpen) ? 'visible' : 'hidden'}
                 variants={{ visible: { y: 0, opacity: 1 }, hidden: { y: -100, opacity: 0 } }}
                 transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                className="fixed inset-x-0 top-0 z-[100]"
+                className="pwa-hide-in-standalone fixed inset-x-0 top-0 z-[100]"
             >
                 <div className="mx-auto max-w-[1600px] px-6 py-4 md:px-12 md:py-6 lg:px-24">
                     <motion.div layout className={cn('flex items-center justify-between rounded-full transition-all duration-500', isScrolled ? 'glass-strong px-6 py-3' : 'py-2')}>
