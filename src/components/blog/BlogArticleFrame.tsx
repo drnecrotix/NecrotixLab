@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { StoryShare } from '@/components/blog/StoryShare';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowUpRight, Check, Clock3, Copy, Eye, Heart, Languages, Share2, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Check, Clock3, Eye, Heart, Languages, Share2, X } from 'lucide-react';
 import { EditorialArticleContent } from '@/components/blog/EditorialArticleContent';
 import type { CmsPostContent } from '@/lib/cms-posts';
 import { estimateReadingMinutes } from '@/lib/reading-time';
@@ -263,15 +263,20 @@ export function BlogArticleFrame({
                         <div className="inline-flex h-9 items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 text-xs font-medium text-muted-foreground" title={`${viewCount.toLocaleString()} views`} aria-label={`${viewCount.toLocaleString()} views`}>
                             <Eye className="h-4 w-4" /><span>{formatCompactCount(viewCount)}</span>
                         </div>
-                        <button type="button" onClick={() => void sharePublication()} className="inline-flex h-9 items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 text-xs text-muted-foreground transition hover:text-foreground">
-                            {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}<span>{copied ? 'Copied' : 'Share'}</span>
-                        </button>
-                        <button type="button" onClick={() => void copyLink()} className="hidden h-9 items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 text-xs text-muted-foreground transition hover:text-foreground sm:inline-flex" aria-label="Copy publication link">
-                            <Copy className="h-4 w-4" /><span>Copy link</span>
-                        </button>
+                        <details className="relative" onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
+                            <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 text-xs text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 [&::-webkit-details-marker]:hidden">
+                                {copied ? <Check className="size-4" /> : <Share2 className="size-4" />}
+                                {copied ? (activeLocale === 'bg' ? 'Копирано' : 'Copied') : (activeLocale === 'bg' ? 'Сподели' : 'Share')}
+                            </summary>
+                            <div className="absolute left-0 top-full z-40 mt-2 grid w-56 gap-2 rounded-xl border border-foreground/15 bg-background p-3 shadow-xl">
+                                <button type="button" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); void sharePublication(); }} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-foreground/5 focus-visible:outline focus-visible:outline-2">
+                                    <Share2 aria-hidden="true" className="size-4" />{activeLocale === 'bg' ? 'Сподели линк' : 'Share link'}
+                                </button>
+                                <StoryShare title={displayTitle} excerpt={displayExcerpt} text={displayContent.text ?? ''} html={displayContent.html ?? ''} image={displayContent.featuredImage || featuredImage} author={author} locale={activeLocale} />
+                            </div>
+                        </details>
                     </div>
 
-                    <StoryShare title={displayTitle} excerpt={displayExcerpt} text={displayContent.text ?? ''} html={displayContent.html ?? ''} image={displayContent.featuredImage || featuredImage} author={author} locale={activeLocale} />
 
                     {showLanguageSwitch && (
                         <motion.div layout className="inline-flex h-9 items-center gap-1 rounded-full border border-foreground/10 bg-foreground/[0.03] p-1" aria-label="Publication language">

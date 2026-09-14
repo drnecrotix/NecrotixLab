@@ -7,27 +7,32 @@ type Props = { title: string; excerpt: string | null; text: string; html: string
 
 function lines(ctx: CanvasRenderingContext2D, text: string, width: number, limit: number) {
     const result: string[] = [];
-    let line = '';
-    // Character wrapping also handles long URLs and text without spaces.
-    for (const character of Array.from(text.replace(/\s+/g, ' ').trim()).slice(0, 8000)) {
-        if (ctx.measureText(line + character).width > width && line) {
-            result.push(line.trim());
-            line = character.trimStart();
-        } else {
-            line += character;
+    // Wrap whole words, preserving paragraph/poetry line breaks.
+    for (const paragraph of text.replace(/\r\n?/g, '\n').trim().split('\n')) {
+        let line = '';
+        for (const word of paragraph.trim().split(/\s+/).filter(Boolean)) {
+            const candidate = line ? line + ' ' + word : word;
+            if (line && ctx.measureText(candidate).width > width) {
+                result.push(line);
+                line = word;
+            } else {
+                line = candidate;
+            }
         }
+        result.push(line);
     }
-    if (line) result.push(line.trim());
     const visible = result.slice(0, limit);
-    if (result.length > limit) {
-        let last = visible[limit - 1];
-        while (ctx.measureText(last + '…').width > width && last) last = last.slice(0, -1);
-        visible[limit - 1] = last.trimEnd() + '…';
+    if (result.length > limit && visible.length) {
+        const words = visible[visible.length - 1].split(/\s+/);
+        while (words.length > 1 && ctx.measureText(words.join(' ') + '…').width > width) words.pop();
+        visible[visible.length - 1] = words.join(' ') + '…';
     }
     return visible;
 }
 
-async function makeStory(props: Props): Promise<Blob> {
+type StoryLayout = 'photo' | 'compact' | 'text';
+
+async function makeStory(props: Props, layout: StoryLayout): Promise<Blob> {
     const canvas = document.createElement('canvas');
     canvas.width = 1080;
     canvas.height = 1920;
@@ -44,7 +49,9 @@ async function makeStory(props: Props): Promise<Blob> {
     ctx.fillStyle = '#e6b8ff';
     ctx.font = '500 26px sans-serif';
     ctx.fillText('NECROTIXLAB / JOURNAL', 90, 220);
-    if (props.image) {
+    const withImage = layout !== 'text' && Boolean(props.image);
+    const imageHeight = layout === 'compact' ? 420 : 660;
+    if (withImage) {
         const picture = await new Promise<HTMLImageElement>((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = 'anonymous';
@@ -54,31 +61,30 @@ async function makeStory(props: Props): Promise<Blob> {
             img.src = props.image!;
         });
         // Contain the full image so existing embedded watermarks are retained.
-        const scale = Math.min(900 / picture.naturalWidth, 660 / picture.naturalHeight);
+        const scale = Math.min(900 / picture.naturalWidth, imageHeight / picture.naturalHeight);
         const width = picture.naturalWidth * scale;
         const height = picture.naturalHeight * scale;
-        ctx.drawImage(picture, 90 + (900 - width) / 2, 290 + (660 - height) / 2, width, height);
+        ctx.drawImage(picture, 90 + (900 - width) / 2, 290 + (imageHeight - height) / 2, width, height);
     }
-    let y = props.image ? 1040 : 470;
+    let y = withImage ? 290 + imageHeight + 70 : 330;
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffffff';
     ctx.font = '700 66px sans-serif';
     const titleLines = lines(ctx, props.title, 900, 3);
-    for (const line of titleLines) { ctx.fillText(line, 90, y); y += 78; }
+    for (const line of titleLines) { ctx.fillText(line, 90, y, 900); y += 78; }
     y += 35;
     const documentText = new DOMParser().parseFromString(props.html, 'text/html');
     documentText.querySelectorAll('script, style').forEach((element) => element.remove());
+    documentText.querySelectorAll('br').forEach((element) => element.replaceWith('\n'));
+    documentText.querySelectorAll('p, div, li, h1, h2, h3, blockquote').forEach((element) => element.append('\n'));
     const body = props.excerpt?.trim() || props.text || documentText.body.textContent || '';
     ctx.font = '400 38px sans-serif';
     ctx.fillStyle = '#d7cddd';
-    const maxLines = Math.max(1, Math.floor((1560 - y) / 53));
-    for (const line of lines(ctx, body, 900, maxLines)) { ctx.fillText(line, 90, y); y += 53; }
-    ctx.fillStyle = '#e6b8ff';
-    ctx.font = '500 28px sans-serif';
-    ctx.fillText(lines(ctx, props.author, 900, 1)[0] || 'NecrotixLab', 90, 1640);
+    const maxLines = Math.max(1, Math.floor((1650 - y) / 53));
+    for (const line of lines(ctx, body, 900, maxLines)) { ctx.fillText(line, 90, y, 900); y += 53; }
     ctx.fillStyle = '#b2a5bc';
     ctx.font = '400 25px sans-serif';
-    ctx.fillText('necrotixlab.com  ·  dr.necrotix', 90, 1720);
+    ctx.fillText('necrotixlab.com', 90, 1720);
     return new Promise((resolve, reject) => {
         canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('PNG unavailable')), 'image/png');
     });
@@ -86,6 +92,7 @@ async function makeStory(props: Props): Promise<Blob> {
 
 export function StoryShare(props: Props) {
     const dialog = useRef<HTMLDialogElement>(null);
+    const [layout, setLayout] = useState<StoryLayout>('photo');
     const [open, setOpen] = useState(false);
     const [ready, setReady] = useState<{ file: File; url: string } | null>(null);
     const [error, setError] = useState('');
@@ -105,7 +112,7 @@ export function StoryShare(props: Props) {
         let url: string | undefined;
         setReady(null);
         setError('');
-        void makeStory({ title, excerpt, text, html, image, author, locale }).then((blob) => {
+        void makeStory({ title, excerpt, text, html, image, author, locale }, layout).then((blob) => {
             if (cancelled) return;
             url = URL.createObjectURL(blob);
             setReady({ file: new File([blob], 'necrotixlab-story.png', { type: 'image/png' }), url });
@@ -120,7 +127,7 @@ export function StoryShare(props: Props) {
             element?.close();
             document.body.style.overflow = previous;
         };
-    }, [open, title, excerpt, text, html, image, author, locale]);
+    }, [open, title, excerpt, text, html, image, author, locale, layout]);
 
     const share = async () => {
         if (!ready || sharing) return;
@@ -143,7 +150,7 @@ export function StoryShare(props: Props) {
     };
 
     return <>
-        <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-fuchsia-500/25 px-3 text-xs text-foreground transition hover:bg-fuchsia-500/10 focus-visible:outline focus-visible:outline-2">
+        <button type="button" onClick={() => { setReady(null); setError(''); setOpen(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-fuchsia-500/25 px-3 text-xs text-foreground transition hover:bg-fuchsia-500/10 focus-visible:outline focus-visible:outline-2">
             <ImagePlus aria-hidden="true" className="size-4" />{label}
         </button>
         <dialog ref={dialog} onCancel={() => setOpen(false)} aria-label={label} className="fixed inset-0 m-auto max-h-[92dvh] w-[calc(100%_-_2rem)] max-w-md overflow-y-auto rounded-2xl border border-foreground/15 bg-background p-5 text-foreground backdrop:bg-black/80" data-watermark-ignore="true">
@@ -151,6 +158,15 @@ export function StoryShare(props: Props) {
                 <h2 className="text-lg font-semibold">{label}</h2>
                 <button autoFocus type="button" aria-label={bg ? 'Затвори' : 'Close'} onClick={() => setOpen(false)} className="grid size-11 shrink-0 place-items-center rounded-full border border-foreground/20"><X aria-hidden="true" className="size-5" /></button>
             </div>
+            <fieldset className="mb-4 flex flex-wrap gap-2" disabled={sharing}>
+                <legend className="mb-2 text-sm">{bg ? 'Оформление' : 'Layout'}</legend>
+                {([{ value: 'photo', label: bg ? 'Със снимка' : 'With image' }, { value: 'compact', label: bg ? 'Малка снимка, повече текст' : 'Small image, more text' }, { value: 'text', label: bg ? 'Само текст' : 'Text only' }] as const).map((option) => (
+                    <label key={option.value} className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-foreground/20 px-3 text-sm">
+                        <input type="radio" name="story-layout" value={option.value} checked={layout === option.value} disabled={option.value !== 'text' && !image} onChange={() => { setReady(null); setError(''); setLayout(option.value); }} />
+                        {option.label}
+                    </label>
+                ))}
+            </fieldset>
             {ready ? <img src={ready.url} alt={bg ? 'Преглед на стори картичката' : 'Story card preview'} width={1080} height={1920} className="mx-auto max-h-[48dvh] w-auto max-w-full rounded-lg" /> : !error ? <p role="status" className="py-12 text-center">{bg ? 'Подготвяне на картичката…' : 'Preparing your story…'}</p> : null}
             <p className="mt-4 text-sm text-muted-foreground">{bg ? 'Избери приложение от менюто на телефона или запази снимката и я добави към стори. За кликаем линк добави link стикер в приложението.' : 'Choose an app from your phone’s share menu, or save the image and add it to a story. Add a link sticker in the app for a clickable article link.'}</p>
             {error && <p role="alert" className="mt-3 text-sm text-rose-500">{error}</p>}
