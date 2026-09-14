@@ -48,7 +48,7 @@ async function makeStory(props: Props, layout: StoryLayout): Promise<Blob> {
     ctx.fillRect(0, 0, 1080, 1920);
     ctx.fillStyle = '#e6b8ff';
     ctx.font = '500 26px sans-serif';
-    ctx.fillText('NECROTIXLAB / JOURNAL', 90, 220);
+    ctx.fillText('Dr. Necrotix / Journal', 90, 220);
     const withImage = layout !== 'text' && Boolean(props.image);
     const imageHeight = layout === 'compact' ? 420 : 660;
     if (withImage) {
@@ -158,17 +158,25 @@ export function StoryShare(props: Props) {
                 <h2 className="text-lg font-semibold">{label}</h2>
                 <button autoFocus type="button" aria-label={bg ? 'Затвори' : 'Close'} onClick={() => setOpen(false)} className="grid size-11 shrink-0 place-items-center rounded-full border border-foreground/20"><X aria-hidden="true" className="size-5" /></button>
             </div>
-            <fieldset className="mb-4 flex flex-wrap gap-2" disabled={sharing}>
-                <legend className="mb-2 text-sm">{bg ? 'Оформление' : 'Layout'}</legend>
-                {([{ value: 'photo', label: bg ? 'Със снимка' : 'With image' }, { value: 'compact', label: bg ? 'Малка снимка, повече текст' : 'Small image, more text' }, { value: 'text', label: bg ? 'Само текст' : 'Text only' }] as const).map((option) => (
-                    <label key={option.value} className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-foreground/20 px-3 text-sm">
-                        <input type="radio" name="story-layout" value={option.value} checked={layout === option.value} disabled={option.value !== 'text' && !image} onChange={() => { setReady(null); setError(''); setLayout(option.value); }} />
-                        {option.label}
+            <fieldset className="mb-5 grid grid-cols-3 gap-2" disabled={sharing}>
+                <legend className="sr-only">{bg ? 'Оформление' : 'Layout'}</legend>
+                {([{ value: 'photo', label: bg ? 'Снимка' : 'Image' }, { value: 'compact', label: bg ? 'Компактно' : 'Compact' }, { value: 'text', label: bg ? 'Текст' : 'Text' }] as const).map((option) => (
+                    <label key={option.value} className="min-w-0">
+                        <input className="peer sr-only" type="radio" name="story-layout" value={option.value} checked={layout === option.value} disabled={option.value !== 'text' && !image} onChange={() => { setReady(null); setError(''); setLayout(option.value); }} />
+                        <span className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-foreground/15 bg-foreground/[0.025] p-2 text-xs text-muted-foreground transition-colors peer-checked:border-fuchsia-400/70 peer-checked:bg-fuchsia-500/10 peer-checked:text-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-fuchsia-400 peer-disabled:cursor-not-allowed peer-disabled:opacity-35">
+                            <span aria-hidden="true" className="flex h-12 w-8 flex-col gap-1 rounded border border-current/40 p-1">
+                                {option.value !== 'text' && <span className={option.value === 'photo' ? 'h-5 rounded-sm bg-current opacity-40' : 'h-2.5 rounded-sm bg-current opacity-40'} />}
+                                <span className="h-0.5 w-full bg-current opacity-70" />
+                                <span className="h-0.5 w-full bg-current opacity-40" />
+                                <span className="h-0.5 w-2/3 bg-current opacity-40" />
+                                {option.value !== 'photo' && <span className="h-0.5 w-full bg-current opacity-40" />}
+                            </span>
+                            {option.label}
+                        </span>
                     </label>
                 ))}
             </fieldset>
             {ready ? <img src={ready.url} alt={bg ? 'Преглед на стори картичката' : 'Story card preview'} width={1080} height={1920} className="mx-auto max-h-[48dvh] w-auto max-w-full rounded-lg" /> : !error ? <p role="status" className="py-12 text-center">{bg ? 'Подготвяне на картичката…' : 'Preparing your story…'}</p> : null}
-            <p className="mt-4 text-sm text-muted-foreground">{bg ? 'Избери приложение от менюто на телефона или запази снимката и я добави към стори. За кликаем линк добави link стикер в приложението.' : 'Choose an app from your phone’s share menu, or save the image and add it to a story. Add a link sticker in the app for a clickable article link.'}</p>
             {error && <p role="alert" className="mt-3 text-sm text-rose-500">{error}</p>}
             <button type="button" onClick={() => { void navigator.clipboard.writeText(window.location.href).then(() => setLinkCopied(true)).catch(() => setError(bg ? 'Копирай адреса от браузъра.' : 'Copy the address from your browser.')); }} className="mt-3 min-h-11 text-sm underline">{linkCopied ? (bg ? 'Линкът е копиран' : 'Link copied') : (bg ? 'Копирай линк за стикер' : 'Copy link for sticker')}</button>
             <div className="mt-4 flex flex-wrap gap-2">
