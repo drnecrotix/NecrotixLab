@@ -84,7 +84,7 @@ async function makeStory(props: Props, layout: StoryLayout): Promise<Blob> {
     for (const line of lines(ctx, body, 900, maxLines)) { ctx.fillText(line, 90, y, 900); y += 53; }
     ctx.fillStyle = '#b2a5bc';
     ctx.font = '400 25px sans-serif';
-    ctx.fillText('necrotixlab.com', 90, 1720);
+    ctx.fillText('Niko | NecrotixLab.com', 90, 1720);
     return new Promise((resolve, reject) => {
         canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('PNG unavailable')), 'image/png');
     });
