@@ -34,6 +34,7 @@ const navGroups = [
         ['Navigation', '/admin/navigation'],
         ['Footer', '/admin/footer'],
         ['Watermark', '/admin/watermark'],
+        ['PWA App', '/admin/pwa'],
     ]],
     ['Publishing & SEO', [
         ['Revisions', '/admin/revisions'],
