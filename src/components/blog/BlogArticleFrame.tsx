@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { StoryShare } from '@/components/blog/StoryShare';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, ArrowUpRight, Check, Clock3, Copy, Eye, Heart, Languages, Share2, X } from 'lucide-react';
@@ -254,7 +255,7 @@ export function BlogArticleFrame({
 
             <div className="container mx-auto mt-9 max-w-6xl px-6">
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.16 }} className={cn('mx-auto flex flex-wrap items-center justify-between gap-3 border-y border-foreground/10 py-3.5', compactPublication ? 'max-w-2xl' : 'max-w-3xl')}>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <motion.button type="button" onClick={() => void toggleLike()} disabled={liking} aria-pressed={liked} aria-label={liked ? 'Unlike this publication' : 'Like this publication'} whileTap={{ scale: 0.92 }} className={cn('inline-flex h-9 items-center gap-2 rounded-full border px-3 text-xs font-medium transition', liked ? 'border-rose-500/25 bg-rose-500/10 text-rose-500' : 'border-foreground/10 bg-foreground/[0.03] text-muted-foreground hover:text-foreground')}>
                             <Heart className={cn('h-4 w-4', liked && 'fill-current')} />
                             <span>{formatCompactCount(likeCount)}</span>
@@ -269,6 +270,8 @@ export function BlogArticleFrame({
                             <Copy className="h-4 w-4" /><span>Copy link</span>
                         </button>
                     </div>
+
+                    <StoryShare title={displayTitle} excerpt={displayExcerpt} text={displayContent.text ?? ''} html={displayContent.html ?? ''} image={displayContent.featuredImage || featuredImage} author={author} locale={activeLocale} />
 
                     {showLanguageSwitch && (
                         <motion.div layout className="inline-flex h-9 items-center gap-1 rounded-full border border-foreground/10 bg-foreground/[0.03] p-1" aria-label="Publication language">

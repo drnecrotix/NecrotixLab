@@ -71,6 +71,8 @@ export async function generateMetadata(): Promise<Metadata> {
         description: seo.description,
         keywords: seo.keywords,
         applicationName: seo.applicationName,
+        manifest: '/manifest.webmanifest',
+        appleWebApp: { capable: true, title: 'NecrotixLab', statusBarStyle: 'default' },
         authors: [{ name: seo.authorName }],
         creator: seo.creatorName,
         publisher: seo.publisherName,
