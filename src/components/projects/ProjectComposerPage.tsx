@@ -179,10 +179,12 @@ export function ProjectComposerPage({ project }: { project: Project }) {
     return (
         <div className="min-h-screen bg-background pb-24 pt-24 text-foreground sm:pt-32">
             <header className="container mx-auto mb-12 max-w-7xl px-6">
-                <button onClick={handleExit} className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/50 bg-secondary/10 px-3.5 py-2 text-sm text-muted-foreground transition hover:bg-secondary/20 hover:text-foreground">
-                    <ArrowLeft className="h-4 w-4" /> {t('sections.backToProjects')}
-                </button>
-                <ProjectStatusBadge status={project.status} className="mb-6" />
+                <div className="mb-7 flex flex-wrap items-center gap-2.5">
+                    <button onClick={handleExit} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-border/50 bg-secondary/10 px-3.5 py-2 text-sm text-muted-foreground transition-[color,background-color,border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-border hover:bg-secondary/20 hover:text-foreground motion-reduce:transform-none motion-reduce:transition-none">
+                        <ArrowLeft className="h-4 w-4" /> {t('sections.backToProjects')}
+                    </button>
+                    <ProjectStatusBadge status={project.status} variant="hero" />
+                </div>
                 <h1 className="mb-6 break-words text-4xl font-black uppercase leading-none tracking-tight md:text-5xl lg:text-7xl">{project.title}</h1>
                 <p className="max-w-3xl text-xl font-light leading-relaxed text-muted-foreground/80 md:text-2xl">{project.description}</p>
             </header>
