@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ImagePlus, X } from 'lucide-react';
 
-type Props = { title: string; excerpt: string | null; text: string; html: string; image: string | null; author: string; locale: 'en' | 'bg' };
+type Props = { title: string; excerpt: string | null; text: string; html: string; image: string | null; author: string; watermarkText?: string; locale: 'en' | 'bg' };
 
 function lines(ctx: CanvasRenderingContext2D, text: string, width: number, limit: number) {
     const result: string[] = [];
@@ -64,7 +64,24 @@ async function makeStory(props: Props, layout: StoryLayout): Promise<Blob> {
         const scale = Math.min(900 / picture.naturalWidth, imageHeight / picture.naturalHeight);
         const width = picture.naturalWidth * scale;
         const height = picture.naturalHeight * scale;
-        ctx.drawImage(picture, 90 + (900 - width) / 2, 290 + (imageHeight - height) / 2, width, height);
+        const x = 90 + (900 - width) / 2;
+        const top = 290 + (imageHeight - height) / 2;
+        const radius = Math.min(24, width / 2, height / 2);
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x + radius, top);
+        ctx.lineTo(x + width - radius, top);
+        ctx.quadraticCurveTo(x + width, top, x + width, top + radius);
+        ctx.lineTo(x + width, top + height - radius);
+        ctx.quadraticCurveTo(x + width, top + height, x + width - radius, top + height);
+        ctx.lineTo(x + radius, top + height);
+        ctx.quadraticCurveTo(x, top + height, x, top + height - radius);
+        ctx.lineTo(x, top + radius);
+        ctx.quadraticCurveTo(x, top, x + radius, top);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(picture, x, top, width, height);
+        ctx.restore();
     }
     let y = withImage ? 290 + imageHeight + 70 : 330;
     ctx.textBaseline = 'top';
@@ -84,7 +101,7 @@ async function makeStory(props: Props, layout: StoryLayout): Promise<Blob> {
     for (const line of lines(ctx, body, 900, maxLines)) { ctx.fillText(line, 90, y, 900); y += 53; }
     ctx.fillStyle = '#b2a5bc';
     ctx.font = '400 25px sans-serif';
-    ctx.fillText('Niko | NecrotixLab.com', 90, 1720);
+    if (props.watermarkText) ctx.fillText(props.watermarkText, 90, 1720, 900);
     return new Promise((resolve, reject) => {
         canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('PNG unavailable')), 'image/png');
     });
@@ -100,7 +117,7 @@ export function StoryShare(props: Props) {
     const [linkCopied, setLinkCopied] = useState(false);
     const bg = props.locale === 'bg';
     const label = bg ? 'Сподели като стори' : 'Share as story';
-    const { title, excerpt, text, html, image, author, locale } = props;
+    const { title, excerpt, text, html, image, author, watermarkText, locale } = props;
 
     useEffect(() => {
         if (!open) return;
