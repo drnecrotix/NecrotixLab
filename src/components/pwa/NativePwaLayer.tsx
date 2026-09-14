@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -13,10 +13,12 @@ import {
     Mail,
     Map,
     MoreHorizontal,
+    RefreshCw,
     Settings,
     Sparkles,
     Store,
     User,
+    WifiOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { enabledPwaTabs, type PwaSettings, type PwaTabIcon } from '@/lib/pwa-settings';
@@ -44,7 +46,7 @@ const iconMap: Record<PwaTabIcon, typeof Home> = {
 
 function isStandaloneDisplay() {
     if (typeof window === 'undefined') return false;
-    const media = window.matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)');
+    const media = window.matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay)');
     const ios = 'standalone' in window.navigator && Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
     return media.matches || ios;
 }
@@ -75,6 +77,13 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
     const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
     const [installDismissed, setInstallDismissed] = useState(false);
     const [iosHint, setIosHint] = useState(false);
+    const [offline, setOffline] = useState(false);
+    const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+    const [pullOffset, setPullOffset] = useState(0);
+    const [refreshing, setRefreshing] = useState(false);
+    const pullRef = useRef(0);
+    const startY = useRef(0);
+    const pulling = useRef(false);
     const isAdmin = pathname.startsWith('/admin');
     const tabs = useMemo(() => enabledPwaTabs(settings), [settings]);
 
@@ -87,7 +96,7 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
         };
         sync();
         setHydrated(true);
-        const media = window.matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)');
+        const media = window.matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay)');
         media.addEventListener('change', sync);
         return () => media.removeEventListener('change', sync);
     }, [settings.backgroundColor]);
@@ -118,6 +127,99 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
         if (!dismissed) setIosHint(true);
     }, [isAdmin, standalone, settings.showIosInstallHint]);
 
+    useEffect(() => {
+        if (!settings.offlineBannerEnabled) return;
+        const sync = () => setOffline(!window.navigator.onLine);
+        sync();
+        window.addEventListener('online', sync);
+        window.addEventListener('offline', sync);
+        return () => {
+            window.removeEventListener('online', sync);
+            window.removeEventListener('offline', sync);
+        };
+    }, [settings.offlineBannerEnabled]);
+
+    useEffect(() => {
+        if (!('serviceWorker' in navigator) || isAdmin) return;
+
+        if (!settings.serviceWorkerEnabled) {
+            void navigator.serviceWorker.getRegistrations().then((regs) => {
+                regs
+                    .filter((reg) => (reg.active?.scriptURL || reg.waiting?.scriptURL || '').includes('pwa-sw.js'))
+                    .forEach((reg) => void reg.unregister());
+            });
+            return;
+        }
+
+        let registration: ServiceWorkerRegistration | undefined;
+        const onUpdateFound = () => {
+            const worker = registration?.installing;
+            if (!worker) return;
+            worker.addEventListener('statechange', () => {
+                if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                    setWaitingWorker(worker);
+                }
+            });
+        };
+
+        void navigator.serviceWorker.register(
+            settings.offlineFallbackEnabled ? '/pwa-sw.js?offline=1' : '/pwa-sw.js',
+            { scope: '/' },
+        ).then((reg) => {
+            registration = reg;
+            if (reg.waiting) setWaitingWorker(reg.waiting);
+            reg.addEventListener('updatefound', onUpdateFound);
+        }).catch(() => {
+            // Hosts without SW support still get native chrome.
+        });
+
+        return () => {
+            registration?.removeEventListener('updatefound', onUpdateFound);
+        };
+    }, [isAdmin, settings.serviceWorkerEnabled, settings.offlineFallbackEnabled]);
+
+    useEffect(() => {
+        if (!standalone || !settings.pullToRefresh || isAdmin) return;
+
+        const onStart = (event: TouchEvent) => {
+            if (window.scrollY > 2) return;
+            startY.current = event.touches[0]?.clientY ?? 0;
+            pulling.current = true;
+        };
+        const onMove = (event: TouchEvent) => {
+            if (!pulling.current) return;
+            const dy = (event.touches[0]?.clientY ?? 0) - startY.current;
+            if (dy <= 0) {
+                pullRef.current = 0;
+                setPullOffset(0);
+                return;
+            }
+            const next = Math.min(72, dy * 0.42);
+            pullRef.current = next;
+            setPullOffset(next);
+        };
+        const onEnd = () => {
+            if (!pulling.current) return;
+            pulling.current = false;
+            if (pullRef.current > 54) {
+                setRefreshing(true);
+                window.setTimeout(() => window.location.reload(), 240);
+                return;
+            }
+            pullRef.current = 0;
+            setPullOffset(0);
+        };
+
+        window.addEventListener('touchstart', onStart, { passive: true });
+        window.addEventListener('touchmove', onMove, { passive: true });
+        window.addEventListener('touchend', onEnd);
+        return () => {
+            window.removeEventListener('touchstart', onStart);
+            window.removeEventListener('touchmove', onMove);
+            window.removeEventListener('touchend', onEnd);
+        };
+    }, [standalone, settings.pullToRefresh, isAdmin]);
+
     const install = useCallback(async () => {
         if (!installEvent) return;
         await installEvent.prompt();
@@ -126,11 +228,19 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
         setInstallEvent(null);
     }, [installEvent]);
 
+    const applyUpdate = useCallback(() => {
+        waitingWorker?.postMessage('SKIP_WAITING');
+        window.setTimeout(() => window.location.reload(), 80);
+    }, [waitingWorker]);
+
     if (isAdmin) return null;
 
     const showTabs = hydrated && standalone && settings.nativeChrome && tabs.length > 0;
     const showInstall = hydrated && !standalone && settings.showInstallPrompt && Boolean(installEvent) && !installDismissed;
     const showIos = hydrated && !standalone && iosHint;
+    const showOffline = hydrated && standalone && settings.offlineBannerEnabled && offline;
+    const showUpdate = hydrated && standalone && settings.updatePromptEnabled && Boolean(waitingWorker);
+    const showPull = standalone && settings.pullToRefresh && (pullOffset > 0 || refreshing);
 
     return (
         <>
@@ -140,6 +250,36 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
                         <img src={settings.appleIconUrl || settings.iconUrl} alt="" className="size-16 rounded-2xl object-contain" />
                         <p className="text-sm font-semibold tracking-tight">{settings.shortName}</p>
                     </div>
+                </div>
+            ) : null}
+
+            {showPull ? (
+                <div
+                    className="pointer-events-none fixed inset-x-0 z-[145] flex justify-center"
+                    style={{ top: `calc(${Math.max(pullOffset - 10, 8)}px + env(safe-area-inset-top, 0px))` }}
+                >
+                    <span className="grid size-8 place-items-center rounded-full border border-white/10 bg-black/70 text-white">
+                        <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
+                    </span>
+                </div>
+            ) : null}
+
+            {showOffline ? (
+                <div className="pointer-events-none fixed inset-x-0 top-0 z-[146] flex justify-center px-4 pt-[max(0.7rem,env(safe-area-inset-top))]">
+                    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/80 px-3 py-1.5 text-[11px] text-white shadow-2xl">
+                        <WifiOff className="size-3.5" />
+                        You're offline. Cached pages stay available.
+                    </div>
+                </div>
+            ) : null}
+
+            {showUpdate ? (
+                <div className="fixed inset-x-3 bottom-24 z-[141] rounded-2xl border border-white/10 bg-black/85 p-3 text-white shadow-2xl backdrop-blur-xl sm:left-auto sm:right-4 sm:w-[360px]">
+                    <p className="text-xs font-semibold">Update available</p>
+                    <p className="mt-1 text-[11px] leading-5 text-white/55">A newer version of {settings.shortName} is ready.</p>
+                    <button type="button" onClick={applyUpdate} className="mt-3 w-full rounded-xl bg-white px-3 py-2 text-[11px] font-semibold text-black">
+                        Reload
+                    </button>
                 </div>
             ) : null}
 

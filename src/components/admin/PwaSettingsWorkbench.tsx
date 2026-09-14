@@ -16,10 +16,15 @@ import {
 import { MediaPicker } from '@/components/admin/MediaPicker';
 import { savePwaSettings } from '@/app/admin/(protected)/pwa/actions';
 import {
+    PWA_CATEGORIES,
     PWA_TAB_ICONS,
     defaultPwaSettings,
     enabledPwaTabs,
+    pwaSettingsToManifest,
+    type PwaCategory,
     type PwaDisplayMode,
+    type PwaHandleLinks,
+    type PwaLaunchHandler,
     type PwaOrientation,
     type PwaSettings,
     type PwaShortcut,
@@ -31,12 +36,14 @@ import {
 
 const field = 'mt-1.5 w-full rounded-xl border border-foreground/10 bg-foreground/[0.025] px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-sky-400/40 focus:bg-foreground/[0.04]';
 
-type SectionId = 'identity' | 'chrome' | 'tabs' | 'install';
+type SectionId = 'identity' | 'chrome' | 'tabs' | 'manifest' | 'offline' | 'install';
 
 const sections: Array<{ id: SectionId; label: string; hint: string }> = [
     { id: 'identity', label: 'App identity', hint: 'Name, icons, start URL' },
     { id: 'chrome', label: 'Native chrome', hint: 'Tab bar and status bar' },
     { id: 'tabs', label: 'Tab bar', hint: 'Installed app navigation' },
+    { id: 'manifest', label: 'Manifest extras', hint: 'Screenshots, WCO, share' },
+    { id: 'offline', label: 'Offline & updates', hint: 'Opt-in service worker' },
     { id: 'install', label: 'Install prompts', hint: 'Browser banners only if enabled' },
 ];
 
@@ -89,6 +96,9 @@ function PhonePreview({ settings }: { settings: PwaSettings }) {
                             <p className="text-[9px] uppercase tracking-[0.22em] text-white/30">Home screen</p>
                             <h4 className="mt-2 text-lg font-semibold tracking-tight text-white">{settings.name}</h4>
                             <p className="mt-2 line-clamp-3 text-[11px] leading-5 text-white/45">{settings.description}</p>
+                            <p className="mt-3 text-[9px] uppercase tracking-[0.18em] text-white/25">
+                                {settings.display} · SW {settings.serviceWorkerEnabled ? 'on' : 'off'}
+                            </p>
                         </div>
                         {settings.nativeChrome ? (
                             <div className={`absolute inset-x-2 bottom-2 grid grid-flow-col auto-cols-fr gap-1 ${settings.tabBarStyle === 'floating' ? 'rounded-2xl border border-white/10 bg-white/8 p-1' : 'border-t border-white/10 pt-1'}`}>
@@ -118,6 +128,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
     const [active, setActive] = useState<SectionId>('identity');
     const [settings, setSettings] = useState(initial);
     const [status, setStatus] = useState<{ ok: boolean; message: string; savedAt?: string } | null>(null);
+    const [showManifest, setShowManifest] = useState(false);
 
     const setTop = <K extends keyof PwaSettings>(key: K, value: PwaSettings[K]) => {
         setSettings((current) => ({ ...current, [key]: value }));
@@ -148,6 +159,16 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
         });
     };
 
+    const toggleCategory = (category: PwaCategory) => {
+        setSettings((current) => {
+            const on = current.categories.includes(category);
+            const categories = on
+                ? current.categories.filter((item) => item !== category)
+                : [...current.categories, category];
+            return { ...current, categories: categories.length ? categories.slice(0, 5) : ['portfolio'] };
+        });
+    };
+
     const submit = () => {
         const form = new FormData();
         form.set('name', settings.name);
@@ -155,23 +176,39 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
         form.set('description', settings.description);
         form.set('startUrl', settings.startUrl);
         form.set('scope', settings.scope);
+        form.set('id', settings.id);
+        form.set('lang', settings.lang);
         form.set('display', settings.display);
         form.set('orientation', settings.orientation);
         form.set('backgroundColor', settings.backgroundColor);
         form.set('themeColor', settings.themeColor);
         form.set('themeColorLight', settings.themeColorLight);
         form.set('iconUrl', settings.iconUrl);
+        form.set('icon192Url', settings.icon192Url);
+        form.set('icon512Url', settings.icon512Url);
         form.set('appleIconUrl', settings.appleIconUrl);
         form.set('maskableIconUrl', settings.maskableIconUrl);
+        form.set('screenshotNarrowUrl', settings.screenshotNarrowUrl);
+        form.set('screenshotWideUrl', settings.screenshotWideUrl);
+        form.set('handleLinks', settings.handleLinks);
+        form.set('launchHandler', settings.launchHandler);
         form.set('statusBarStyle', settings.statusBarStyle);
         form.set('tabBarStyle', settings.tabBarStyle);
+        if (settings.displayOverrideWco) form.set('displayOverrideWco', 'on');
+        if (settings.shareTargetEnabled) form.set('shareTargetEnabled', 'on');
         if (settings.nativeChrome) form.set('nativeChrome', 'on');
         if (settings.hideSiteChrome) form.set('hideSiteChrome', 'on');
         if (settings.showInstallPrompt) form.set('showInstallPrompt', 'on');
         if (settings.showIosInstallHint) form.set('showIosInstallHint', 'on');
         if (settings.splashEnabled) form.set('splashEnabled', 'on');
+        if (settings.serviceWorkerEnabled) form.set('serviceWorkerEnabled', 'on');
+        if (settings.offlineFallbackEnabled) form.set('offlineFallbackEnabled', 'on');
+        if (settings.pullToRefresh) form.set('pullToRefresh', 'on');
+        if (settings.updatePromptEnabled) form.set('updatePromptEnabled', 'on');
+        if (settings.offlineBannerEnabled) form.set('offlineBannerEnabled', 'on');
         form.set('tabs', JSON.stringify(settings.tabs));
         form.set('shortcuts', JSON.stringify(settings.shortcuts));
+        form.set('categories', JSON.stringify(settings.categories));
 
         startTransition(async () => {
             const result = await savePwaSettings(form);
@@ -182,6 +219,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
     };
 
     const tabCount = useMemo(() => enabledPwaTabs(settings).length, [settings]);
+    const manifestPreview = useMemo(() => pwaSettingsToManifest(settings), [settings]);
 
     return (
         <div className="space-y-5">
@@ -189,7 +227,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                     <MonitorSmartphone className="size-3.5" /> Admin / PWA
                 </div>
-                <div className="text-[10px] text-muted-foreground">{tabCount} visible tabs · {settings.display}</div>
+                <div className="text-[10px] text-muted-foreground">{tabCount} visible tabs · {settings.display} · SW {settings.serviceWorkerEnabled ? 'on' : 'off'}</div>
             </div>
 
             <div className="grid min-w-0 gap-5 xl:grid-cols-[190px_minmax(0,1fr)_320px]">
@@ -216,13 +254,15 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
 
                 <div className="min-w-0 rounded-2xl border border-foreground/10 bg-foreground/[0.018] p-5 sm:p-6">
                     {active === 'identity' ? (
-                        <Panel title="Installed app identity" description="Used by the web app manifest, home-screen icon and splash. The public website title and SEO stay on Settings / SEO.">
+                        <Panel title="Installed app identity" description="Used by the web app manifest, home-screen icon and splash. The public website title and SEO stay on Settings / SEO. Icon sizes follow SuperPWA and vite-plugin-pwa (192 / 512).">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <label className="text-xs text-muted-foreground">App name<input value={settings.name} onChange={(event) => setTop('name', event.target.value)} className={field} maxLength={60} /></label>
                                 <label className="text-xs text-muted-foreground">Short name<input value={settings.shortName} onChange={(event) => setTop('shortName', event.target.value)} className={field} maxLength={20} /></label>
                                 <label className="text-xs text-muted-foreground md:col-span-2">Description<textarea value={settings.description} onChange={(event) => setTop('description', event.target.value)} className={`${field} min-h-24`} maxLength={180} /></label>
                                 <label className="text-xs text-muted-foreground">Start URL<input value={settings.startUrl} onChange={(event) => setTop('startUrl', event.target.value)} className={field} /></label>
                                 <label className="text-xs text-muted-foreground">Scope<input value={settings.scope} onChange={(event) => setTop('scope', event.target.value)} className={field} /></label>
+                                <label className="text-xs text-muted-foreground">Manifest ID<input value={settings.id} onChange={(event) => setTop('id', event.target.value)} className={field} /></label>
+                                <label className="text-xs text-muted-foreground">Language<input value={settings.lang} onChange={(event) => setTop('lang', event.target.value)} className={field} maxLength={8} /></label>
                                 <label className="text-xs text-muted-foreground">Display
                                     <select value={settings.display} onChange={(event) => setTop('display', event.target.value as PwaDisplayMode)} className={field}>
                                         <option value="standalone">Standalone — native app</option>
@@ -239,6 +279,8 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                     </select>
                                 </label>
                                 <div className="md:col-span-2"><MediaPicker label="App icon" value={settings.iconUrl} onChange={(url) => setTop('iconUrl', url)} initialKind="image" lockKind /></div>
+                                <div className="md:col-span-2"><MediaPicker label="192×192 PNG (install UI)" value={settings.icon192Url} onChange={(url) => setTop('icon192Url', url)} initialKind="image" lockKind /></div>
+                                <div className="md:col-span-2"><MediaPicker label="512×512 PNG (splash / maskable source)" value={settings.icon512Url} onChange={(url) => setTop('icon512Url', url)} initialKind="image" lockKind /></div>
                                 <div className="md:col-span-2"><MediaPicker label="Apple touch icon" value={settings.appleIconUrl} onChange={(url) => setTop('appleIconUrl', url)} initialKind="image" lockKind /></div>
                                 <div className="md:col-span-2"><MediaPicker label="Maskable icon (optional PNG)" value={settings.maskableIconUrl} onChange={(url) => setTop('maskableIconUrl', url)} initialKind="image" lockKind /></div>
                             </div>
@@ -251,6 +293,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                 <Toggle checked={settings.nativeChrome} onChange={(value) => setTop('nativeChrome', value)} label="Native tab bar" hint="Show a bottom tab bar when the site is opened as an installed app." />
                                 <Toggle checked={settings.hideSiteChrome} onChange={(value) => setTop('hideSiteChrome', value)} label="Hide website nav in the installed app" hint="Hides the public navbar and footer only in standalone/fullscreen display mode." />
                                 <Toggle checked={settings.splashEnabled} onChange={(value) => setTop('splashEnabled', value)} label="Launch splash" hint="A short branded splash on first open of an installed session." />
+                                <Toggle checked={settings.pullToRefresh} onChange={(value) => setTop('pullToRefresh', value)} label="Pull to refresh" hint="Native pull gesture in the installed app only. Off in regular browser tabs." />
                                 <label className="text-xs text-muted-foreground">Tab bar style
                                     <select value={settings.tabBarStyle} onChange={(event) => setTop('tabBarStyle', event.target.value as PwaTabBarStyle)} className={field}>
                                         <option value="docked">Docked</option>
@@ -314,6 +357,69 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                         );
                                     })}
                                 </div>
+                            </div>
+                        </Panel>
+                    ) : null}
+
+                    {active === 'manifest' ? (
+                        <Panel title="Manifest extras" description="Mirrors vite-plugin-pwa ManifestOptions and SuperPWA install-UI fields: screenshots, display_override, handle_links, launch_handler, categories and share_target.">
+                            <div className="space-y-3">
+                                <Toggle checked={settings.displayOverrideWco} onChange={(value) => setTop('displayOverrideWco', value)} label="Window controls overlay" hint="Adds display_override: window-controls-overlay for installed desktop PWAs." />
+                                <Toggle checked={settings.shareTargetEnabled} onChange={(value) => setTop('shareTargetEnabled', value)} label="Share target" hint="Lets other apps share links into /contact. Off by default." />
+                                <label className="text-xs text-muted-foreground">Handle links
+                                    <select value={settings.handleLinks} onChange={(event) => setTop('handleLinks', event.target.value as PwaHandleLinks)} className={field}>
+                                        <option value="preferred">Preferred — open necrotixlab.com in the app</option>
+                                        <option value="auto">Auto</option>
+                                        <option value="not-preferred">Not preferred</option>
+                                    </select>
+                                </label>
+                                <label className="text-xs text-muted-foreground">Launch handler
+                                    <select value={settings.launchHandler} onChange={(event) => setTop('launchHandler', event.target.value as PwaLaunchHandler)} className={field}>
+                                        <option value="navigate-existing">Reuse the open window</option>
+                                        <option value="focus-existing">Focus existing</option>
+                                        <option value="navigate-new">Always a new window</option>
+                                        <option value="auto">Auto</option>
+                                    </select>
+                                </label>
+                                <div>
+                                    <p className="mb-2 text-xs text-muted-foreground">Categories</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {PWA_CATEGORIES.map((category) => {
+                                            const on = settings.categories.includes(category);
+                                            return (
+                                                <button
+                                                    key={category}
+                                                    type="button"
+                                                    onClick={() => toggleCategory(category)}
+                                                    className={`rounded-full border px-3 py-1.5 text-[11px] capitalize ${on ? 'border-sky-400/40 bg-sky-400/10 text-foreground' : 'border-foreground/10 text-muted-foreground'}`}
+                                                >
+                                                    {category}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="md:col-span-2"><MediaPicker label="Narrow screenshot (phone install UI)" value={settings.screenshotNarrowUrl} onChange={(url) => setTop('screenshotNarrowUrl', url)} initialKind="image" lockKind /></div>
+                                <div className="md:col-span-2"><MediaPicker label="Wide screenshot (desktop install UI)" value={settings.screenshotWideUrl} onChange={(url) => setTop('screenshotWideUrl', url)} initialKind="image" lockKind /></div>
+                                <button type="button" onClick={() => setShowManifest((value) => !value)} className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                                    {showManifest ? 'Hide generated manifest' : 'Show generated manifest'}
+                                </button>
+                                {showManifest ? (
+                                    <pre className="max-h-72 overflow-auto rounded-xl border border-foreground/10 bg-background/50 p-3 font-mono text-[10px] leading-4 text-muted-foreground">
+                                        {JSON.stringify(manifestPreview, null, 2)}
+                                    </pre>
+                                ) : null}
+                            </div>
+                        </Panel>
+                    ) : null}
+
+                    {active === 'offline' ? (
+                        <Panel title="Offline & updates" description="Service worker stays off until you enable it, so production cache is never hijacked by default. Patterns from SuperPWA cache + vite-plugin-pwa update prompts.">
+                            <div className="space-y-3">
+                                <Toggle checked={settings.serviceWorkerEnabled} onChange={(value) => setTop('serviceWorkerEnabled', value)} label="Register service worker" hint="Opt-in. Serves /pwa-sw.js with network-first navigation and does not cache /admin or /api." />
+                                <Toggle checked={settings.offlineFallbackEnabled} onChange={(value) => setTop('offlineFallbackEnabled', value)} label="Offline fallback page" hint="When enabled, failed navigations show /offline.html from the worker cache." />
+                                <Toggle checked={settings.updatePromptEnabled} onChange={(value) => setTop('updatePromptEnabled', value)} label="Update prompt" hint="Ask before swapping a waiting worker. Only appears in the installed app." />
+                                <Toggle checked={settings.offlineBannerEnabled} onChange={(value) => setTop('offlineBannerEnabled', value)} label="Offline banner" hint="A small status chip when the installed app loses the network." />
                             </div>
                         </Panel>
                     ) : null}

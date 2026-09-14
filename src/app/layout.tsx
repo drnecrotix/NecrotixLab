@@ -110,14 +110,22 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-export const viewport: Viewport = {
-    themeColor: [
-        { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-        { media: '(prefers-color-scheme: dark)', color: '#0a0a0f' },
-    ],
-    width: 'device-width', initialScale: 1, minimumScale: 1,
-    viewportFit: 'cover',
-};
+export async function generateViewport(): Promise<Viewport> {
+    let pwa = defaultPwaSettings;
+    try {
+        pwa = await getPwaSettings();
+    } catch {
+        // Keep the existing light/dark theme-color pair when CMS is unavailable.
+    }
+    return {
+        themeColor: [
+            { media: '(prefers-color-scheme: light)', color: pwa.themeColorLight },
+            { media: '(prefers-color-scheme: dark)', color: pwa.themeColor },
+        ],
+        width: 'device-width', initialScale: 1, minimumScale: 1,
+        viewportFit: 'cover',
+    };
+}
 
 import { ThemeAwareClickSpark } from '@/components/ui/ThemeAwareClickSpark';
 import { ConditionalNavigation } from '@/components/layout/ConditionalNavigation';

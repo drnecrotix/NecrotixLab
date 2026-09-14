@@ -16,11 +16,25 @@ export const PWA_TAB_ICONS = [
     'settings',
 ] as const;
 
+export const PWA_CATEGORIES = [
+    'portfolio',
+    'productivity',
+    'utilities',
+    'lifestyle',
+    'news',
+    'education',
+    'entertainment',
+    'social',
+] as const;
+
 export type PwaTabIcon = (typeof PWA_TAB_ICONS)[number];
+export type PwaCategory = (typeof PWA_CATEGORIES)[number];
 export type PwaDisplayMode = 'standalone' | 'fullscreen' | 'minimal-ui' | 'browser';
 export type PwaOrientation = 'any' | 'portrait' | 'landscape';
 export type PwaStatusBarStyle = 'default' | 'black' | 'black-translucent';
 export type PwaTabBarStyle = 'docked' | 'floating';
+export type PwaHandleLinks = 'auto' | 'preferred' | 'not-preferred';
+export type PwaLaunchHandler = 'auto' | 'navigate-existing' | 'navigate-new' | 'focus-existing';
 
 export type PwaTabItem = {
     id: string;
@@ -42,14 +56,25 @@ export type PwaSettings = {
     description: string;
     startUrl: string;
     scope: string;
+    id: string;
+    lang: string;
     display: PwaDisplayMode;
     orientation: PwaOrientation;
     backgroundColor: string;
     themeColor: string;
     themeColorLight: string;
     iconUrl: string;
+    icon192Url: string;
+    icon512Url: string;
     appleIconUrl: string;
     maskableIconUrl: string;
+    screenshotNarrowUrl: string;
+    screenshotWideUrl: string;
+    categories: PwaCategory[];
+    handleLinks: PwaHandleLinks;
+    launchHandler: PwaLaunchHandler;
+    displayOverrideWco: boolean;
+    shareTargetEnabled: boolean;
     statusBarStyle: PwaStatusBarStyle;
     nativeChrome: boolean;
     tabBarStyle: PwaTabBarStyle;
@@ -57,6 +82,11 @@ export type PwaSettings = {
     showInstallPrompt: boolean;
     showIosInstallHint: boolean;
     splashEnabled: boolean;
+    serviceWorkerEnabled: boolean;
+    offlineFallbackEnabled: boolean;
+    pullToRefresh: boolean;
+    updatePromptEnabled: boolean;
+    offlineBannerEnabled: boolean;
     tabs: PwaTabItem[];
     shortcuts: PwaShortcut[];
 };
@@ -67,14 +97,25 @@ export const defaultPwaSettings: PwaSettings = {
     description: 'Journal, projects and tools by dr.necrotix.',
     startUrl: '/blog',
     scope: '/',
+    id: '/',
+    lang: 'en',
     display: 'standalone',
     orientation: 'any',
     backgroundColor: '#0c0a12',
     themeColor: '#0c0a12',
     themeColorLight: '#ffffff',
     iconUrl: '/favicon.svg',
+    icon192Url: '',
+    icon512Url: '',
     appleIconUrl: '/favicon.svg',
     maskableIconUrl: '',
+    screenshotNarrowUrl: '',
+    screenshotWideUrl: '',
+    categories: ['portfolio', 'productivity'],
+    handleLinks: 'preferred',
+    launchHandler: 'navigate-existing',
+    displayOverrideWco: false,
+    shareTargetEnabled: false,
     statusBarStyle: 'default',
     nativeChrome: true,
     tabBarStyle: 'docked',
@@ -82,6 +123,11 @@ export const defaultPwaSettings: PwaSettings = {
     showInstallPrompt: false,
     showIosInstallHint: false,
     splashEnabled: true,
+    serviceWorkerEnabled: false,
+    offlineFallbackEnabled: false,
+    pullToRefresh: true,
+    updatePromptEnabled: true,
+    offlineBannerEnabled: true,
     tabs: [
         { id: 'home', label: 'Home', href: '/', icon: 'home', enabled: true },
         { id: 'journal', label: 'Journal', href: '/blog', icon: 'journal', enabled: true },
@@ -142,6 +188,13 @@ function tabId(value: unknown, fallback: string) {
     return raw || fallback;
 }
 
+function categoriesFrom(value: unknown): PwaCategory[] {
+    const source = Array.isArray(value) ? value : defaultPwaSettings.categories;
+    const next = source
+        .filter((item): item is PwaCategory => typeof item === 'string' && (PWA_CATEGORIES as readonly string[]).includes(item));
+    return next.length ? [...new Set(next)].slice(0, 5) : [...defaultPwaSettings.categories];
+}
+
 export function normalizePwaTab(value: unknown, fallback: PwaTabItem, index: number): PwaTabItem {
     const source = object(value);
     return {
@@ -175,6 +228,12 @@ export function normalizePwaSettings(value: unknown): PwaSettings {
     const statusBarStyle = source.statusBarStyle === 'black' || source.statusBarStyle === 'black-translucent' || source.statusBarStyle === 'default'
         ? source.statusBarStyle
         : defaultPwaSettings.statusBarStyle;
+    const handleLinks = source.handleLinks === 'preferred' || source.handleLinks === 'not-preferred' || source.handleLinks === 'auto'
+        ? source.handleLinks
+        : defaultPwaSettings.handleLinks;
+    const launchHandler = source.launchHandler === 'navigate-existing' || source.launchHandler === 'navigate-new' || source.launchHandler === 'focus-existing' || source.launchHandler === 'auto'
+        ? source.launchHandler
+        : defaultPwaSettings.launchHandler;
 
     const tabs = tabsSource.slice(0, 5).map((item, index) => (
         normalizePwaTab(item, defaultPwaSettings.tabs[index] ?? defaultPwaSettings.tabs[0], index)
@@ -183,20 +242,33 @@ export function normalizePwaSettings(value: unknown): PwaSettings {
         tabs.push(defaultPwaSettings.tabs[tabs.length]);
     }
 
+    const lang = text(source.lang, defaultPwaSettings.lang, 8).toLowerCase();
+
     return {
         name: text(source.name, defaultPwaSettings.name, 60),
         shortName: text(source.shortName, defaultPwaSettings.shortName, 20),
         description: text(source.description, defaultPwaSettings.description, 180),
         startUrl: pathValue(source.startUrl, defaultPwaSettings.startUrl),
         scope: pathValue(source.scope, defaultPwaSettings.scope),
+        id: pathValue(source.id, defaultPwaSettings.id),
+        lang: /^[a-z]{2}(-[a-z]{2})?$/.test(lang) ? lang : defaultPwaSettings.lang,
         display,
         orientation,
         backgroundColor: hexColor(source.backgroundColor, defaultPwaSettings.backgroundColor),
         themeColor: hexColor(source.themeColor, defaultPwaSettings.themeColor),
         themeColorLight: hexColor(source.themeColorLight, defaultPwaSettings.themeColorLight),
         iconUrl: mediaUrl(source.iconUrl, defaultPwaSettings.iconUrl),
+        icon192Url: mediaUrl(source.icon192Url, ''),
+        icon512Url: mediaUrl(source.icon512Url, ''),
         appleIconUrl: mediaUrl(source.appleIconUrl, defaultPwaSettings.appleIconUrl),
         maskableIconUrl: mediaUrl(source.maskableIconUrl, ''),
+        screenshotNarrowUrl: mediaUrl(source.screenshotNarrowUrl, ''),
+        screenshotWideUrl: mediaUrl(source.screenshotWideUrl, ''),
+        categories: categoriesFrom(source.categories),
+        handleLinks,
+        launchHandler,
+        displayOverrideWco: bool(source.displayOverrideWco, defaultPwaSettings.displayOverrideWco),
+        shareTargetEnabled: bool(source.shareTargetEnabled, defaultPwaSettings.shareTargetEnabled),
         statusBarStyle,
         nativeChrome: bool(source.nativeChrome, defaultPwaSettings.nativeChrome),
         tabBarStyle: source.tabBarStyle === 'floating' ? 'floating' : 'docked',
@@ -204,6 +276,11 @@ export function normalizePwaSettings(value: unknown): PwaSettings {
         showInstallPrompt: bool(source.showInstallPrompt, defaultPwaSettings.showInstallPrompt),
         showIosInstallHint: bool(source.showIosInstallHint, defaultPwaSettings.showIosInstallHint),
         splashEnabled: bool(source.splashEnabled, defaultPwaSettings.splashEnabled),
+        serviceWorkerEnabled: bool(source.serviceWorkerEnabled, defaultPwaSettings.serviceWorkerEnabled),
+        offlineFallbackEnabled: bool(source.offlineFallbackEnabled, defaultPwaSettings.offlineFallbackEnabled),
+        pullToRefresh: bool(source.pullToRefresh, defaultPwaSettings.pullToRefresh),
+        updatePromptEnabled: bool(source.updatePromptEnabled, defaultPwaSettings.updatePromptEnabled),
+        offlineBannerEnabled: bool(source.offlineBannerEnabled, defaultPwaSettings.offlineBannerEnabled),
         tabs,
         shortcuts: shortcutsSource.slice(0, 4).map((item, index) => (
             normalizePwaShortcut(item, defaultPwaSettings.shortcuts[index] ?? { name: '', url: '/', description: '' })
@@ -215,26 +292,69 @@ export function enabledPwaTabs(settings: PwaSettings) {
     return settings.tabs.filter((tab) => tab.enabled && tab.label && tab.href).slice(0, 5);
 }
 
+function iconType(src: string) {
+    if (src.endsWith('.svg')) return 'image/svg+xml';
+    if (src.endsWith('.webp')) return 'image/webp';
+    return 'image/png';
+}
+
 export function pwaSettingsToManifest(settings: PwaSettings = defaultPwaSettings) {
-    const icons = [
-        { src: settings.iconUrl || defaultPwaSettings.iconUrl, sizes: 'any', type: settings.iconUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/png', purpose: 'any' as const },
-    ];
+    const icons: Array<{ src: string; sizes: string; type: string; purpose: 'any' | 'maskable' }> = [];
+    if (settings.icon192Url) {
+        icons.push({ src: settings.icon192Url, sizes: '192x192', type: iconType(settings.icon192Url), purpose: 'any' });
+    }
+    if (settings.icon512Url) {
+        icons.push({ src: settings.icon512Url, sizes: '512x512', type: iconType(settings.icon512Url), purpose: 'any' });
+    }
+    icons.push({
+        src: settings.iconUrl || defaultPwaSettings.iconUrl,
+        sizes: 'any',
+        type: iconType(settings.iconUrl || defaultPwaSettings.iconUrl),
+        purpose: 'any',
+    });
     if (settings.maskableIconUrl) {
-        icons.push({ src: settings.maskableIconUrl, sizes: '512x512', type: 'image/png', purpose: 'maskable' as const });
+        icons.push({ src: settings.maskableIconUrl, sizes: '512x512', type: iconType(settings.maskableIconUrl), purpose: 'maskable' });
     }
 
-    return {
-        id: '/',
+    const screenshots: Array<{ src: string; sizes: string; type: string; form_factor: 'narrow' | 'wide'; label: string }> = [];
+    if (settings.screenshotNarrowUrl) {
+        screenshots.push({
+            src: settings.screenshotNarrowUrl,
+            sizes: '390x844',
+            type: iconType(settings.screenshotNarrowUrl),
+            form_factor: 'narrow',
+            label: `${settings.shortName} on phone`,
+        });
+    }
+    if (settings.screenshotWideUrl) {
+        screenshots.push({
+            src: settings.screenshotWideUrl,
+            sizes: '1280x720',
+            type: iconType(settings.screenshotWideUrl),
+            form_factor: 'wide',
+            label: `${settings.shortName} on desktop`,
+        });
+    }
+
+    const manifest: Record<string, unknown> = {
+        id: settings.id,
         name: settings.name,
         short_name: settings.shortName,
         description: settings.description,
         start_url: settings.startUrl,
         scope: settings.scope,
         display: settings.display,
+        display_override: settings.displayOverrideWco
+            ? ['window-controls-overlay', settings.display]
+            : [settings.display],
         orientation: settings.orientation,
         background_color: settings.backgroundColor,
         theme_color: settings.themeColor,
-        lang: 'en',
+        lang: settings.lang,
+        dir: 'ltr',
+        categories: settings.categories,
+        handle_links: settings.handleLinks,
+        launch_handler: { client_mode: settings.launchHandler },
         icons,
         shortcuts: settings.shortcuts.map((item) => ({
             name: item.name,
@@ -243,4 +363,16 @@ export function pwaSettingsToManifest(settings: PwaSettings = defaultPwaSettings
             url: item.url,
         })),
     };
+
+    if (screenshots.length) manifest.screenshots = screenshots;
+    if (settings.shareTargetEnabled) {
+        manifest.share_target = {
+            action: '/contact',
+            method: 'GET',
+            enctype: 'application/x-www-form-urlencoded',
+            params: { title: 'title', text: 'text', url: 'url' },
+        };
+    }
+
+    return manifest;
 }

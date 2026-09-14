@@ -1,7 +1,7 @@
 /* Native PWA chrome. Browser visitors never match these queries, so the
    public website layout stays identical until the site is installed. */
 
-@media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) {
+@media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay) {
     html[data-pwa-native='on'][data-pwa-hide-site='on'] .pwa-hide-in-standalone {
         display: none !important;
         pointer-events: none !important;
@@ -16,6 +16,13 @@
     html[data-pwa-native='on'] {
         --pwa-tabbar-offset: 4.85rem;
         background: var(--pwa-bg, #0c0a12);
+    }
+}
+
+@media (display-mode: window-controls-overlay) {
+    html[data-pwa-native='on'] body {
+        padding-top: env(titlebar-area-height, env(safe-area-inset-top, 0px));
+        padding-left: env(titlebar-area-x, 0px);
     }
 }
 
