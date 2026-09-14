@@ -183,6 +183,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     typeLabel={typeLabel}
                     categoryLabel={categoryLabel}
                     author={cmsPost.authorName}
+                    watermarkText={watermark.enabled ? watermark.text : 'NecrotixLab.com'}
                     publishedAt={publishedAt}
                     tags={cmsPost.tags}
                     relatedPosts={relatedPosts}
