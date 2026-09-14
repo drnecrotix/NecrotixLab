@@ -80,10 +80,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
     return (
         <div data-lenis-prevent className="admin-shell min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
+            <a href="#admin-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-background focus:p-3">Skip to content</a>
             <AdminMobileNavigation siteName={siteName} role={session.user.role} dashboardItem={dashboardItem} navGroups={visibleNavGroups} signOutAction={signOutAction} />
             <AdminDesktopNavigation siteName={siteName} role={session.user.role} dashboardItem={dashboardItem} navGroups={visibleNavGroups} signOutAction={signOutAction} />
 
-            <main className="min-w-0 overflow-x-hidden p-3 sm:p-5 md:p-7 lg:p-9 xl:p-10 [&_button]:max-w-full [&_input]:max-w-full [&_select]:max-w-full [&_textarea]:max-w-full">
+            <main id="admin-content" className="min-w-0 overflow-x-hidden p-3 sm:p-5 md:p-7 lg:p-9 xl:p-10 [&_button]:max-w-full [&_input]:max-w-full [&_select]:max-w-full [&_textarea]:max-w-full">
                 {children}
             </main>
         </div>

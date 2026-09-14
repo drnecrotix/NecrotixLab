@@ -127,3 +127,13 @@ html:not(.dark) .admin-shell select option {
     min-height: 8rem;
   }
 }
+
+/* Pricing keeps one input per value at every viewport width. */
+.admin-pricing-table th { text-align: left; }
+.admin-pricing-table td { min-width: 0; }
+@media (max-width: 767px) {
+    .admin-pricing-table, .admin-pricing-table tbody { display: block; width: 100%; }
+    .admin-pricing-table thead { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .admin-pricing-table tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 1rem 0; }
+    .admin-pricing-table th, .admin-pricing-table td { display: block; padding: .5rem 0; }
+}

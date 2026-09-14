@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AdminNavigationSearch } from './AdminNavigationSearch';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { ChevronDown, Menu, ShieldCheck } from 'lucide-react';
@@ -44,10 +45,10 @@ export function AdminMobileNavigation({
     return (
         <header className="sticky top-0 z-50 border-b border-foreground/10 bg-background/95 px-3 py-3 backdrop-blur-xl lg:hidden">
             <div className="flex items-center gap-2">
-                <details ref={detailsRef} className="group min-w-0 flex-1">
+                <details ref={detailsRef} onKeyDown={(event) => { if (event.key === 'Escape') { closeMenu(); detailsRef.current?.querySelector('summary')?.focus(); } }} className="group min-w-0 flex-1">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] px-4 py-3 [&::-webkit-details-marker]:hidden">
                         <div className="min-w-0">
-                            <p className="truncate text-base font-semibold">Portfolio CMS</p>
+                            <p className="truncate text-base font-semibold">NecrotixLab Admin</p>
                             <p className="mt-1 truncate text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{siteName} · {role}</p>
                         </div>
                         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-foreground/10 bg-foreground/[0.04] text-muted-foreground transition group-open:bg-foreground group-open:text-background">
@@ -61,8 +62,9 @@ export function AdminMobileNavigation({
                             Admin navigation
                         </div>
 
-                        <nav className="grid gap-2">
-                            <Link href={dashboardItem[1]} onClick={closeMenu} className={linkClass(pathname === dashboardItem[1])}>{dashboardItem[0]}</Link>
+                        <AdminNavigationSearch dashboardItem={dashboardItem} navGroups={navGroups} onNavigate={closeMenu} />
+                        <nav aria-label="Admin pages" className="grid gap-2">
+                            <Link href={dashboardItem[1]} onClick={closeMenu} aria-current={pathname === dashboardItem[1] ? 'page' : undefined} className={linkClass(pathname === dashboardItem[1])}>{dashboardItem[0]}</Link>
 
                             {navGroups.map(([groupLabel, items]) => {
                                 const groupActive = items.some(([, href]) => isItemActive(pathname, href, items));
@@ -74,7 +76,7 @@ export function AdminMobileNavigation({
                                         </summary>
                                         <div className="grid gap-1 border-t border-foreground/10 p-2">
                                             {items.map(([label, href]) => (
-                                                <Link key={href} href={href} onClick={closeMenu} className={linkClass(isItemActive(pathname, href, items))}>{label}</Link>
+                                                <Link key={href} href={href} onClick={closeMenu} aria-current={isItemActive(pathname, href, items) ? 'page' : undefined} className={linkClass(isItemActive(pathname, href, items))}>{label}</Link>
                                             ))}
                                         </div>
                                     </details>
