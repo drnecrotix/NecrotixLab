@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import * as Popover from '@radix-ui/react-popover';
 import { ChevronDown, Loader2, Sparkles } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 import { improveWithPretext, type PretextMode } from '@/app/admin/(protected)/pretext/actions';
@@ -44,21 +45,22 @@ export function PretextMenu({
 
     return (
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <div className="relative">
-                <button
-                    type="button"
-                    title="Pretext — improve writing"
-                    aria-expanded={open}
-                    disabled={busy || !editor}
-                    onClick={() => onOpenChange(!open)}
-                    className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-fuchsia-400/25 bg-fuchsia-400/[0.08] px-2.5 text-xs text-fuchsia-100 transition hover:border-fuchsia-300/40 hover:bg-fuchsia-400/[0.14] disabled:opacity-50"
-                >
-                    {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-                    Pretext
-                    <ChevronDown className="size-3 opacity-60" />
-                </button>
-                {open && (
-                    <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-72 overflow-hidden rounded-xl border border-white/10 bg-[#151515] shadow-2xl">
+            <Popover.Root open={open} onOpenChange={onOpenChange}>
+                <Popover.Trigger asChild>
+                    <button
+                        type="button"
+                        title="Pretext — improve writing"
+                        aria-expanded={open}
+                        disabled={busy || !editor}
+                        className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-fuchsia-400/25 bg-fuchsia-400/[0.08] px-2.5 text-xs text-fuchsia-100 transition hover:border-fuchsia-300/40 hover:bg-fuchsia-400/[0.14] disabled:opacity-50"
+                    >
+                        {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                        Pretext
+                        <ChevronDown className="size-3 opacity-60" />
+                    </button>
+                </Popover.Trigger>
+                <Popover.Portal>
+                    <Popover.Content align="start" sideOffset={6} collisionPadding={12} onOpenAutoFocus={(event) => event.preventDefault()} onCloseAutoFocus={(event) => event.preventDefault()} aria-label="Pretext actions" className="z-[100] w-72 max-w-[calc(100vw-24px)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto rounded-xl border border-white/10 bg-[#151515] shadow-2xl">
                         {MODES.map((item) => (
                             <button
                                 key={item.mode}
@@ -70,9 +72,9 @@ export function PretextMenu({
                                 <span className="mt-0.5 text-[11px] text-white/35">{item.hint}</span>
                             </button>
                         ))}
-                    </div>
-                )}
-            </div>
+                    </Popover.Content>
+                </Popover.Portal>
+            </Popover.Root>
             {error ? <p className="text-[11px] text-red-300">{error}</p> : <p className="text-[11px] text-white/30">{hint}</p>}
         </div>
     );
