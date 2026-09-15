@@ -1,14 +1,25 @@
 /* Opt-in NecrotixLab service worker. Registered only from NativePwaLayer
    when Admin → PWA App enables it. Never caches /admin or /api. */
-const VERSION = 'necrotix-pwa-v1';
+const VERSION = 'necrotix-pwa-v2';
 const OFFLINE_URL = '/offline.html';
 const enableOffline = new URL(self.location.href).searchParams.get('offline') === '1';
+const PRECACHE = [
+    OFFLINE_URL,
+    '/',
+    '/blog',
+    '/projects',
+    '/gallery',
+    '/contact',
+    '/pwa/icon-192.png',
+    '/pwa/icon-512.png',
+    '/favicon.svg',
+];
 
 self.addEventListener('install', (event) => {
     event.waitUntil((async () => {
         const cache = await caches.open(VERSION);
         if (enableOffline) {
-            await cache.addAll([OFFLINE_URL, '/favicon.svg']).catch(() => undefined);
+            await cache.addAll(PRECACHE).catch(() => undefined);
         }
     })());
 });
@@ -24,16 +35,49 @@ self.addEventListener('message', (event) => {
     if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
+function isPrivatePath(pathname) {
+    return pathname.startsWith('/admin') || pathname.startsWith('/api') || pathname === '/pwa-sw.js';
+}
+
+function isStaticAsset(pathname) {
+    return pathname.startsWith('/_next/static/')
+        || pathname.startsWith('/pwa/')
+        || pathname.startsWith('/uploads/')
+        || /\.(?:png|jpe?g|webp|gif|svg|ico|woff2?|css)$/i.test(pathname);
+}
+
 self.addEventListener('fetch', (event) => {
     if (!enableOffline) return;
     const request = event.request;
     if (request.method !== 'GET') return;
     const url = new URL(request.url);
     if (url.origin !== self.location.origin) return;
-    if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/api')) return;
-    if (request.mode !== 'navigate') return;
+    if (isPrivatePath(url.pathname)) return;
 
-    event.respondWith(
-        fetch(request).catch(() => caches.match(OFFLINE_URL).then((cached) => cached || Response.error())),
-    );
+    if (request.mode === 'navigate') {
+        event.respondWith((async () => {
+            const cache = await caches.open(VERSION);
+            try {
+                const fresh = await fetch(request);
+                if (fresh.ok) await cache.put(request, fresh.clone());
+                return fresh;
+            } catch {
+                const cached = await cache.match(request);
+                return cached || (await cache.match(OFFLINE_URL)) || Response.error();
+            }
+        })());
+        return;
+    }
+
+    if (!isStaticAsset(url.pathname)) return;
+
+    event.respondWith((async () => {
+        const cache = await caches.open(VERSION);
+        const cached = await cache.match(request);
+        const network = fetch(request).then((fresh) => {
+            if (fresh.ok) void cache.put(request, fresh.clone());
+            return fresh;
+        }).catch(() => undefined);
+        return cached || (await network) || Response.error();
+    })());
 });

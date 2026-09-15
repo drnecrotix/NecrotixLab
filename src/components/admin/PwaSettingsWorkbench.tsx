@@ -188,6 +188,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
         form.set('icon512Url', settings.icon512Url);
         form.set('appleIconUrl', settings.appleIconUrl);
         form.set('maskableIconUrl', settings.maskableIconUrl);
+        form.set('monochromeIconUrl', settings.monochromeIconUrl);
         form.set('screenshotNarrowUrl', settings.screenshotNarrowUrl);
         form.set('screenshotWideUrl', settings.screenshotWideUrl);
         form.set('handleLinks', settings.handleLinks);
@@ -206,6 +207,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
         if (settings.pullToRefresh) form.set('pullToRefresh', 'on');
         if (settings.updatePromptEnabled) form.set('updatePromptEnabled', 'on');
         if (settings.offlineBannerEnabled) form.set('offlineBannerEnabled', 'on');
+        if (settings.appBadgeEnabled) form.set('appBadgeEnabled', 'on');
         form.set('tabs', JSON.stringify(settings.tabs));
         form.set('shortcuts', JSON.stringify(settings.shortcuts));
         form.set('categories', JSON.stringify(settings.categories));
@@ -282,7 +284,31 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                 <div className="md:col-span-2"><MediaPicker label="192×192 PNG (install UI)" value={settings.icon192Url} onChange={(url) => setTop('icon192Url', url)} initialKind="image" lockKind /></div>
                                 <div className="md:col-span-2"><MediaPicker label="512×512 PNG (splash / maskable source)" value={settings.icon512Url} onChange={(url) => setTop('icon512Url', url)} initialKind="image" lockKind /></div>
                                 <div className="md:col-span-2"><MediaPicker label="Apple touch icon" value={settings.appleIconUrl} onChange={(url) => setTop('appleIconUrl', url)} initialKind="image" lockKind /></div>
-                                <div className="md:col-span-2"><MediaPicker label="Maskable icon (optional PNG)" value={settings.maskableIconUrl} onChange={(url) => setTop('maskableIconUrl', url)} initialKind="image" lockKind /></div>
+                                <div className="md:col-span-2"><MediaPicker label="Maskable icon (Android adaptive, safe-zone padded)" value={settings.maskableIconUrl} onChange={(url) => setTop('maskableIconUrl', url)} initialKind="image" lockKind /></div>
+                                <div className="md:col-span-2"><MediaPicker label="Monochrome icon (Android 13 themed icon)" value={settings.monochromeIconUrl} onChange={(url) => setTop('monochromeIconUrl', url)} initialKind="image" lockKind /></div>
+                                <div className="md:col-span-2 rounded-xl border border-foreground/10 bg-background/40 p-4">
+                                    <p className="text-xs font-semibold">Generated icon pack</p>
+                                    <p className="mt-1 text-[11px] leading-5 text-muted-foreground">PNG 96 / 180 / 192 / 512, maskable and monochrome ship from the app icon above. iOS startup images are generated per device from the background color. Override any size with the pickers if you need a custom asset.</p>
+                                    <div className="mt-3 flex flex-wrap items-end gap-4">
+                                        {[
+                                            ['/pwa/icon/96', '96'],
+                                            ['/pwa/icon/180', '180'],
+                                            ['/pwa/icon/192', '192'],
+                                            ['/pwa/icon/512', '512'],
+                                            ['/pwa/icon/512-maskable', 'maskable'],
+                                            ['/pwa/icon/monochrome', 'mono'],
+                                        ].map(([src, label]) => (
+                                            <div key={label} className="text-center">
+                                                <img src={src} alt="" className="mx-auto size-12 rounded-xl border border-foreground/10 bg-black object-cover" />
+                                                <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+                                            </div>
+                                        ))}
+                                        <div className="text-center">
+                                            <img src="/pwa/splash-preview.png" alt="" className="mx-auto h-16 w-10 rounded-md border border-foreground/10 bg-black object-cover" />
+                                            <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">iOS splash</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </Panel>
                     ) : null}
@@ -347,12 +373,15 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                 <p className="mb-3 text-xs font-semibold">Home-screen shortcuts</p>
                                 <div className="space-y-3">
                                     {[0, 1, 2, 3].map((index) => {
-                                        const shortcut = settings.shortcuts[index] ?? { name: '', url: '/', description: '' };
+                                        const shortcut = settings.shortcuts[index] ?? { name: '', url: '/', description: '', iconUrl: '' };
                                         return (
-                                            <div key={index} className="grid gap-3 rounded-xl border border-foreground/10 p-3 md:grid-cols-3">
-                                                <input value={shortcut.name} onChange={(event) => setShortcut(index, { name: event.target.value })} placeholder="Shortcut name" className={field} />
-                                                <input value={shortcut.url} onChange={(event) => setShortcut(index, { url: event.target.value })} placeholder="/blog" className={field} />
-                                                <input value={shortcut.description} onChange={(event) => setShortcut(index, { description: event.target.value })} placeholder="Description" className={field} />
+                                            <div key={index} className="space-y-3 rounded-xl border border-foreground/10 p-3">
+                                                <div className="grid gap-3 md:grid-cols-3">
+                                                    <input value={shortcut.name} onChange={(event) => setShortcut(index, { name: event.target.value })} placeholder="Shortcut name" className={field} />
+                                                    <input value={shortcut.url} onChange={(event) => setShortcut(index, { url: event.target.value })} placeholder="/blog" className={field} />
+                                                    <input value={shortcut.description} onChange={(event) => setShortcut(index, { description: event.target.value })} placeholder="Description" className={field} />
+                                                </div>
+                                                <MediaPicker label="Shortcut icon (96×96)" value={shortcut.iconUrl} onChange={(url) => setShortcut(index, { iconUrl: url })} initialKind="image" lockKind />
                                             </div>
                                         );
                                     })}
@@ -399,8 +428,16 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                         })}
                                     </div>
                                 </div>
-                                <div className="md:col-span-2"><MediaPicker label="Narrow screenshot (phone install UI)" value={settings.screenshotNarrowUrl} onChange={(url) => setTop('screenshotNarrowUrl', url)} initialKind="image" lockKind /></div>
-                                <div className="md:col-span-2"><MediaPicker label="Wide screenshot (desktop install UI)" value={settings.screenshotWideUrl} onChange={(url) => setTop('screenshotWideUrl', url)} initialKind="image" lockKind /></div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <MediaPicker label="Narrow screenshot (phone install UI)" value={settings.screenshotNarrowUrl} onChange={(url) => setTop('screenshotNarrowUrl', url)} initialKind="image" lockKind />
+                                        {settings.screenshotNarrowUrl ? <img src={settings.screenshotNarrowUrl} alt="" className="mt-2 h-40 w-auto rounded-xl border border-foreground/10 object-cover" /> : null}
+                                    </div>
+                                    <div>
+                                        <MediaPicker label="Wide screenshot (desktop install UI)" value={settings.screenshotWideUrl} onChange={(url) => setTop('screenshotWideUrl', url)} initialKind="image" lockKind />
+                                        {settings.screenshotWideUrl ? <img src={settings.screenshotWideUrl} alt="" className="mt-2 h-40 w-full rounded-xl border border-foreground/10 object-cover" /> : null}
+                                    </div>
+                                </div>
                                 <button type="button" onClick={() => setShowManifest((value) => !value)} className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                                     {showManifest ? 'Hide generated manifest' : 'Show generated manifest'}
                                 </button>
@@ -416,10 +453,11 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                     {active === 'offline' ? (
                         <Panel title="Offline & updates" description="Service worker stays off until you enable it, so production cache is never hijacked by default. Patterns from SuperPWA cache + vite-plugin-pwa update prompts.">
                             <div className="space-y-3">
-                                <Toggle checked={settings.serviceWorkerEnabled} onChange={(value) => setTop('serviceWorkerEnabled', value)} label="Register service worker" hint="Opt-in. Serves /pwa-sw.js with network-first navigation and does not cache /admin or /api." />
-                                <Toggle checked={settings.offlineFallbackEnabled} onChange={(value) => setTop('offlineFallbackEnabled', value)} label="Offline fallback page" hint="When enabled, failed navigations show /offline.html from the worker cache." />
+                                <Toggle checked={settings.serviceWorkerEnabled} onChange={(value) => setTop('serviceWorkerEnabled', value)} label="Register service worker" hint="Opt-in. Serves /pwa-sw.js. Does not cache /admin or /api." />
+                                <Toggle checked={settings.offlineFallbackEnabled} onChange={(value) => setTop('offlineFallbackEnabled', value)} label="Offline reading" hint="Network-first cache for Home, Journal, Projects, Gallery and Contact, plus /offline.html if a page was never visited." />
                                 <Toggle checked={settings.updatePromptEnabled} onChange={(value) => setTop('updatePromptEnabled', value)} label="Update prompt" hint="Ask before swapping a waiting worker. Only appears in the installed app." />
                                 <Toggle checked={settings.offlineBannerEnabled} onChange={(value) => setTop('offlineBannerEnabled', value)} label="Offline banner" hint="A small status chip when the installed app loses the network." />
+                                <Toggle checked={settings.appBadgeEnabled} onChange={(value) => setTop('appBadgeEnabled', value)} label="App icon badge" hint="Shows a count on the installed icon for new service requests and recent comments. Only for signed-in admins in standalone mode." />
                             </div>
                         </Panel>
                     ) : null}

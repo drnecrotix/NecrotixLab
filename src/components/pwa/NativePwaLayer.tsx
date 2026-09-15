@@ -28,6 +28,11 @@ type BeforeInstallPromptEvent = Event & {
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
+type NavigatorWithBadge = Navigator & {
+    setAppBadge?: (count: number) => Promise<void>;
+    clearAppBadge?: () => Promise<void>;
+};
+
 const iconMap: Record<PwaTabIcon, typeof Home> = {
     home: Home,
     journal: BookOpen,
@@ -110,6 +115,34 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
         const timer = window.setTimeout(() => setSplash(false), 780);
         return () => window.clearTimeout(timer);
     }, [hydrated, standalone, settings.splashEnabled, isAdmin]);
+
+    useEffect(() => {
+        if (!hydrated || !standalone || isAdmin || !settings.appBadgeEnabled) return;
+        const nav = window.navigator as NavigatorWithBadge;
+        let cancelled = false;
+        const sync = async () => {
+            try {
+                const response = await fetch('/api/pwa/badge', { credentials: 'include' });
+                if (!response.ok) {
+                    await nav.clearAppBadge?.();
+                    return;
+                }
+                const payload = await response.json() as { count?: number };
+                if (cancelled) return;
+                const count = Number(payload.count) || 0;
+                if (count > 0) await nav.setAppBadge?.(count);
+                else await nav.clearAppBadge?.();
+            } catch {
+                // Badge API is optional and admin-only.
+            }
+        };
+        void sync();
+        const timer = window.setInterval(() => void sync(), 120000);
+        return () => {
+            cancelled = true;
+            window.clearInterval(timer);
+        };
+    }, [hydrated, standalone, isAdmin, settings.appBadgeEnabled]);
 
     useEffect(() => {
         if (isAdmin || settings.showInstallPrompt === false) return;

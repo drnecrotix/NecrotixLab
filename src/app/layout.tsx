@@ -8,6 +8,7 @@ import { defaultGeneralSiteSettings, normalizeGeneralSiteSettings } from '@/lib/
 import { defaultHomepageContent, normalizeHomepageContent, parseCustomMetaTags } from '@/lib/homepage-content';
 import { absoluteSocialMediaUrl, getPublicSiteUrl, socialImageDescriptor } from '@/lib/social-metadata';
 import { defaultPwaSettings } from '@/lib/pwa-settings';
+import { appleSplashStartupImages } from '@/lib/pwa-icons';
 import { getPwaSettings } from '@/lib/pwa-settings.server';
 import { NativePwaLayer } from '@/components/pwa/NativePwaLayer';
 
@@ -81,7 +82,12 @@ export async function generateMetadata(): Promise<Metadata> {
         keywords: seo.keywords,
         applicationName: seo.applicationName,
         manifest: '/manifest.webmanifest',
-        appleWebApp: { capable: true, title: pwa.shortName, statusBarStyle: pwa.statusBarStyle },
+        appleWebApp: {
+            capable: true,
+            title: pwa.shortName,
+            statusBarStyle: pwa.statusBarStyle,
+            startupImage: pwa.splashEnabled ? appleSplashStartupImages() : undefined,
+        },
         authors: [{ name: seo.authorName }],
         creator: seo.creatorName,
         publisher: seo.publisherName,
@@ -106,7 +112,11 @@ export async function generateMetadata(): Promise<Metadata> {
         },
         robots,
         verification: seo.googleVerification ? { google: seo.googleVerification } : undefined,
-        icons: { icon: [{ url: favicon }], shortcut: [{ url: favicon }], apple: [{ url: pwa.appleIconUrl || favicon }] },
+        icons: {
+            icon: [{ url: favicon }, { url: pwa.icon192Url || '/pwa/icon-192.png', sizes: '192x192', type: 'image/png' }],
+            shortcut: [{ url: favicon }],
+            apple: [{ url: pwa.appleIconUrl || '/pwa/icon-180.png', sizes: '180x180' }],
+        },
     };
 }
 

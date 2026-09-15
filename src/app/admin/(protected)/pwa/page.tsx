@@ -23,7 +23,7 @@ export default async function PwaAdminPage({ searchParams }: { searchParams: Pro
                 <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Appearance</p>
                 <h2 className="mt-1 text-3xl font-semibold">Progressive Web App</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    SuperPWA-style controls for the installed app: identity, 192/512 icons, screenshots, shortcuts, native chrome and an opt-in service worker. Regular browser visitors keep the existing website unless you explicitly enable the install banner.
+                    SuperPWA-style controls for the installed app: 192/512 PNG icons, Apple splash screens, install screenshots, shortcut icons, an opt-in offline cache for Journal/Projects, and an admin-only app badge. Regular browser visitors keep the existing website unless you enable the install banner.
                 </p>
             </div>
             <PwaSettingsWorkbench initial={settings} updatedAt={page?.updatedAt.toISOString() ?? null} />

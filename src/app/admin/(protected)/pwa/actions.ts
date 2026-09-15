@@ -53,6 +53,7 @@ export async function savePwaSettings(form: FormData): Promise<PwaSaveResult> {
             icon512Url: safeCmsMediaUrl(form.get('icon512Url')),
             appleIconUrl: safeCmsMediaUrl(form.get('appleIconUrl')),
             maskableIconUrl: safeCmsMediaUrl(form.get('maskableIconUrl')),
+            monochromeIconUrl: safeCmsMediaUrl(form.get('monochromeIconUrl')),
             screenshotNarrowUrl: safeCmsMediaUrl(form.get('screenshotNarrowUrl')),
             screenshotWideUrl: safeCmsMediaUrl(form.get('screenshotWideUrl')),
             categories: jsonField(form, 'categories'),
@@ -72,6 +73,7 @@ export async function savePwaSettings(form: FormData): Promise<PwaSaveResult> {
             pullToRefresh: form.get('pullToRefresh') === 'on',
             updatePromptEnabled: form.get('updatePromptEnabled') === 'on',
             offlineBannerEnabled: form.get('offlineBannerEnabled') === 'on',
+            appBadgeEnabled: form.get('appBadgeEnabled') === 'on',
             tabs: jsonField(form, 'tabs'),
             shortcuts: jsonField(form, 'shortcuts'),
         });
@@ -95,6 +97,9 @@ export async function savePwaSettings(form: FormData): Promise<PwaSaveResult> {
         revalidatePath('/', 'layout');
         revalidatePath('/manifest.webmanifest');
         revalidatePath('/admin/pwa');
+        revalidatePath('/pwa/icon/192');
+        revalidatePath('/pwa/icon/512');
+        revalidatePath('/api/pwa/badge');
 
         return {
             ok: true,
