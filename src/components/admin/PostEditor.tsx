@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Extension, Node, mergeAttributes, nodeInputRule } from '@tiptap/core';
+import { Extension, Node as TiptapNode, mergeAttributes, nodeInputRule } from '@tiptap/core';
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type Editor, type NodeViewProps } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -125,7 +125,7 @@ function ProjectBlockView({ node, deleteNode }: NodeViewProps) {
     );
 }
 
-const ProjectBlock = Node.create({
+const ProjectBlock = TiptapNode.create({
     name: 'projectBlock',
     group: 'block',
     atom: true,
@@ -422,7 +422,7 @@ function EditorToolbar({
 
     useEffect(() => {
         const close = (event: MouseEvent) => {
-            if (!menusRef.current?.contains(event.target as Node)) {
+            if (event.target instanceof Node && !menusRef.current?.contains(event.target)) {
                 setBlockMenuOpen(false);
                 setPretextOpen(false);
             }
