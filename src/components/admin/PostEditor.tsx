@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Extension, Node as TiptapNode, mergeAttributes, nodeInputRule } from '@tiptap/core';
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type Editor, type NodeViewProps } from '@tiptap/react';
+import * as Popover from '@radix-ui/react-popover';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import {
@@ -276,7 +277,7 @@ function RichEditor({
 
     const extensions = useMemo(
         () => [
-            StarterKit,
+            StarterKit.configure({ link: false }),
             TextAlignment,
             Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
             ...(shortcodes.length > 0 ? [ProjectBlock] : []),
@@ -418,21 +419,9 @@ function EditorToolbar({
     insertShortcode: (value: string) => void;
 }) {
     const [pretextOpen, setPretextOpen] = useState(false);
-    const menusRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const close = (event: MouseEvent) => {
-            if (event.target instanceof Node && !menusRef.current?.contains(event.target)) {
-                setBlockMenuOpen(false);
-                setPretextOpen(false);
-            }
-        };
-        window.addEventListener('mousedown', close);
-        return () => window.removeEventListener('mousedown', close);
-    }, [setBlockMenuOpen]);
 
     return (
-        <div ref={menusRef} className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
             <div className={row}>
                 <div className={group}>
                     <label className="relative">
@@ -484,22 +473,24 @@ function EditorToolbar({
                 </div>
             </div>
 
-            <div className={row}>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
                 {shortcodes.length > 0 && (
-                    <div className="relative shrink-0">
-                        <button
-                            type="button"
-                            title="Insert project block"
-                            aria-expanded={blockMenuOpen}
-                            onClick={() => { setPretextOpen(false); setBlockMenuOpen(!blockMenuOpen); }}
-                            className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-500/[0.08] px-2.5 text-xs text-emerald-200 transition hover:border-emerald-400/40 hover:bg-emerald-500/[0.14]"
-                        >
-                            <Box className="size-3.5" />
-                            Project block
-                            <ChevronDown className="size-3 opacity-60" />
-                        </button>
-                        {blockMenuOpen && (
-                            <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-80 overflow-hidden rounded-xl border border-white/10 bg-[#151515] shadow-2xl">
+                    <Popover.Root open={blockMenuOpen} onOpenChange={(open) => { setPretextOpen(false); setBlockMenuOpen(open); }}>
+                        <Popover.Trigger asChild>
+                            <button
+                                type="button"
+                                title="Insert project block"
+                                aria-expanded={blockMenuOpen}
+                                disabled={!editor}
+                                className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-500/[0.08] px-2.5 text-xs text-emerald-200 transition hover:border-emerald-400/40 hover:bg-emerald-500/[0.14]"
+                            >
+                                <Box className="size-3.5" />
+                                Project block
+                                <ChevronDown className="size-3 opacity-60" />
+                            </button>
+                        </Popover.Trigger>
+                        <Popover.Portal>
+                            <Popover.Content align="start" sideOffset={6} collisionPadding={12} onOpenAutoFocus={(event) => event.preventDefault()} onCloseAutoFocus={(event) => event.preventDefault()} aria-label="Project blocks" className="z-[100] w-80 max-w-[calc(100vw-24px)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto rounded-xl border border-white/10 bg-[#151515] shadow-2xl">
                                 {shortcodes.map((shortcode) => {
                                     const kind = kindFromShortcode(shortcode.value);
                                     const meta = kind ? BLOCK_META[kind] : null;
@@ -521,9 +512,9 @@ function EditorToolbar({
                                         </button>
                                     );
                                 })}
-                            </div>
-                        )}
-                    </div>
+                            </Popover.Content>
+                        </Popover.Portal>
+                    </Popover.Root>
                 )}
 
                 <PretextMenu
