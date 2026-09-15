@@ -61,7 +61,6 @@ export function BlogArticleFrame({
     typeLabel,
     categoryLabel,
     author,
-    watermarkText,
     publishedAt,
     tags,
     relatedPosts,
@@ -75,7 +74,6 @@ export function BlogArticleFrame({
     initialLikeCount: number;
     initialViewCount: number;
     initiallyLiked: boolean;
-    watermarkText?: string;
     title: string;
     excerpt: string | null;
     initialContent: CmsPostContent;
@@ -274,7 +272,7 @@ export function BlogArticleFrame({
                                 <button type="button" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); void sharePublication(); }} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-foreground/5 focus-visible:outline focus-visible:outline-2">
                                     <Share2 aria-hidden="true" className="size-4" />{activeLocale === 'bg' ? 'Сподели линк' : 'Share link'}
                                 </button>
-                                <StoryShare title={displayTitle} excerpt={displayExcerpt} text={displayContent.text ?? ''} html={displayContent.html ?? ''} image={displayContent.featuredImage || featuredImage} author={author} watermarkText={watermarkText} locale={activeLocale} />
+                                <StoryShare title={displayTitle} excerpt={displayExcerpt} text={displayContent.text ?? ''} html={displayContent.html ?? ''} image={displayContent.featuredImage || featuredImage} author={author} locale={activeLocale} />
                             </div>
                         </details>
                     </div>

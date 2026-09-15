@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ImagePlus, X } from 'lucide-react';
 
-type Props = { title: string; excerpt: string | null; text: string; html: string; image: string | null; author: string; watermarkText?: string; locale: 'en' | 'bg' };
+type Props = { title: string; excerpt: string | null; text: string; html: string; image: string | null; author: string; locale: 'en' | 'bg' };
 
 function lines(ctx: CanvasRenderingContext2D, text: string, width: number, limit: number) {
     const result: string[] = [];
@@ -99,9 +99,9 @@ async function makeStory(props: Props, layout: StoryLayout): Promise<Blob> {
     ctx.fillStyle = '#d7cddd';
     const maxLines = Math.max(1, Math.floor((1650 - y) / 53));
     for (const line of lines(ctx, body, 900, maxLines)) { ctx.fillText(line, 90, y, 900); y += 53; }
-    ctx.fillStyle = '#b2a5bc';
-    ctx.font = '400 25px sans-serif';
-    if (props.watermarkText) ctx.fillText(props.watermarkText, 90, 1720, 900);
+    ctx.fillStyle = '#e6ddec';
+    ctx.font = '500 32px sans-serif';
+    ctx.fillText('NecrotixLab.com', 90, 1720, 900);
     return new Promise((resolve, reject) => {
         canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('PNG unavailable')), 'image/png');
     });
@@ -117,7 +117,7 @@ export function StoryShare(props: Props) {
     const [linkCopied, setLinkCopied] = useState(false);
     const bg = props.locale === 'bg';
     const label = bg ? 'Сподели като стори' : 'Share as story';
-    const { title, excerpt, text, html, image, author, watermarkText, locale } = props;
+    const { title, excerpt, text, html, image, author, locale } = props;
 
     useEffect(() => {
         if (!open) return;
