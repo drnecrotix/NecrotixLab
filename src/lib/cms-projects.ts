@@ -2,6 +2,14 @@ import type { Project as PrismaProject } from '@prisma/client';
 import sanitizeHtml from 'sanitize-html';
 import type { Project, ProjectContentBlock } from '@/types';
 import { normalizeProjectStatus } from '@/lib/project-status';
+import {
+    chroniclesFromHtml,
+    composeProjectLayout,
+    extractProjectBlocks,
+    featuresFromHtml,
+    installationFromHtml,
+    normalizeProjectBlockMarkers,
+} from '@/lib/project-blocks';
 
 type ProjectContent = {
     image?: string;
@@ -14,41 +22,23 @@ type ProjectContent = {
 
 const MAX_LIST_ITEMS = 50;
 const MAX_LIST_ITEM_LENGTH = 120;
-const PROJECT_BLOCKS: ProjectContentBlock[] = ['mission', 'features', 'chronicles', 'installation'];
 const BLOCK_PATTERN = /\[\[(mission|features|chronicles|installation)\]\]/gi;
 
 function sanitizeProjectDescription(value?: string | null) {
     if (!value) return undefined;
-    return sanitizeHtml(value, {
-        allowedTags: ['p', 'br', 'h2', 'h3', 'strong', 'em', 's', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'a'],
+    const hoisted = normalizeProjectBlockMarkers(value) || '';
+    return sanitizeHtml(hoisted, {
+        allowedTags: ['p', 'br', 'h2', 'h3', 'h4', 'strong', 'em', 's', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'a', 'div'],
         allowedAttributes: {
             a: ['href', 'target', 'rel'],
+            p: ['data-project-block'],
+            div: ['data-project-block'],
         },
         allowedSchemes: ['http', 'https', 'mailto'],
         transformTags: {
             a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer' }),
         },
     }).trim();
-}
-
-function normalizeProjectBlockMarkers(value?: string) {
-    if (!value) return undefined;
-    return value
-        .replace(/&lbrack;&lbrack;(mission|features|chronicles|installation)&rbrack;&rbrack;/gi, '[[$1]]')
-        .replace(
-            /<p[^>]*>\s*(?:<(?:strong|em|s)[^>]*>\s*)*\[\[(mission|features|chronicles|installation)\]\](?:\s*<\/(?:strong|em|s)>)*\s*<\/p>/gi,
-            '[[$1]]',
-        );
-}
-
-function extractProjectBlocks(value?: string | null): ProjectContentBlock[] {
-    if (!value) return [];
-    const found = new Set<ProjectContentBlock>();
-    for (const match of value.matchAll(BLOCK_PATTERN)) {
-        const block = match[1]?.toLowerCase() as ProjectContentBlock;
-        if (PROJECT_BLOCKS.includes(block)) found.add(block);
-    }
-    return [...found];
 }
 
 function projectDescriptionText(value?: string | null) {
@@ -61,10 +51,32 @@ function projectDescriptionText(value?: string | null) {
     }).replace(/\s+/g, ' ').trim() || undefined;
 }
 
+function bodyForBlock(layout: string, block: ProjectContentBlock) {
+    const segment = composeProjectLayout(layout).find((item) => item.type === 'block' && item.block === block);
+    return segment && segment.type === 'block' ? segment.body : undefined;
+}
+
 export function cmsProjectToPortfolioProject(project: PrismaProject): Project {
     const content = (project.content ?? {}) as unknown as ProjectContent;
     const contentLayout = normalizeProjectBlockMarkers(sanitizeProjectDescription(project.longDescription));
     const contentBlocks = extractProjectBlocks(contentLayout);
+    const layout = contentLayout || '';
+
+    const features = content.features?.length
+        ? content.features
+        : contentBlocks.includes('features')
+            ? featuresFromHtml(bodyForBlock(layout, 'features'))
+            : undefined;
+    const installation = content.installation?.length
+        ? content.installation
+        : contentBlocks.includes('installation')
+            ? installationFromHtml(bodyForBlock(layout, 'installation'))
+            : undefined;
+    const challengesAndSolutions = content.challengesAndSolutions?.length
+        ? content.challengesAndSolutions
+        : contentBlocks.includes('chronicles')
+            ? chroniclesFromHtml(bodyForBlock(layout, 'chronicles'))
+            : undefined;
 
     return {
         id: project.id,
@@ -84,9 +96,9 @@ export function cmsProjectToPortfolioProject(project: PrismaProject): Project {
         startDate: (project.publishedAt ?? project.createdAt).toISOString().slice(0, 10),
         highlights: project.highlights,
         category: project.category ?? undefined,
-        features: contentBlocks.includes('features') ? content.features : undefined,
-        installation: contentBlocks.includes('installation') ? content.installation : undefined,
-        challengesAndSolutions: contentBlocks.includes('chronicles') ? content.challengesAndSolutions : undefined,
+        features: features?.length ? features : undefined,
+        installation: installation?.length ? installation : undefined,
+        challengesAndSolutions: challengesAndSolutions?.length ? challengesAndSolutions : undefined,
         galleryImages: content.galleryImages,
         team: project.team ?? undefined,
         customTimeline: project.timeline ?? undefined,
