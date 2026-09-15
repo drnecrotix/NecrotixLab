@@ -48,6 +48,7 @@ export type PwaShortcut = {
     name: string;
     url: string;
     description: string;
+    iconUrl: string;
 };
 
 export type PwaSettings = {
@@ -68,6 +69,7 @@ export type PwaSettings = {
     icon512Url: string;
     appleIconUrl: string;
     maskableIconUrl: string;
+    monochromeIconUrl: string;
     screenshotNarrowUrl: string;
     screenshotWideUrl: string;
     categories: PwaCategory[];
@@ -87,6 +89,7 @@ export type PwaSettings = {
     pullToRefresh: boolean;
     updatePromptEnabled: boolean;
     offlineBannerEnabled: boolean;
+    appBadgeEnabled: boolean;
     tabs: PwaTabItem[];
     shortcuts: PwaShortcut[];
 };
@@ -105,12 +108,13 @@ export const defaultPwaSettings: PwaSettings = {
     themeColor: '#0c0a12',
     themeColorLight: '#ffffff',
     iconUrl: '/favicon.svg',
-    icon192Url: '',
-    icon512Url: '',
-    appleIconUrl: '/favicon.svg',
-    maskableIconUrl: '',
-    screenshotNarrowUrl: '',
-    screenshotWideUrl: '',
+    icon192Url: '/pwa/icon-192.png',
+    icon512Url: '/pwa/icon-512.png',
+    appleIconUrl: '/pwa/icon-180.png',
+    maskableIconUrl: '/pwa/icon-maskable-512.png',
+    monochromeIconUrl: '/pwa/icon-monochrome-512.png',
+    screenshotNarrowUrl: '/pwa/screenshot-narrow.png',
+    screenshotWideUrl: '/pwa/screenshot-wide.png',
     categories: ['portfolio', 'productivity'],
     handleLinks: 'preferred',
     launchHandler: 'navigate-existing',
@@ -128,6 +132,7 @@ export const defaultPwaSettings: PwaSettings = {
     pullToRefresh: true,
     updatePromptEnabled: true,
     offlineBannerEnabled: true,
+    appBadgeEnabled: true,
     tabs: [
         { id: 'home', label: 'Home', href: '/', icon: 'home', enabled: true },
         { id: 'journal', label: 'Journal', href: '/blog', icon: 'journal', enabled: true },
@@ -136,8 +141,8 @@ export const defaultPwaSettings: PwaSettings = {
         { id: 'more', label: 'More', href: '/contact', icon: 'more', enabled: true },
     ],
     shortcuts: [
-        { name: 'Journal', url: '/blog', description: 'Open the journal' },
-        { name: 'Projects', url: '/projects', description: 'Open projects' },
+        { name: 'Journal', url: '/blog', description: 'Open the journal', iconUrl: '/pwa/icon-96.png' },
+        { name: 'Projects', url: '/projects', description: 'Open projects', iconUrl: '/pwa/icon-96.png' },
     ],
 };
 
@@ -212,6 +217,7 @@ export function normalizePwaShortcut(value: unknown, fallback: PwaShortcut): Pwa
         name: text(source.name, fallback.name, 40),
         url: pathValue(source.url, fallback.url),
         description: text(source.description, fallback.description, 80),
+        iconUrl: mediaUrl(source.iconUrl, fallback.iconUrl || '/pwa/icon-96.png'),
     };
 }
 
@@ -258,12 +264,13 @@ export function normalizePwaSettings(value: unknown): PwaSettings {
         themeColor: hexColor(source.themeColor, defaultPwaSettings.themeColor),
         themeColorLight: hexColor(source.themeColorLight, defaultPwaSettings.themeColorLight),
         iconUrl: mediaUrl(source.iconUrl, defaultPwaSettings.iconUrl),
-        icon192Url: mediaUrl(source.icon192Url, ''),
-        icon512Url: mediaUrl(source.icon512Url, ''),
+        icon192Url: mediaUrl(source.icon192Url, defaultPwaSettings.icon192Url),
+        icon512Url: mediaUrl(source.icon512Url, defaultPwaSettings.icon512Url),
         appleIconUrl: mediaUrl(source.appleIconUrl, defaultPwaSettings.appleIconUrl),
-        maskableIconUrl: mediaUrl(source.maskableIconUrl, ''),
-        screenshotNarrowUrl: mediaUrl(source.screenshotNarrowUrl, ''),
-        screenshotWideUrl: mediaUrl(source.screenshotWideUrl, ''),
+        maskableIconUrl: mediaUrl(source.maskableIconUrl, defaultPwaSettings.maskableIconUrl),
+        monochromeIconUrl: mediaUrl(source.monochromeIconUrl, defaultPwaSettings.monochromeIconUrl),
+        screenshotNarrowUrl: mediaUrl(source.screenshotNarrowUrl, defaultPwaSettings.screenshotNarrowUrl),
+        screenshotWideUrl: mediaUrl(source.screenshotWideUrl, defaultPwaSettings.screenshotWideUrl),
         categories: categoriesFrom(source.categories),
         handleLinks,
         launchHandler,
@@ -281,9 +288,10 @@ export function normalizePwaSettings(value: unknown): PwaSettings {
         pullToRefresh: bool(source.pullToRefresh, defaultPwaSettings.pullToRefresh),
         updatePromptEnabled: bool(source.updatePromptEnabled, defaultPwaSettings.updatePromptEnabled),
         offlineBannerEnabled: bool(source.offlineBannerEnabled, defaultPwaSettings.offlineBannerEnabled),
+        appBadgeEnabled: bool(source.appBadgeEnabled, defaultPwaSettings.appBadgeEnabled),
         tabs,
         shortcuts: shortcutsSource.slice(0, 4).map((item, index) => (
-            normalizePwaShortcut(item, defaultPwaSettings.shortcuts[index] ?? { name: '', url: '/', description: '' })
+            normalizePwaShortcut(item, defaultPwaSettings.shortcuts[index] ?? { name: '', url: '/', description: '', iconUrl: '/pwa/icon-96.png' })
         )).filter((item) => item.name && item.url),
     };
 }
@@ -299,42 +307,43 @@ function iconType(src: string) {
 }
 
 export function pwaSettingsToManifest(settings: PwaSettings = defaultPwaSettings) {
-    const icons: Array<{ src: string; sizes: string; type: string; purpose: 'any' | 'maskable' }> = [];
-    if (settings.icon192Url) {
-        icons.push({ src: settings.icon192Url, sizes: '192x192', type: iconType(settings.icon192Url), purpose: 'any' });
-    }
-    if (settings.icon512Url) {
-        icons.push({ src: settings.icon512Url, sizes: '512x512', type: iconType(settings.icon512Url), purpose: 'any' });
-    }
-    icons.push({
-        src: settings.iconUrl || defaultPwaSettings.iconUrl,
-        sizes: 'any',
-        type: iconType(settings.iconUrl || defaultPwaSettings.iconUrl),
-        purpose: 'any',
-    });
-    if (settings.maskableIconUrl) {
-        icons.push({ src: settings.maskableIconUrl, sizes: '512x512', type: iconType(settings.maskableIconUrl), purpose: 'maskable' });
+    const icon192 = settings.icon192Url || '/pwa/icon-192.png';
+    const icon512 = settings.icon512Url || '/pwa/icon-512.png';
+    const maskable = settings.maskableIconUrl || '/pwa/icon-maskable-512.png';
+    const monochrome = settings.monochromeIconUrl || '/pwa/icon-monochrome-512.png';
+    const icons: Array<{ src: string; sizes: string; type: string; purpose: 'any' | 'maskable' | 'monochrome' }> = [
+        { src: icon192, sizes: '192x192', type: iconType(icon192), purpose: 'any' },
+        { src: icon512, sizes: '512x512', type: iconType(icon512), purpose: 'any' },
+        { src: maskable, sizes: '512x512', type: iconType(maskable), purpose: 'maskable' },
+        { src: monochrome, sizes: '512x512', type: iconType(monochrome), purpose: 'monochrome' },
+    ];
+    if (settings.iconUrl && settings.iconUrl !== icon192 && settings.iconUrl !== icon512) {
+        icons.push({
+            src: settings.iconUrl,
+            sizes: 'any',
+            type: iconType(settings.iconUrl),
+            purpose: 'any',
+        });
     }
 
-    const screenshots: Array<{ src: string; sizes: string; type: string; form_factor: 'narrow' | 'wide'; label: string }> = [];
-    if (settings.screenshotNarrowUrl) {
-        screenshots.push({
-            src: settings.screenshotNarrowUrl,
+    const screenshotNarrow = settings.screenshotNarrowUrl || '/pwa/screenshot-narrow.png';
+    const screenshotWide = settings.screenshotWideUrl || '/pwa/screenshot-wide.png';
+    const screenshots = [
+        {
+            src: screenshotNarrow,
             sizes: '390x844',
-            type: iconType(settings.screenshotNarrowUrl),
-            form_factor: 'narrow',
+            type: iconType(screenshotNarrow),
+            form_factor: 'narrow' as const,
             label: `${settings.shortName} on phone`,
-        });
-    }
-    if (settings.screenshotWideUrl) {
-        screenshots.push({
-            src: settings.screenshotWideUrl,
+        },
+        {
+            src: screenshotWide,
             sizes: '1280x720',
-            type: iconType(settings.screenshotWideUrl),
-            form_factor: 'wide',
+            type: iconType(screenshotWide),
+            form_factor: 'wide' as const,
             label: `${settings.shortName} on desktop`,
-        });
-    }
+        },
+    ];
 
     const manifest: Record<string, unknown> = {
         id: settings.id,
@@ -356,15 +365,19 @@ export function pwaSettingsToManifest(settings: PwaSettings = defaultPwaSettings
         handle_links: settings.handleLinks,
         launch_handler: { client_mode: settings.launchHandler },
         icons,
-        shortcuts: settings.shortcuts.map((item) => ({
-            name: item.name,
-            short_name: item.name,
-            description: item.description,
-            url: item.url,
-        })),
+        screenshots,
+        shortcuts: settings.shortcuts.map((item) => {
+            const icon = item.iconUrl || '/pwa/icon-96.png';
+            return {
+                name: item.name,
+                short_name: item.name,
+                description: item.description,
+                url: item.url,
+                icons: [{ src: icon, sizes: '96x96', type: iconType(icon) }],
+            };
+        }),
     };
 
-    if (screenshots.length) manifest.screenshots = screenshots;
     if (settings.shareTargetEnabled) {
         manifest.share_target = {
             action: '/contact',
