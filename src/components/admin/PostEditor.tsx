@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Extension, Node, mergeAttributes, nodeInputRule } from '@tiptap/core';
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type Editor, type NodeViewProps } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -12,9 +12,9 @@ import {
     AlignRight,
     Bold,
     Box,
+    ChevronDown,
     Code,
     Eraser,
-    Heading2,
     Italic,
     Link2,
     Link2Off,
@@ -30,10 +30,13 @@ import {
     Undo2,
     Zap,
 } from 'lucide-react';
+import { PretextMenu } from '@/components/admin/PretextMenu';
 
-const tool = 'inline-flex size-8 items-center justify-center rounded-md border border-white/10 text-white/60 transition hover:border-white/25 hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-30';
+const tool = 'inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-white/10 text-white/60 transition hover:border-white/25 hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-30';
 const activeTool = `${tool} border-white/25 bg-white/[0.1] text-white`;
-const divider = 'mx-0.5 hidden h-7 w-px bg-white/10 sm:block';
+const group = 'flex shrink-0 items-center gap-1';
+const row = 'flex w-full min-w-0 flex-nowrap items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+const divider = 'hidden h-6 w-px shrink-0 bg-white/10 sm:block';
 
 type EditorShortcode = {
     label: string;
@@ -70,19 +73,19 @@ const BLOCK_META: Record<ProjectBlockKind, { label: string; hint: string; classN
     },
     features: {
         label: 'Features',
-        hint: 'Renders structured feature cards',
+        hint: 'Renders the following list as feature cards',
         className: 'border-sky-400/25 bg-sky-400/[0.08] text-sky-100',
         icon: Zap,
     },
     chronicles: {
         label: 'Engineering Chronicles',
-        hint: 'Renders challenges and solutions',
+        hint: 'Renders following headings as problem / solution',
         className: 'border-amber-400/25 bg-amber-400/[0.08] text-amber-100',
         icon: Terminal,
     },
     installation: {
         label: 'Installation',
-        hint: 'Renders install or setup steps',
+        hint: 'Renders following steps or code blocks',
         className: 'border-violet-400/25 bg-violet-400/[0.08] text-violet-100',
         icon: SquareCode,
     },
@@ -133,7 +136,7 @@ const ProjectBlock = Node.create({
             kind: {
                 default: 'mission',
                 parseHTML: (element) => element.getAttribute('data-project-block') || 'mission',
-                renderHTML: (attributes) => ({ 'data-project-block': attributes.kind }),
+                renderHTML: () => ({}),
             },
         };
     },
@@ -160,6 +163,9 @@ const ProjectBlock = Node.create({
     renderHTML({ node }) {
         const kind = (node.attrs.kind || 'mission') as ProjectBlockKind;
         return ['p', mergeAttributes({ 'data-project-block': kind }), `[[${kind}]]`];
+    },
+    renderText({ node }) {
+        return `[[${node.attrs.kind || 'mission'}]]`;
     },
     addNodeView() {
         return ReactNodeViewRenderer(ProjectBlockView);
@@ -411,92 +417,124 @@ function EditorToolbar({
     setBlockMenuOpen: (open: boolean) => void;
     insertShortcode: (value: string) => void;
 }) {
+    const [pretextOpen, setPretextOpen] = useState(false);
+    const menusRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const close = (event: MouseEvent) => {
+            if (!menusRef.current?.contains(event.target as Node)) {
+                setBlockMenuOpen(false);
+                setPretextOpen(false);
+            }
+        };
+        window.addEventListener('mousedown', close);
+        return () => window.removeEventListener('mousedown', close);
+    }, [setBlockMenuOpen]);
+
     return (
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <label className="relative">
-                <Type className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-white/40" />
-                <select
-                    aria-label="Text style"
-                    title="Paragraph and heading hierarchy"
-                    value={currentTextStyle}
-                    onChange={(event) => applyTextStyle(event.target.value as TextStyle)}
-                    className="min-h-8 appearance-none rounded-md border border-white/10 bg-black/30 py-1.5 pl-8 pr-7 text-xs text-white/70 outline-none [color-scheme:dark] [&>option]:bg-[#151515] [&>option]:text-white"
-                >
-                    <option value="p">Paragraph</option>
-                    <option value="h2">Heading 2</option>
-                    <option value="h3">Heading 3</option>
-                    <option value="h4">Heading 4 / Label</option>
-                </select>
-            </label>
-
-            <ToolButton title="Bold" active={editor?.isActive('bold')} onClick={() => editor?.chain().focus().toggleBold().run()}><Bold className="size-3.5" /></ToolButton>
-            <ToolButton title="Italic" active={editor?.isActive('italic')} onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic className="size-3.5" /></ToolButton>
-            <ToolButton title="Strikethrough" active={editor?.isActive('strike')} onClick={() => editor?.chain().focus().toggleStrike().run()}><Strikethrough className="size-3.5" /></ToolButton>
-            <ToolButton title="Inline code" active={editor?.isActive('code')} onClick={() => editor?.chain().focus().toggleCode().run()}><Code className="size-3.5" /></ToolButton>
-
-            <span className={divider} />
-
-            <ToolButton title="Bullet list" active={editor?.isActive('bulletList')} onClick={() => editor?.chain().focus().toggleBulletList().run()}><List className="size-3.5" /></ToolButton>
-            <ToolButton title="Numbered list" active={editor?.isActive('orderedList')} onClick={() => editor?.chain().focus().toggleOrderedList().run()}><ListOrdered className="size-3.5" /></ToolButton>
-            <ToolButton title="Quote" active={editor?.isActive('blockquote')} onClick={() => editor?.chain().focus().toggleBlockquote().run()}><Quote className="size-3.5" /></ToolButton>
-            <ToolButton title="Divider" onClick={() => editor?.chain().focus().setHorizontalRule().run()}><Minus className="size-3.5" /></ToolButton>
-            <ToolButton title="Code block" active={editor?.isActive('codeBlock')} onClick={() => editor?.chain().focus().toggleCodeBlock().run()}><SquareCode className="size-3.5" /></ToolButton>
-            <ToolButton title="Add or edit link" active={editor?.isActive('link')} onClick={setLink}><Link2 className="size-3.5" /></ToolButton>
-            {editor?.isActive('link') && <ToolButton title="Remove link" onClick={() => editor.chain().focus().extendMarkRange('link').unsetLink().run()}><Link2Off className="size-3.5" /></ToolButton>}
-
-            <span className={divider} />
-
-            <ToolButton title="Align left" active={currentAlignment('left')} onClick={() => setAlignment('left')}><AlignLeft className="size-3.5" /></ToolButton>
-            <ToolButton title="Align center" active={currentAlignment('center')} onClick={() => setAlignment('center')}><AlignCenter className="size-3.5" /></ToolButton>
-            <ToolButton title="Align right" active={currentAlignment('right')} onClick={() => setAlignment('right')}><AlignRight className="size-3.5" /></ToolButton>
-            <ToolButton title="Justify" active={currentAlignment('justify')} onClick={() => setAlignment('justify')}><AlignJustify className="size-3.5" /></ToolButton>
-
-            {shortcodes.length > 0 && (
-                <div className="relative">
-                    <span className={divider} />
-                    <button
-                        type="button"
-                        title="Insert project block"
-                        aria-expanded={blockMenuOpen}
-                        onClick={() => setBlockMenuOpen(!blockMenuOpen)}
-                        className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-500/[0.08] px-2.5 text-xs text-emerald-200 transition hover:border-emerald-400/40 hover:bg-emerald-500/[0.14]"
-                    >
-                        <Heading2 className="size-3.5" />
-                        <span className="hidden sm:inline">Project block</span>
-                    </button>
-                    {blockMenuOpen && (
-                        <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-72 overflow-hidden rounded-xl border border-white/10 bg-[#151515] shadow-2xl">
-                            {shortcodes.map((shortcode) => {
-                                const kind = kindFromShortcode(shortcode.value);
-                                const meta = kind ? BLOCK_META[kind] : null;
-                                const Icon = meta?.icon ?? Box;
-                                return (
-                                    <button
-                                        key={shortcode.value}
-                                        type="button"
-                                        onClick={() => insertShortcode(shortcode.value)}
-                                        className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition hover:bg-white/[0.05]"
-                                    >
-                                        <span className="mt-0.5 inline-flex size-7 items-center justify-center rounded-lg bg-white/[0.04] text-emerald-300">
-                                            <Icon className="size-3.5" />
-                                        </span>
-                                        <span>
-                                            <span className="block text-sm text-white/85">{shortcode.label}</span>
-                                            <span className="mt-0.5 block text-[11px] text-white/35">{meta?.hint || shortcode.value}</span>
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
+        <div ref={menusRef} className="flex flex-col gap-2">
+            <div className={row}>
+                <div className={group}>
+                    <label className="relative">
+                        <Type className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-white/40" />
+                        <select
+                            aria-label="Text style"
+                            title="Paragraph and heading hierarchy"
+                            value={currentTextStyle}
+                            onChange={(event) => applyTextStyle(event.target.value as TextStyle)}
+                            className="min-h-8 appearance-none rounded-md border border-white/10 bg-black/30 py-1.5 pl-8 pr-7 text-xs text-white/70 outline-none [color-scheme:dark] [&>option]:bg-[#151515] [&>option]:text-white"
+                        >
+                            <option value="p">Paragraph</option>
+                            <option value="h2">Heading 2</option>
+                            <option value="h3">Heading 3</option>
+                            <option value="h4">Heading 4 / Label</option>
+                        </select>
+                    </label>
+                    <ToolButton title="Bold" active={editor?.isActive('bold')} onClick={() => editor?.chain().focus().toggleBold().run()}><Bold className="size-3.5" /></ToolButton>
+                    <ToolButton title="Italic" active={editor?.isActive('italic')} onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic className="size-3.5" /></ToolButton>
+                    <ToolButton title="Strikethrough" active={editor?.isActive('strike')} onClick={() => editor?.chain().focus().toggleStrike().run()}><Strikethrough className="size-3.5" /></ToolButton>
+                    <ToolButton title="Inline code" active={editor?.isActive('code')} onClick={() => editor?.chain().focus().toggleCode().run()}><Code className="size-3.5" /></ToolButton>
                 </div>
-            )}
 
-            <span className={divider} />
+                <span className={divider} />
 
-            <ToolButton title="Undo" disabled={!editor?.can().undo()} onClick={() => editor?.chain().focus().undo().run()}><Undo2 className="size-3.5" /></ToolButton>
-            <ToolButton title="Redo" disabled={!editor?.can().redo()} onClick={() => editor?.chain().focus().redo().run()}><Redo2 className="size-3.5" /></ToolButton>
-            <ToolButton title="Clear formatting" onClick={() => editor?.chain().focus().unsetAllMarks().clearNodes().run()}><Eraser className="size-3.5" /></ToolButton>
+                <div className={group}>
+                    <ToolButton title="Bullet list" active={editor?.isActive('bulletList')} onClick={() => editor?.chain().focus().toggleBulletList().run()}><List className="size-3.5" /></ToolButton>
+                    <ToolButton title="Numbered list" active={editor?.isActive('orderedList')} onClick={() => editor?.chain().focus().toggleOrderedList().run()}><ListOrdered className="size-3.5" /></ToolButton>
+                    <ToolButton title="Quote" active={editor?.isActive('blockquote')} onClick={() => editor?.chain().focus().toggleBlockquote().run()}><Quote className="size-3.5" /></ToolButton>
+                    <ToolButton title="Divider" onClick={() => editor?.chain().focus().setHorizontalRule().run()}><Minus className="size-3.5" /></ToolButton>
+                    <ToolButton title="Code block" active={editor?.isActive('codeBlock')} onClick={() => editor?.chain().focus().toggleCodeBlock().run()}><SquareCode className="size-3.5" /></ToolButton>
+                    <ToolButton title="Add or edit link" active={editor?.isActive('link')} onClick={setLink}><Link2 className="size-3.5" /></ToolButton>
+                    {editor?.isActive('link') && <ToolButton title="Remove link" onClick={() => editor.chain().focus().extendMarkRange('link').unsetLink().run()}><Link2Off className="size-3.5" /></ToolButton>}
+                </div>
+
+                <span className={divider} />
+
+                <div className={group}>
+                    <ToolButton title="Align left" active={currentAlignment('left')} onClick={() => setAlignment('left')}><AlignLeft className="size-3.5" /></ToolButton>
+                    <ToolButton title="Align center" active={currentAlignment('center')} onClick={() => setAlignment('center')}><AlignCenter className="size-3.5" /></ToolButton>
+                    <ToolButton title="Align right" active={currentAlignment('right')} onClick={() => setAlignment('right')}><AlignRight className="size-3.5" /></ToolButton>
+                    <ToolButton title="Justify" active={currentAlignment('justify')} onClick={() => setAlignment('justify')}><AlignJustify className="size-3.5" /></ToolButton>
+                </div>
+
+                <div className={`${group} ml-auto`}>
+                    <ToolButton title="Undo" disabled={!editor?.can().undo()} onClick={() => editor?.chain().focus().undo().run()}><Undo2 className="size-3.5" /></ToolButton>
+                    <ToolButton title="Redo" disabled={!editor?.can().redo()} onClick={() => editor?.chain().focus().redo().run()}><Redo2 className="size-3.5" /></ToolButton>
+                    <ToolButton title="Clear formatting" onClick={() => editor?.chain().focus().unsetAllMarks().clearNodes().run()}><Eraser className="size-3.5" /></ToolButton>
+                </div>
+            </div>
+
+            <div className={row}>
+                {shortcodes.length > 0 && (
+                    <div className="relative shrink-0">
+                        <button
+                            type="button"
+                            title="Insert project block"
+                            aria-expanded={blockMenuOpen}
+                            onClick={() => { setPretextOpen(false); setBlockMenuOpen(!blockMenuOpen); }}
+                            className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-500/[0.08] px-2.5 text-xs text-emerald-200 transition hover:border-emerald-400/40 hover:bg-emerald-500/[0.14]"
+                        >
+                            <Box className="size-3.5" />
+                            Project block
+                            <ChevronDown className="size-3 opacity-60" />
+                        </button>
+                        {blockMenuOpen && (
+                            <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-80 overflow-hidden rounded-xl border border-white/10 bg-[#151515] shadow-2xl">
+                                {shortcodes.map((shortcode) => {
+                                    const kind = kindFromShortcode(shortcode.value);
+                                    const meta = kind ? BLOCK_META[kind] : null;
+                                    const Icon = meta?.icon ?? Box;
+                                    return (
+                                        <button
+                                            key={shortcode.value}
+                                            type="button"
+                                            onClick={() => insertShortcode(shortcode.value)}
+                                            className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition hover:bg-white/[0.05]"
+                                        >
+                                            <span className="mt-0.5 inline-flex size-7 items-center justify-center rounded-lg bg-white/[0.04] text-emerald-300">
+                                                <Icon className="size-3.5" />
+                                            </span>
+                                            <span>
+                                                <span className="block text-sm text-white/85">{shortcode.label}</span>
+                                                <span className="mt-0.5 block text-[11px] text-white/35">{meta?.hint || shortcode.value}</span>
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <PretextMenu
+                    editor={editor}
+                    open={pretextOpen}
+                    onOpenChange={(next) => {
+                        if (next) setBlockMenuOpen(false);
+                        setPretextOpen(next);
+                    }}
+                />
+            </div>
         </div>
     );
 }

@@ -188,7 +188,7 @@ export function ProjectForm({ project, categories = [], action, submitLabel }: {
                 <section className={panel}>
                     <div className="mb-4">
                         <p className="text-sm font-medium text-white/70">Long description</p>
-                        <p className="mt-1 text-xs leading-relaxed text-white/35">Write a clean rich-text description. Use <strong className="text-white/55">Insert project block…</strong> only where you want Mission, Features, Chronicles or Installation to appear. Blocks are no longer added automatically.</p>
+                        <p className="mt-1 text-xs leading-relaxed text-white/35">Write a clean rich-text description. Insert a <strong className="text-white/55">Project block</strong> where Mission, Features, Chronicles or Installation should appear. A Features block plus the list under it becomes feature cards on the public page. Use <strong className="text-white/55">Pretext</strong> to improve the copy.</p>
                     </div>
                     <PostEditor name="longDescription" initialValue={project?.longDescription ?? ''} shortcodes={projectShortcodes} />
                 </section>

@@ -23,31 +23,16 @@ import {
     Zap,
 } from 'lucide-react';
 import type { Project, ProjectContentBlock } from '@/types';
-import { cn, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { ProjectPlaceholder } from './ProjectPlaceholder';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
 import { uniqueProjectLabels } from '@/lib/project-labels';
-
-const BLOCK_TOKEN = /^\[\[(mission|features|chronicles|installation)\]\]$/i;
-const BLOCK_SPLIT = /(\[\[(?:mission|features|chronicles|installation)\]\])/gi;
-
-function normalizeLayout(layout: string) {
-    return layout
-        .replace(/&lbrack;&lbrack;(mission|features|chronicles|installation)&rbrack;&rbrack;/gi, '[[$1]]')
-        .replace(
-            /<p[^>]*>\s*(?:<(?:strong|em|s)[^>]*>\s*)*\[\[(mission|features|chronicles|installation)\]\](?:\s*<\/(?:strong|em|s)>)*\s*<\/p>/gi,
-            '[[$1]]',
-        );
-}
-
-function layoutParts(layout: string) {
-    return normalizeLayout(layout).split(BLOCK_SPLIT).filter((part) => part.trim().length > 0);
-}
-
-function isBlock(part: string): ProjectContentBlock | null {
-    const match = part.trim().match(BLOCK_TOKEN);
-    return match ? (match[1].toLowerCase() as ProjectContentBlock) : null;
-}
+import {
+    chroniclesFromHtml,
+    composeProjectLayout,
+    featuresFromHtml,
+    installationFromHtml,
+} from '@/lib/project-blocks';
 
 function TerminalBlock({ title, code }: { title: string; code: string }) {
     return (
@@ -65,8 +50,9 @@ function TerminalBlock({ title, code }: { title: string; code: string }) {
     );
 }
 
-function ProjectBlock({ block, project }: { block: ProjectContentBlock; project: Project }) {
+function ProjectBlock({ block, project, body }: { block: ProjectContentBlock; project: Project; body?: string }) {
     const t = useTranslations('projects');
+    const proseClass = 'prose prose-lg max-w-none text-zinc-600 prose-headings:font-black prose-headings:tracking-tight prose-p:leading-loose prose-a:text-emerald-600 dark:prose-invert dark:text-muted-foreground dark:prose-a:text-emerald-400';
 
     if (block === 'mission') {
         return (
@@ -78,86 +64,98 @@ function ProjectBlock({ block, project }: { block: ProjectContentBlock; project:
     }
 
     if (block === 'features') {
-        if (!project.features?.length) return null;
+        const groups = project.features?.length ? project.features : featuresFromHtml(body);
         return (
             <section id="features" className="space-y-8">
                 <div className="flex items-center gap-3">
                     <span className="rounded-lg bg-blue-500/10 p-2 text-blue-500"><Zap className="h-5 w-5" /></span>
                     <h2 className="text-2xl font-bold text-foreground">{t('sections.keyFeatures')}</h2>
                 </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {project.features.map((group, index) => (
-                        <motion.div
-                            key={`${group.title}-${index}`}
-                            initial={{ opacity: 0, y: 16 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            className="rounded-2xl border border-black/15 bg-secondary/10 p-6 dark:border-white/5 dark:bg-secondary/5"
-                        >
-                            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-black/10 text-emerald-700 dark:bg-white/5 dark:text-emerald-400">
-                                {index % 2 === 0 ? <Box className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
-                            </div>
-                            <h3 className="mb-3 text-lg font-bold">{group.title}</h3>
-                            <ul className="space-y-2">
-                                {group.items.map((item, itemIndex) => (
-                                    <li key={`${item}-${itemIndex}`} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-emerald-500" />
-                                        <span>{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </motion.div>
-                    ))}
-                </div>
+                {groups.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        {groups.map((group, index) => (
+                            <motion.div
+                                key={`${group.title}-${index}`}
+                                initial={{ opacity: 0, y: 16 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                className="rounded-2xl border border-black/15 bg-secondary/10 p-6 dark:border-white/5 dark:bg-secondary/5"
+                            >
+                                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-black/10 text-emerald-700 dark:bg-white/5 dark:text-emerald-400">
+                                    {index % 2 === 0 ? <Box className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+                                </div>
+                                <h3 className="mb-3 text-lg font-bold">{group.title}</h3>
+                                <ul className="space-y-2">
+                                    {group.items.map((item, itemIndex) => (
+                                        <li key={`${item}-${itemIndex}`} className="flex items-start gap-2 text-sm text-muted-foreground">
+                                            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-emerald-500" />
+                                            <span>{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </motion.div>
+                        ))}
+                    </div>
+                ) : body ? (
+                    <div className={proseClass} dangerouslySetInnerHTML={{ __html: body }} />
+                ) : null}
             </section>
         );
     }
 
     if (block === 'chronicles') {
-        if (!project.challengesAndSolutions?.length) return null;
+        const entries = project.challengesAndSolutions?.length ? project.challengesAndSolutions : chroniclesFromHtml(body);
         return (
             <section id="chronicles" className="space-y-8">
                 <div className="flex items-center gap-3">
                     <span className="rounded-lg bg-amber-500/10 p-2 text-amber-500"><Terminal className="h-5 w-5" /></span>
                     <h2 className="text-2xl font-bold text-foreground">{t('sections.engineeringChronicles')}</h2>
                 </div>
-                <div className="ml-3 space-y-10 border-l border-black/25 pb-2 pl-8 dark:border-white/10">
-                    {project.challengesAndSolutions.map((item, index) => (
-                        <div key={`${item.problem}-${index}`} className="relative">
-                            <span className="absolute -left-[37px] top-1 h-4 w-4 rounded-full border-2 border-amber-500 bg-background" />
-                            <h3 className="mb-2 text-lg font-bold">{item.problem}</h3>
-                            <div className="border-l border-black/20 pl-4 text-sm leading-relaxed text-muted-foreground dark:border-white/5">
-                                <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">{t('sections.solution')}</span>
-                                {item.solution}
+                {entries.length > 0 ? (
+                    <div className="ml-3 space-y-10 border-l border-black/25 pb-2 pl-8 dark:border-white/10">
+                        {entries.map((item, index) => (
+                            <div key={`${item.problem}-${index}`} className="relative">
+                                <span className="absolute -left-[37px] top-1 h-4 w-4 rounded-full border-2 border-amber-500 bg-background" />
+                                <h3 className="mb-2 text-lg font-bold">{item.problem}</h3>
+                                <div className="border-l border-black/20 pl-4 text-sm leading-relaxed text-muted-foreground dark:border-white/5">
+                                    <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">{t('sections.solution')}</span>
+                                    {item.solution}
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                ) : body ? (
+                    <div className={proseClass} dangerouslySetInnerHTML={{ __html: body }} />
+                ) : null}
             </section>
         );
     }
 
-    if (!project.installation?.length) return null;
+    const steps = project.installation?.length ? project.installation : installationFromHtml(body);
     return (
         <section id="installation" className="space-y-8">
             <div className="flex items-center gap-3">
                 <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500"><Terminal className="h-5 w-5" /></span>
                 <h2 className="text-2xl font-bold text-foreground">{t('sections.installation')}</h2>
             </div>
-            <div className="space-y-6">
-                {project.installation.map((step, index) => (
-                    <div key={`${step.title}-${index}`}>
-                        {step.type === 'code' ? (
-                            <TerminalBlock title={step.title} code={step.cmd || step.code || ''} />
-                        ) : (
-                            <div className="rounded-2xl border border-black/10 bg-secondary/20 p-6 dark:border-white/5 dark:bg-secondary/5">
-                                <h3 className="mb-3 flex items-center gap-2 font-bold"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{step.title}</h3>
-                                <p className="text-sm leading-relaxed text-muted-foreground">{step.code || step.cmd}</p>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
+            {steps.length > 0 ? (
+                <div className="space-y-6">
+                    {steps.map((step, index) => (
+                        <div key={`${step.title}-${index}`}>
+                            {step.type === 'code' ? (
+                                <TerminalBlock title={step.title} code={step.cmd || step.code || ''} />
+                            ) : (
+                                <div className="rounded-2xl border border-black/10 bg-secondary/20 p-6 dark:border-white/5 dark:bg-secondary/5">
+                                    <h3 className="mb-3 flex items-center gap-2 font-bold"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{step.title}</h3>
+                                    <p className="text-sm leading-relaxed text-muted-foreground">{step.code || step.cmd}</p>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            ) : body ? (
+                <div className={proseClass} dangerouslySetInnerHTML={{ __html: body }} />
+            ) : null}
         </section>
     );
 }
@@ -167,7 +165,7 @@ export function ProjectComposerPage({ project }: { project: Project }) {
     const router = useRouter();
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const layout = project.contentLayout?.trim() || project.description;
-    const parts = layoutParts(layout);
+    const segments = composeProjectLayout(layout);
     const blocks = project.contentBlocks ?? [];
     const stackAndTools = uniqueProjectLabels(project.techStack, project.tools);
 
@@ -217,14 +215,15 @@ export function ProjectComposerPage({ project }: { project: Project }) {
             <main className="container mx-auto max-w-7xl px-6">
                 <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
                     <article className="space-y-12 lg:col-span-8">
-                        {parts.map((part, index) => {
-                            const block = isBlock(part);
-                            if (block) return <ProjectBlock key={`${block}-${index}`} block={block} project={project} />;
+                        {segments.map((segment, index) => {
+                            if (segment.type === 'block') {
+                                return <ProjectBlock key={`${segment.block}-${index}`} block={segment.block} project={project} body={segment.body} />;
+                            }
                             return (
                                 <div
                                     key={`copy-${index}`}
                                     className="prose prose-lg max-w-none text-zinc-600 prose-headings:font-black prose-headings:tracking-tight prose-p:leading-loose prose-a:text-emerald-600 prose-blockquote:my-8 prose-blockquote:rounded-r-xl prose-blockquote:border-l-4 prose-blockquote:border-emerald-500 prose-blockquote:bg-secondary/25 prose-blockquote:px-6 prose-blockquote:py-4 prose-blockquote:text-lg prose-blockquote:italic prose-blockquote:text-foreground/80 dark:prose-invert dark:text-muted-foreground dark:prose-a:text-emerald-400 dark:prose-blockquote:bg-white/[0.04]"
-                                    dangerouslySetInnerHTML={{ __html: part }}
+                                    dangerouslySetInnerHTML={{ __html: segment.html }}
                                 />
                             );
                         })}
@@ -283,9 +282,9 @@ export function ProjectComposerPage({ project }: { project: Project }) {
                                     <h3 className="mb-5 border-b border-border/40 pb-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('sections.contents')}</h3>
                                     <ul className="space-y-3 text-sm text-muted-foreground">
                                         {blocks.includes('mission') && <li><button onClick={() => document.getElementById('mission')?.scrollIntoView({ behavior: 'smooth' })} className="transition hover:text-foreground">• {t('sections.missionBrief')}</button></li>}
-                                        {blocks.includes('features') && project.features && <li><button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="transition hover:text-foreground">• {t('sections.keyFeatures')}</button></li>}
-                                        {blocks.includes('chronicles') && project.challengesAndSolutions && <li><button onClick={() => document.getElementById('chronicles')?.scrollIntoView({ behavior: 'smooth' })} className="transition hover:text-foreground">• {t('sections.engineeringChronicles')}</button></li>}
-                                        {blocks.includes('installation') && project.installation && <li><button onClick={() => document.getElementById('installation')?.scrollIntoView({ behavior: 'smooth' })} className="transition hover:text-foreground">• {t('sections.installation')}</button></li>}
+                                        {blocks.includes('features') && <li><button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="transition hover:text-foreground">• {t('sections.keyFeatures')}</button></li>}
+                                        {blocks.includes('chronicles') && <li><button onClick={() => document.getElementById('chronicles')?.scrollIntoView({ behavior: 'smooth' })} className="transition hover:text-foreground">• {t('sections.engineeringChronicles')}</button></li>}
+                                        {blocks.includes('installation') && <li><button onClick={() => document.getElementById('installation')?.scrollIntoView({ behavior: 'smooth' })} className="transition hover:text-foreground">• {t('sections.installation')}</button></li>}
                                         {project.galleryImages?.length ? <li><button onClick={() => document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' })} className="transition hover:text-foreground">• {t('sections.visualGallery')}</button></li> : null}
                                     </ul>
                                 </div>
