@@ -61,7 +61,6 @@ export function BlogArticleFrame({
     typeLabel,
     categoryLabel,
     author,
-    watermarkText,
     publishedAt,
     tags,
     relatedPosts,
@@ -75,7 +74,6 @@ export function BlogArticleFrame({
     initialLikeCount: number;
     initialViewCount: number;
     initiallyLiked: boolean;
-    watermarkText?: string;
     title: string;
     excerpt: string | null;
     initialContent: CmsPostContent;
@@ -91,6 +89,21 @@ export function BlogArticleFrame({
     comments?: ReactNode;
 }) {
     const viewRecordedRef = useRef(false);
+    const shareMenuRef = useRef<HTMLDetailsElement>(null);
+
+    useEffect(() => {
+        const dismissShareMenu = (event: PointerEvent) => {
+            const menu = shareMenuRef.current;
+            // The story dialog lives inside this menu; never hide its ancestor while open.
+            if (!menu?.open || menu.querySelector('dialog[open]')) return;
+            if (event.target instanceof Node && !menu.contains(event.target)) {
+                menu.open = false;
+            }
+        };
+        document.addEventListener('pointerdown', dismissShareMenu, true);
+        return () => document.removeEventListener('pointerdown', dismissShareMenu, true);
+    }, []);
+
     const [copied, setCopied] = useState(false);
     const [liked, setLiked] = useState(initiallyLiked);
     const [likeCount, setLikeCount] = useState(initialLikeCount);
@@ -265,7 +278,7 @@ export function BlogArticleFrame({
                         <div className="inline-flex h-9 items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 text-xs font-medium text-muted-foreground" title={`${viewCount.toLocaleString()} views`} aria-label={`${viewCount.toLocaleString()} views`}>
                             <Eye className="h-4 w-4" /><span>{formatCompactCount(viewCount)}</span>
                         </div>
-                        <details className="relative" onKeyDown={(event) => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
+                        <details ref={shareMenuRef} className="relative" onKeyDown={(event) => { if (event.key === 'Escape' && !event.currentTarget.querySelector('dialog[open]')) { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
                             <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 text-xs text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 [&::-webkit-details-marker]:hidden">
                                 {copied ? <Check className="size-4" /> : <Share2 className="size-4" />}
                                 {copied ? (activeLocale === 'bg' ? 'Копирано' : 'Copied') : (activeLocale === 'bg' ? 'Сподели' : 'Share')}
@@ -274,7 +287,7 @@ export function BlogArticleFrame({
                                 <button type="button" onClick={(event) => { event.currentTarget.closest('details')?.removeAttribute('open'); void sharePublication(); }} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-foreground/5 focus-visible:outline focus-visible:outline-2">
                                     <Share2 aria-hidden="true" className="size-4" />{activeLocale === 'bg' ? 'Сподели линк' : 'Share link'}
                                 </button>
-                                <StoryShare title={displayTitle} excerpt={displayExcerpt} text={displayContent.text ?? ''} html={displayContent.html ?? ''} image={displayContent.featuredImage || featuredImage} author={author} watermarkText={watermarkText} locale={activeLocale} />
+                                <StoryShare title={displayTitle} excerpt={displayExcerpt} text={displayContent.text ?? ''} html={displayContent.html ?? ''} image={displayContent.featuredImage || featuredImage} author={author} locale={activeLocale} />
                             </div>
                         </details>
                     </div>
