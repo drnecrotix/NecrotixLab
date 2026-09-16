@@ -135,10 +135,10 @@ export async function renderPwaIcon(kind: PwaIconKind) {
 
 function wordmarkSvg(label: string, width: number, fill: string, fontSize: number) {
     const escaped = label
-        .replace(/&/g, '&')
-        .replace(/</g, '<')
-        .replace(/>/g, '>')
-        .replace(/"/g, '"');
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     const height = Math.round(fontSize * 1.6);
     return Buffer.from(
         `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, 'Times New Roman', serif" font-size="${fontSize}" fill="${fill}">${escaped}</text></svg>`,
@@ -214,5 +214,3 @@ export async function renderAppleSplash(width: number, height: number) {
         return canvas.png().toBuffer();
     }
 }
-
-export type { PwaSettings };
