@@ -56,6 +56,12 @@ export async function savePwaSettings(form: FormData): Promise<PwaSaveResult> {
             monochromeIconUrl: safeCmsMediaUrl(form.get('monochromeIconUrl')),
             screenshotNarrowUrl: safeCmsMediaUrl(form.get('screenshotNarrowUrl')),
             screenshotWideUrl: safeCmsMediaUrl(form.get('screenshotWideUrl')),
+            splashImageUrl: safeCmsMediaUrl(form.get('splashImageUrl')),
+            splashStyle: form.get('splashStyle'),
+            splashTagline: form.get('splashTagline'),
+            splashDurationMs: form.get('splashDurationMs'),
+            readerTheme: form.get('readerTheme'),
+            iconAutoPack: form.get('iconAutoPack') === 'on',
             categories: jsonField(form, 'categories'),
             handleLinks: form.get('handleLinks'),
             launchHandler: form.get('launchHandler'),
@@ -68,6 +74,7 @@ export async function savePwaSettings(form: FormData): Promise<PwaSaveResult> {
             showInstallPrompt: form.get('showInstallPrompt') === 'on',
             showIosInstallHint: form.get('showIosInstallHint') === 'on',
             splashEnabled: form.get('splashEnabled') === 'on',
+            readerModeEnabled: form.get('readerModeEnabled') === 'on',
             serviceWorkerEnabled: form.get('serviceWorkerEnabled') === 'on',
             offlineFallbackEnabled: form.get('offlineFallbackEnabled') === 'on',
             pullToRefresh: form.get('pullToRefresh') === 'on',
@@ -97,8 +104,12 @@ export async function savePwaSettings(form: FormData): Promise<PwaSaveResult> {
         revalidatePath('/', 'layout');
         revalidatePath('/manifest.webmanifest');
         revalidatePath('/admin/pwa');
+        revalidatePath('/pwa/icon/96');
+        revalidatePath('/pwa/icon/180');
         revalidatePath('/pwa/icon/192');
         revalidatePath('/pwa/icon/512');
+        revalidatePath('/pwa/icon/512-maskable');
+        revalidatePath('/pwa/icon/monochrome');
         revalidatePath('/api/pwa/badge');
 
         return {

@@ -21,7 +21,8 @@ import {
     WifiOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { enabledPwaTabs, type PwaSettings, type PwaTabIcon } from '@/lib/pwa-settings';
+import { enabledPwaTabs, resolvedPwaIconUrls, type PwaSettings, type PwaTabIcon } from '@/lib/pwa-settings';
+import { PwaReaderMode } from '@/components/pwa/PwaReaderMode';
 
 type BeforeInstallPromptEvent = Event & {
     prompt: () => Promise<void>;
@@ -112,9 +113,9 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
         if (seen) return;
         setSplash(true);
         sessionStorage.setItem('pwa-splash-seen', '1');
-        const timer = window.setTimeout(() => setSplash(false), 780);
+        const timer = window.setTimeout(() => setSplash(false), settings.splashDurationMs || 900);
         return () => window.clearTimeout(timer);
-    }, [hydrated, standalone, settings.splashEnabled, isAdmin]);
+    }, [hydrated, standalone, settings.splashEnabled, settings.splashDurationMs, isAdmin]);
 
     useEffect(() => {
         if (!hydrated || !standalone || isAdmin || !settings.appBadgeEnabled) return;
@@ -274,17 +275,12 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
     const showOffline = hydrated && standalone && settings.offlineBannerEnabled && offline;
     const showUpdate = hydrated && standalone && settings.updatePromptEnabled && Boolean(waitingWorker);
     const showPull = standalone && settings.pullToRefresh && (pullOffset > 0 || refreshing);
+    const pack = resolvedPwaIconUrls(settings);
+    const splashInk = isDarkBackground(settings.backgroundColor) ? '#f4f0ea' : '#16141c';
 
     return (
         <>
-            {splash ? (
-                <div className="pointer-events-none fixed inset-0 z-[200] grid place-items-center bg-[var(--pwa-bg,#0c0a12)] text-white">
-                    <div className="flex flex-col items-center gap-4">
-                        <img src={settings.appleIconUrl || settings.iconUrl} alt="" className="size-16 rounded-2xl object-contain" />
-                        <p className="text-sm font-semibold tracking-tight">{settings.shortName}</p>
-                    </div>
-                </div>
-            ) : null}
+            {splash ? <SplashCard settings={settings} iconSrc={pack.icon180} ink={splashInk} /> : null}
 
             {showPull ? (
                 <div
@@ -376,6 +372,50 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
                     </div>
                 </nav>
             ) : null}
+
+            <PwaReaderMode settings={settings} pathname={pathname} standalone={standalone && hydrated} />
         </>
+    );
+}
+
+function isDarkBackground(hex: string) {
+    const n = Number.parseInt(hex.slice(1), 16);
+    if (!Number.isFinite(n)) return true;
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return (r * 299 + g * 587 + b * 114) / 1000 < 140;
+}
+
+function SplashCard({ settings, iconSrc, ink }: { settings: PwaSettings; iconSrc: string; ink: string }) {
+    const style = settings.splashStyle;
+    const background = settings.backgroundColor || '#0c0a12';
+
+    if (style === 'image' && settings.splashImageUrl) {
+        return (
+            <div className="pointer-events-none fixed inset-0 z-[200]" style={{ background }}>
+                <img src={settings.splashImageUrl} alt="" className="h-full w-full object-cover" />
+            </div>
+        );
+    }
+
+    if (style === 'solid') {
+        return <div className="pointer-events-none fixed inset-0 z-[200]" style={{ background }} />;
+    }
+
+    return (
+        <div className="pointer-events-none fixed inset-0 z-[200] grid place-items-center" style={{ background, color: ink }}>
+            <div className="flex flex-col items-center gap-4 px-8 text-center">
+                {style !== 'wordmark' ? (
+                    <img src={iconSrc} alt="" className="size-16 rounded-2xl object-contain" />
+                ) : null}
+                {style !== 'logo' ? (
+                    <>
+                        <p className="text-lg font-semibold tracking-tight">{settings.shortName}</p>
+                        {settings.splashTagline ? <p className="text-[11px] opacity-60">{settings.splashTagline}</p> : null}
+                    </>
+                ) : null}
+            </div>
+        </div>
     );
 }

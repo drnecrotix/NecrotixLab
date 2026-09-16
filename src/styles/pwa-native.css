@@ -17,6 +17,75 @@
         --pwa-tabbar-offset: 4.85rem;
         background: var(--pwa-bg, #0c0a12);
     }
+
+    html[data-pwa-reader] {
+        --reader-bg: #f4efe6;
+        --reader-fg: #1c1916;
+        --reader-muted: #6b635a;
+        --reader-scale: 1;
+    }
+
+    html[data-pwa-reader='sepia'] {
+        --reader-bg: #eddfc7;
+        --reader-fg: #3a2a18;
+        --reader-muted: #7a6248;
+    }
+
+    html[data-pwa-reader='night'] {
+        --reader-bg: #121014;
+        --reader-fg: #e7e2d8;
+        --reader-muted: #9a948a;
+    }
+
+    html[data-pwa-reader='system'] {
+        --reader-bg: var(--background);
+        --reader-fg: var(--foreground);
+        --reader-muted: var(--muted-foreground);
+    }
+
+    html[data-pwa-reader] body {
+        background: var(--reader-bg) !important;
+        color: var(--reader-fg) !important;
+    }
+
+    html[data-pwa-reader] main.min-h-screen {
+        background: transparent !important;
+        color: var(--reader-fg) !important;
+        padding-top: 1.25rem !important;
+    }
+
+    html[data-pwa-reader] main.min-h-screen h1 {
+        font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        color: var(--reader-fg) !important;
+        text-wrap: balance;
+    }
+
+    html[data-pwa-reader] main.min-h-screen p,
+    html[data-pwa-reader] main.min-h-screen article {
+        color: var(--reader-fg) !important;
+        font-size: calc(1.05rem * var(--reader-scale, 1));
+        line-height: 1.7;
+        text-wrap: pretty;
+    }
+
+    html[data-pwa-reader] main.min-h-screen article {
+        font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+        max-width: 38rem;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    html[data-pwa-reader] main.min-h-screen .text-muted-foreground {
+        color: var(--reader-muted) !important;
+    }
+
+    html[data-pwa-reader] main.min-h-screen > div.container.mt-9,
+    html[data-pwa-reader] main.min-h-screen > div.container.mt-16,
+    html[data-pwa-reader] main.min-h-screen > section {
+        display: none !important;
+    }
 }
 
 @media (display-mode: window-controls-overlay) {

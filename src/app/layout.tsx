@@ -7,7 +7,7 @@ import { defaultSeoDefaults, normalizeSeoDefaults } from '@/lib/seo-settings';
 import { defaultGeneralSiteSettings, normalizeGeneralSiteSettings } from '@/lib/site-settings';
 import { defaultHomepageContent, normalizeHomepageContent, parseCustomMetaTags } from '@/lib/homepage-content';
 import { absoluteSocialMediaUrl, getPublicSiteUrl, socialImageDescriptor } from '@/lib/social-metadata';
-import { defaultPwaSettings } from '@/lib/pwa-settings';
+import { defaultPwaSettings, resolvedPwaIconUrls } from '@/lib/pwa-settings';
 import { appleSplashStartupImages } from '@/lib/pwa-icons';
 import { getPwaSettings } from '@/lib/pwa-settings.server';
 import { NativePwaLayer } from '@/components/pwa/NativePwaLayer';
@@ -50,6 +50,7 @@ export async function generateMetadata(): Promise<Metadata> {
     const ogImages = ogImage ? [socialImageDescriptor(ogImage, `${general.siteName} - ${seo.ogTitle}`)!] : undefined;
     const twitterImages = twitterImage ? [socialImageDescriptor(twitterImage, `${general.siteName} - ${seo.twitterTitle}`)!] : undefined;
     const favicon = general.faviconUrl || defaultGeneralSiteSettings.faviconUrl;
+    const pack = resolvedPwaIconUrls(pwa);
     const normalizedSiteUrl = siteUrl.replace(/\/$/, '');
     const canonicalUrl = seo.canonicalUrl || normalizedSiteUrl;
     const alternates: Metadata['alternates'] = {
@@ -113,9 +114,9 @@ export async function generateMetadata(): Promise<Metadata> {
         robots,
         verification: seo.googleVerification ? { google: seo.googleVerification } : undefined,
         icons: {
-            icon: [{ url: favicon }, { url: pwa.icon192Url || '/pwa/icon-192.png', sizes: '192x192', type: 'image/png' }],
+            icon: [{ url: favicon }, { url: pack.icon192, sizes: '192x192', type: 'image/png' }],
             shortcut: [{ url: favicon }],
-            apple: [{ url: pwa.appleIconUrl || '/pwa/icon-180.png', sizes: '180x180' }],
+            apple: [{ url: pack.icon180, sizes: '180x180' }],
         },
     };
 }
