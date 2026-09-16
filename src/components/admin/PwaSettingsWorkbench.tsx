@@ -17,17 +17,24 @@ import { MediaPicker } from '@/components/admin/MediaPicker';
 import { savePwaSettings } from '@/app/admin/(protected)/pwa/actions';
 import {
     PWA_CATEGORIES,
+    PWA_GENERATED_PACK,
+    PWA_READER_THEMES,
+    PWA_SPLASH_STYLES,
     PWA_TAB_ICONS,
+    applyGeneratedIconPack,
     defaultPwaSettings,
     enabledPwaTabs,
     pwaSettingsToManifest,
+    resolvedPwaIconUrls,
     type PwaCategory,
     type PwaDisplayMode,
     type PwaHandleLinks,
     type PwaLaunchHandler,
     type PwaOrientation,
+    type PwaReaderTheme,
     type PwaSettings,
     type PwaShortcut,
+    type PwaSplashStyle,
     type PwaStatusBarStyle,
     type PwaTabBarStyle,
     type PwaTabIcon,
@@ -36,13 +43,14 @@ import {
 
 const field = 'mt-1.5 w-full rounded-xl border border-foreground/10 bg-foreground/[0.025] px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-sky-400/40 focus:bg-foreground/[0.04]';
 
-type SectionId = 'identity' | 'chrome' | 'tabs' | 'manifest' | 'offline' | 'install';
+type SectionId = 'identity' | 'chrome' | 'tabs' | 'manifest' | 'reading' | 'offline' | 'install';
 
 const sections: Array<{ id: SectionId; label: string; hint: string }> = [
-    { id: 'identity', label: 'App identity', hint: 'Name, icons, start URL' },
+    { id: 'identity', label: 'App identity', hint: 'Name and one source logo' },
     { id: 'chrome', label: 'Native chrome', hint: 'Tab bar and status bar' },
     { id: 'tabs', label: 'Tab bar', hint: 'Installed app navigation' },
     { id: 'manifest', label: 'Manifest extras', hint: 'Screenshots, WCO, share' },
+    { id: 'reading', label: 'Splash & reader', hint: 'Launch screen and journal reader' },
     { id: 'offline', label: 'Offline & updates', hint: 'Opt-in service worker' },
     { id: 'install', label: 'Install prompts', hint: 'Browser banners only if enabled' },
 ];
@@ -73,6 +81,7 @@ function Panel({ title, description, children }: { title: string; description: s
 
 function PhonePreview({ settings }: { settings: PwaSettings }) {
     const tabs = enabledPwaTabs(settings);
+    const pack = resolvedPwaIconUrls(settings);
     return (
         <aside className="overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.018]">
             <div className="flex items-center justify-between border-b border-foreground/10 px-4 py-3">
@@ -87,7 +96,7 @@ function PhonePreview({ settings }: { settings: PwaSettings }) {
                     <div className="px-5 pt-3" style={{ background: settings.themeColor }}>
                         <div className="mx-auto h-1.5 w-16 rounded-full bg-white/25" />
                         <div className="flex items-center gap-2 py-3">
-                            <img src={settings.appleIconUrl || settings.iconUrl} alt="" className="size-6 rounded-md object-contain" />
+                            <img src={pack.icon180} alt="" className="size-6 rounded-md object-contain" />
                             <span className="truncate text-[11px] font-semibold text-white">{settings.shortName}</span>
                         </div>
                     </div>
@@ -129,6 +138,8 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
     const [settings, setSettings] = useState(initial);
     const [status, setStatus] = useState<{ ok: boolean; message: string; savedAt?: string } | null>(null);
     const [showManifest, setShowManifest] = useState(false);
+    const [showOverrides, setShowOverrides] = useState(false);
+    const [previewSplash, setPreviewSplash] = useState(false);
 
     const setTop = <K extends keyof PwaSettings>(key: K, value: PwaSettings[K]) => {
         setSettings((current) => ({ ...current, [key]: value }));
@@ -191,6 +202,11 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
         form.set('monochromeIconUrl', settings.monochromeIconUrl);
         form.set('screenshotNarrowUrl', settings.screenshotNarrowUrl);
         form.set('screenshotWideUrl', settings.screenshotWideUrl);
+        form.set('splashImageUrl', settings.splashImageUrl);
+        form.set('splashStyle', settings.splashStyle);
+        form.set('splashTagline', settings.splashTagline);
+        form.set('splashDurationMs', String(settings.splashDurationMs));
+        form.set('readerTheme', settings.readerTheme);
         form.set('handleLinks', settings.handleLinks);
         form.set('launchHandler', settings.launchHandler);
         form.set('statusBarStyle', settings.statusBarStyle);
@@ -199,9 +215,11 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
         if (settings.shareTargetEnabled) form.set('shareTargetEnabled', 'on');
         if (settings.nativeChrome) form.set('nativeChrome', 'on');
         if (settings.hideSiteChrome) form.set('hideSiteChrome', 'on');
+        if (settings.iconAutoPack) form.set('iconAutoPack', 'on');
         if (settings.showInstallPrompt) form.set('showInstallPrompt', 'on');
         if (settings.showIosInstallHint) form.set('showIosInstallHint', 'on');
         if (settings.splashEnabled) form.set('splashEnabled', 'on');
+        if (settings.readerModeEnabled) form.set('readerModeEnabled', 'on');
         if (settings.serviceWorkerEnabled) form.set('serviceWorkerEnabled', 'on');
         if (settings.offlineFallbackEnabled) form.set('offlineFallbackEnabled', 'on');
         if (settings.pullToRefresh) form.set('pullToRefresh', 'on');
@@ -256,7 +274,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
 
                 <div className="min-w-0 rounded-2xl border border-foreground/10 bg-foreground/[0.018] p-5 sm:p-6">
                     {active === 'identity' ? (
-                        <Panel title="Installed app identity" description="Used by the web app manifest, home-screen icon and splash. The public website title and SEO stay on Settings / SEO. Icon sizes follow SuperPWA and vite-plugin-pwa (192 / 512).">
+                        <Panel title="Installed app identity" description="Used by the web app manifest, home-screen icon and splash. Pick one source logo; 192/512/maskable/monochrome and Apple 180 are generated from it. The public website title stays on Settings / SEO.">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <label className="text-xs text-muted-foreground">App name<input value={settings.name} onChange={(event) => setTop('name', event.target.value)} className={field} maxLength={60} /></label>
                                 <label className="text-xs text-muted-foreground">Short name<input value={settings.shortName} onChange={(event) => setTop('shortName', event.target.value)} className={field} maxLength={20} /></label>
@@ -280,34 +298,61 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                         <option value="landscape">Landscape</option>
                                     </select>
                                 </label>
-                                <div className="md:col-span-2"><MediaPicker label="App icon" value={settings.iconUrl} onChange={(url) => setTop('iconUrl', url)} initialKind="image" lockKind /></div>
-                                <div className="md:col-span-2"><MediaPicker label="192×192 PNG (install UI)" value={settings.icon192Url} onChange={(url) => setTop('icon192Url', url)} initialKind="image" lockKind /></div>
-                                <div className="md:col-span-2"><MediaPicker label="512×512 PNG (splash / maskable source)" value={settings.icon512Url} onChange={(url) => setTop('icon512Url', url)} initialKind="image" lockKind /></div>
-                                <div className="md:col-span-2"><MediaPicker label="Apple touch icon" value={settings.appleIconUrl} onChange={(url) => setTop('appleIconUrl', url)} initialKind="image" lockKind /></div>
-                                <div className="md:col-span-2"><MediaPicker label="Maskable icon (Android adaptive, safe-zone padded)" value={settings.maskableIconUrl} onChange={(url) => setTop('maskableIconUrl', url)} initialKind="image" lockKind /></div>
-                                <div className="md:col-span-2"><MediaPicker label="Monochrome icon (Android 13 themed icon)" value={settings.monochromeIconUrl} onChange={(url) => setTop('monochromeIconUrl', url)} initialKind="image" lockKind /></div>
+                                <div className="md:col-span-2"><MediaPicker label="Source logo" value={settings.iconUrl} onChange={(url) => setSettings((current) => applyGeneratedIconPack({ ...current, iconUrl: url }))} initialKind="image" lockKind /></div>
                                 <div className="md:col-span-2 rounded-xl border border-foreground/10 bg-background/40 p-4">
-                                    <p className="text-xs font-semibold">Generated icon pack</p>
-                                    <p className="mt-1 text-[11px] leading-5 text-muted-foreground">PNG 96 / 180 / 192 / 512, maskable and monochrome ship from the app icon above. iOS startup images are generated per device from the background color. Override any size with the pickers if you need a custom asset.</p>
+                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-xs font-semibold">Generated icon pack</p>
+                                            <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+                                                One logo becomes 96 / 180 / 192 / 512, a padded maskable Android icon, a monochrome themed icon, and iOS splash screens. JPG, PNG or SVG all work — including files from the media library.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSettings((current) => applyGeneratedIconPack(current))}
+                                            className="rounded-lg border border-foreground/10 px-2.5 py-1.5 text-[10px] font-medium text-foreground hover:bg-foreground/5"
+                                        >
+                                            Rebuild from source
+                                        </button>
+                                    </div>
+                                    <div className="mt-3">
+                                    <Toggle
+                                        checked={settings.iconAutoPack}
+                                        onChange={(value) => {
+                                            if (value) setSettings((current) => applyGeneratedIconPack(current));
+                                            else setTop('iconAutoPack', false);
+                                        }}
+                                        label="Always use the generated pack"
+                                        hint="Leave on unless you need a one-off override for a single size."
+                                    />
+                                    </div>
                                     <div className="mt-3 flex flex-wrap items-end gap-4">
                                         {[
-                                            ['/pwa/icon/96', '96'],
-                                            ['/pwa/icon/180', '180'],
-                                            ['/pwa/icon/192', '192'],
-                                            ['/pwa/icon/512', '512'],
-                                            ['/pwa/icon/512-maskable', 'maskable'],
-                                            ['/pwa/icon/monochrome', 'mono'],
+                                            [PWA_GENERATED_PACK.icon96, '96'],
+                                            [PWA_GENERATED_PACK.icon180, '180'],
+                                            [PWA_GENERATED_PACK.icon192, '192'],
+                                            [PWA_GENERATED_PACK.icon512, '512'],
+                                            [PWA_GENERATED_PACK.maskable, 'maskable'],
+                                            [PWA_GENERATED_PACK.monochrome, 'mono'],
                                         ].map(([src, label]) => (
                                             <div key={label} className="text-center">
-                                                <img src={src} alt="" className="mx-auto size-12 rounded-xl border border-foreground/10 bg-black object-cover" />
+                                                <img src={`${src}?v=${encodeURIComponent(settings.iconUrl)}`} alt="" className="mx-auto size-12 rounded-xl border border-foreground/10 bg-black object-cover" />
                                                 <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
                                             </div>
                                         ))}
-                                        <div className="text-center">
-                                            <img src="/pwa/splash-preview.png" alt="" className="mx-auto h-16 w-10 rounded-md border border-foreground/10 bg-black object-cover" />
-                                            <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">iOS splash</p>
-                                        </div>
                                     </div>
+                                    <button type="button" onClick={() => setShowOverrides((value) => !value)} className="mt-4 text-[11px] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                                        {showOverrides ? 'Hide size overrides' : 'Override a single size'}
+                                    </button>
+                                    {showOverrides ? (
+                                        <div className="mt-3 grid gap-3">
+                                            <MediaPicker label="192×192 override" value={settings.icon192Url} onChange={(url) => setSettings((current) => ({ ...current, iconAutoPack: false, icon192Url: url }))} initialKind="image" lockKind />
+                                            <MediaPicker label="512×512 override" value={settings.icon512Url} onChange={(url) => setSettings((current) => ({ ...current, iconAutoPack: false, icon512Url: url }))} initialKind="image" lockKind />
+                                            <MediaPicker label="Apple 180 override" value={settings.appleIconUrl} onChange={(url) => setSettings((current) => ({ ...current, iconAutoPack: false, appleIconUrl: url }))} initialKind="image" lockKind />
+                                            <MediaPicker label="Maskable override" value={settings.maskableIconUrl} onChange={(url) => setSettings((current) => ({ ...current, iconAutoPack: false, maskableIconUrl: url }))} initialKind="image" lockKind />
+                                            <MediaPicker label="Monochrome override" value={settings.monochromeIconUrl} onChange={(url) => setSettings((current) => ({ ...current, iconAutoPack: false, monochromeIconUrl: url }))} initialKind="image" lockKind />
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
                         </Panel>
@@ -318,7 +363,6 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                             <div className="space-y-3">
                                 <Toggle checked={settings.nativeChrome} onChange={(value) => setTop('nativeChrome', value)} label="Native tab bar" hint="Show a bottom tab bar when the site is opened as an installed app." />
                                 <Toggle checked={settings.hideSiteChrome} onChange={(value) => setTop('hideSiteChrome', value)} label="Hide website nav in the installed app" hint="Hides the public navbar and footer only in standalone/fullscreen display mode." />
-                                <Toggle checked={settings.splashEnabled} onChange={(value) => setTop('splashEnabled', value)} label="Launch splash" hint="A short branded splash on first open of an installed session." />
                                 <Toggle checked={settings.pullToRefresh} onChange={(value) => setTop('pullToRefresh', value)} label="Pull to refresh" hint="Native pull gesture in the installed app only. Off in regular browser tabs." />
                                 <label className="text-xs text-muted-foreground">Tab bar style
                                     <select value={settings.tabBarStyle} onChange={(event) => setTop('tabBarStyle', event.target.value as PwaTabBarStyle)} className={field}>
@@ -450,6 +494,49 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                         </Panel>
                     ) : null}
 
+                    {active === 'reading' ? (
+                        <Panel title="Splash & reader" description="Launch splash and journal reader apply only in the installed app. Regular browser tabs keep the current article layout.">
+                            <div className="space-y-4">
+                                <Toggle checked={settings.splashEnabled} onChange={(value) => setTop('splashEnabled', value)} label="Launch splash" hint="A short branded splash on first open of an installed session." />
+                                <div>
+                                    <p className="mb-2 text-xs text-muted-foreground">Splash layout</p>
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                                        {PWA_SPLASH_STYLES.map((style) => (
+                                            <button
+                                                key={style}
+                                                type="button"
+                                                onClick={() => setTop('splashStyle', style)}
+                                                className={`rounded-xl border px-2 py-3 text-center text-[10px] capitalize ${settings.splashStyle === style ? 'border-sky-400/40 bg-sky-400/10 text-foreground' : 'border-foreground/10 text-muted-foreground'}`}
+                                            >
+                                                {splashLabel(style)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <label className="text-xs text-muted-foreground">Tagline
+                                    <input value={settings.splashTagline} onChange={(event) => setTop('splashTagline', event.target.value)} className={field} maxLength={80} placeholder="Optional line under the name" />
+                                </label>
+                                <label className="text-xs text-muted-foreground">Duration (ms)
+                                    <input type="number" min={400} max={2400} step={50} value={settings.splashDurationMs} onChange={(event) => setTop('splashDurationMs', Number(event.target.value))} className={field} />
+                                </label>
+                                {settings.splashStyle === 'image' ? (
+                                    <MediaPicker label="Custom splash image" value={settings.splashImageUrl} onChange={(url) => setTop('splashImageUrl', url)} initialKind="image" lockKind />
+                                ) : null}
+                                <button type="button" onClick={() => setPreviewSplash(true)} className="rounded-xl border border-foreground/10 px-3 py-2 text-xs font-medium hover:bg-foreground/5">
+                                    Preview splash
+                                </button>
+                                <div className="border-t border-foreground/10 pt-4">
+                                    <Toggle checked={settings.readerModeEnabled} onChange={(value) => setTop('readerModeEnabled', value)} label="Journal reader mode" hint="A book button on journal articles in the installed app. Paper, sepia and night themes. Off in regular browser tabs." />
+                                    <label className="mt-3 block text-xs text-muted-foreground">Default reader theme
+                                        <select value={settings.readerTheme} onChange={(event) => setTop('readerTheme', event.target.value as PwaReaderTheme)} className={field}>
+                                            {PWA_READER_THEMES.map((theme) => <option key={theme} value={theme}>{theme}</option>)}
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
+                        </Panel>
+                    ) : null}
+
                     {active === 'offline' ? (
                         <Panel title="Offline & updates" description="Service worker stays off until you enable it, so production cache is never hijacked by default. Patterns from SuperPWA cache + vite-plugin-pwa update prompts.">
                             <div className="space-y-3">
@@ -494,6 +581,44 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                     </div>
                 </div>
             </div>
+            {previewSplash ? (
+                <button type="button" onClick={() => setPreviewSplash(false)} className="fixed inset-0 z-50 grid place-items-center bg-black/70" aria-label="Dismiss splash preview">
+                    <span className="pointer-events-none h-[70vh] w-[min(22rem,90vw)] overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl">
+                        <AdminSplashPreview settings={settings} />
+                    </span>
+                </button>
+            ) : null}
         </div>
+    );
+}
+
+function splashLabel(style: PwaSplashStyle) {
+    if (style === 'logo-name') return 'Logo + name';
+    if (style === 'wordmark') return 'Name only';
+    if (style === 'image') return 'Image';
+    if (style === 'solid') return 'Color';
+    return 'Logo';
+}
+
+function AdminSplashPreview({ settings }: { settings: PwaSettings }) {
+    const pack = resolvedPwaIconUrls(settings);
+    const ink = '#f4f0ea';
+    const background = settings.backgroundColor;
+    if (settings.splashStyle === 'image' && settings.splashImageUrl) {
+        return <img src={settings.splashImageUrl} alt="" className="h-full w-full object-cover" />;
+    }
+    if (settings.splashStyle === 'solid') {
+        return <span className="block h-full w-full" style={{ background }} />;
+    }
+    return (
+        <span className="flex h-full w-full flex-col items-center justify-center gap-4" style={{ background, color: ink }}>
+            {settings.splashStyle !== 'wordmark' ? <img src={pack.icon180} alt="" className="size-16 rounded-2xl object-contain" /> : null}
+            {settings.splashStyle !== 'logo' ? (
+                <>
+                    <span className="text-lg font-semibold tracking-tight">{settings.shortName}</span>
+                    {settings.splashTagline ? <span className="text-[11px] opacity-60">{settings.splashTagline}</span> : null}
+                </>
+            ) : null}
+        </span>
     );
 }

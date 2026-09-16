@@ -27,6 +27,19 @@ export const PWA_CATEGORIES = [
     'social',
 ] as const;
 
+export const PWA_SPLASH_STYLES = ['logo', 'logo-name', 'wordmark', 'image', 'solid'] as const;
+export const PWA_READER_THEMES = ['paper', 'sepia', 'night', 'system'] as const;
+
+/** Live PNG pack generated from the source logo. Static /pwa/icon-*.png files are fallbacks. */
+export const PWA_GENERATED_PACK = {
+    icon96: '/pwa/icon/96',
+    icon180: '/pwa/icon/180',
+    icon192: '/pwa/icon/192',
+    icon512: '/pwa/icon/512',
+    maskable: '/pwa/icon/512-maskable',
+    monochrome: '/pwa/icon/monochrome',
+} as const;
+
 export type PwaTabIcon = (typeof PWA_TAB_ICONS)[number];
 export type PwaCategory = (typeof PWA_CATEGORIES)[number];
 export type PwaDisplayMode = 'standalone' | 'fullscreen' | 'minimal-ui' | 'browser';
@@ -35,6 +48,8 @@ export type PwaStatusBarStyle = 'default' | 'black' | 'black-translucent';
 export type PwaTabBarStyle = 'docked' | 'floating';
 export type PwaHandleLinks = 'auto' | 'preferred' | 'not-preferred';
 export type PwaLaunchHandler = 'auto' | 'navigate-existing' | 'navigate-new' | 'focus-existing';
+export type PwaSplashStyle = (typeof PWA_SPLASH_STYLES)[number];
+export type PwaReaderTheme = (typeof PWA_READER_THEMES)[number];
 
 export type PwaTabItem = {
     id: string;
@@ -51,6 +66,15 @@ export type PwaShortcut = {
     iconUrl: string;
 };
 
+export type PwaResolvedIcons = {
+    icon96: string;
+    icon180: string;
+    icon192: string;
+    icon512: string;
+    maskable: string;
+    monochrome: string;
+};
+
 export type PwaSettings = {
     name: string;
     shortName: string;
@@ -65,6 +89,7 @@ export type PwaSettings = {
     themeColor: string;
     themeColorLight: string;
     iconUrl: string;
+    iconAutoPack: boolean;
     icon192Url: string;
     icon512Url: string;
     appleIconUrl: string;
@@ -84,6 +109,12 @@ export type PwaSettings = {
     showInstallPrompt: boolean;
     showIosInstallHint: boolean;
     splashEnabled: boolean;
+    splashStyle: PwaSplashStyle;
+    splashImageUrl: string;
+    splashTagline: string;
+    splashDurationMs: number;
+    readerModeEnabled: boolean;
+    readerTheme: PwaReaderTheme;
     serviceWorkerEnabled: boolean;
     offlineFallbackEnabled: boolean;
     pullToRefresh: boolean;
@@ -108,11 +139,12 @@ export const defaultPwaSettings: PwaSettings = {
     themeColor: '#0c0a12',
     themeColorLight: '#ffffff',
     iconUrl: '/favicon.svg',
-    icon192Url: '/pwa/icon-192.png',
-    icon512Url: '/pwa/icon-512.png',
-    appleIconUrl: '/pwa/icon-180.png',
-    maskableIconUrl: '/pwa/icon-maskable-512.png',
-    monochromeIconUrl: '/pwa/icon-monochrome-512.png',
+    iconAutoPack: true,
+    icon192Url: PWA_GENERATED_PACK.icon192,
+    icon512Url: PWA_GENERATED_PACK.icon512,
+    appleIconUrl: PWA_GENERATED_PACK.icon180,
+    maskableIconUrl: PWA_GENERATED_PACK.maskable,
+    monochromeIconUrl: PWA_GENERATED_PACK.monochrome,
     screenshotNarrowUrl: '/pwa/screenshot-narrow.png',
     screenshotWideUrl: '/pwa/screenshot-wide.png',
     categories: ['portfolio', 'productivity'],
@@ -127,6 +159,12 @@ export const defaultPwaSettings: PwaSettings = {
     showInstallPrompt: false,
     showIosInstallHint: false,
     splashEnabled: true,
+    splashStyle: 'logo-name',
+    splashImageUrl: '',
+    splashTagline: '',
+    splashDurationMs: 900,
+    readerModeEnabled: true,
+    readerTheme: 'paper',
     serviceWorkerEnabled: false,
     offlineFallbackEnabled: false,
     pullToRefresh: true,
@@ -141,10 +179,52 @@ export const defaultPwaSettings: PwaSettings = {
         { id: 'more', label: 'More', href: '/contact', icon: 'more', enabled: true },
     ],
     shortcuts: [
-        { name: 'Journal', url: '/blog', description: 'Open the journal', iconUrl: '/pwa/icon-96.png' },
-        { name: 'Projects', url: '/projects', description: 'Open projects', iconUrl: '/pwa/icon-96.png' },
+        { name: 'Journal', url: '/blog', description: 'Open the journal', iconUrl: PWA_GENERATED_PACK.icon96 },
+        { name: 'Projects', url: '/projects', description: 'Open projects', iconUrl: PWA_GENERATED_PACK.icon96 },
     ],
 };
+
+export function isGeneratedIconPath(src: string) {
+    return src.startsWith('/pwa/icon/') || src.startsWith('/pwa/apple-splash/');
+}
+
+export function applyGeneratedIconPack(settings: PwaSettings): PwaSettings {
+    return {
+        ...settings,
+        iconAutoPack: true,
+        icon192Url: PWA_GENERATED_PACK.icon192,
+        icon512Url: PWA_GENERATED_PACK.icon512,
+        appleIconUrl: PWA_GENERATED_PACK.icon180,
+        maskableIconUrl: PWA_GENERATED_PACK.maskable,
+        monochromeIconUrl: PWA_GENERATED_PACK.monochrome,
+        shortcuts: settings.shortcuts.map((item) => (
+            isGeneratedIconPath(item.iconUrl) || item.iconUrl === '/pwa/icon-96.png'
+                ? { ...item, iconUrl: PWA_GENERATED_PACK.icon96 }
+                : item
+        )),
+    };
+}
+
+export function resolvedPwaIconUrls(settings: PwaSettings): PwaResolvedIcons {
+    if (settings.iconAutoPack) {
+        return {
+            icon96: PWA_GENERATED_PACK.icon96,
+            icon180: PWA_GENERATED_PACK.icon180,
+            icon192: PWA_GENERATED_PACK.icon192,
+            icon512: PWA_GENERATED_PACK.icon512,
+            maskable: PWA_GENERATED_PACK.maskable,
+            monochrome: PWA_GENERATED_PACK.monochrome,
+        };
+    }
+    return {
+        icon96: PWA_GENERATED_PACK.icon96,
+        icon180: settings.appleIconUrl || PWA_GENERATED_PACK.icon180,
+        icon192: settings.icon192Url || PWA_GENERATED_PACK.icon192,
+        icon512: settings.icon512Url || PWA_GENERATED_PACK.icon512,
+        maskable: settings.maskableIconUrl || PWA_GENERATED_PACK.maskable,
+        monochrome: settings.monochromeIconUrl || PWA_GENERATED_PACK.monochrome,
+    };
+}
 
 function object(value: unknown): Record<string, unknown> {
     return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -182,6 +262,18 @@ function mediaUrl(value: unknown, fallback: string) {
     }
 }
 
+function optionalMediaUrl(value: unknown) {
+    const raw = typeof value === 'string' ? value.trim() : '';
+    if (!raw) return '';
+    return mediaUrl(raw, '');
+}
+
+function intInRange(value: unknown, fallback: number, min: number, max: number) {
+    const n = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, Math.round(n)));
+}
+
 function iconName(value: unknown, fallback: PwaTabIcon): PwaTabIcon {
     return typeof value === 'string' && (PWA_TAB_ICONS as readonly string[]).includes(value)
         ? value as PwaTabIcon
@@ -217,7 +309,7 @@ export function normalizePwaShortcut(value: unknown, fallback: PwaShortcut): Pwa
         name: text(source.name, fallback.name, 40),
         url: pathValue(source.url, fallback.url),
         description: text(source.description, fallback.description, 80),
-        iconUrl: mediaUrl(source.iconUrl, fallback.iconUrl || '/pwa/icon-96.png'),
+        iconUrl: mediaUrl(source.iconUrl, fallback.iconUrl || PWA_GENERATED_PACK.icon96),
     };
 }
 
@@ -240,6 +332,12 @@ export function normalizePwaSettings(value: unknown): PwaSettings {
     const launchHandler = source.launchHandler === 'navigate-existing' || source.launchHandler === 'navigate-new' || source.launchHandler === 'focus-existing' || source.launchHandler === 'auto'
         ? source.launchHandler
         : defaultPwaSettings.launchHandler;
+    const splashStyle = (PWA_SPLASH_STYLES as readonly string[]).includes(String(source.splashStyle))
+        ? source.splashStyle as PwaSplashStyle
+        : defaultPwaSettings.splashStyle;
+    const readerTheme = (PWA_READER_THEMES as readonly string[]).includes(String(source.readerTheme))
+        ? source.readerTheme as PwaReaderTheme
+        : defaultPwaSettings.readerTheme;
 
     const tabs = tabsSource.slice(0, 5).map((item, index) => (
         normalizePwaTab(item, defaultPwaSettings.tabs[index] ?? defaultPwaSettings.tabs[0], index)
@@ -264,6 +362,7 @@ export function normalizePwaSettings(value: unknown): PwaSettings {
         themeColor: hexColor(source.themeColor, defaultPwaSettings.themeColor),
         themeColorLight: hexColor(source.themeColorLight, defaultPwaSettings.themeColorLight),
         iconUrl: mediaUrl(source.iconUrl, defaultPwaSettings.iconUrl),
+        iconAutoPack: bool(source.iconAutoPack, defaultPwaSettings.iconAutoPack),
         icon192Url: mediaUrl(source.icon192Url, defaultPwaSettings.icon192Url),
         icon512Url: mediaUrl(source.icon512Url, defaultPwaSettings.icon512Url),
         appleIconUrl: mediaUrl(source.appleIconUrl, defaultPwaSettings.appleIconUrl),
@@ -283,6 +382,12 @@ export function normalizePwaSettings(value: unknown): PwaSettings {
         showInstallPrompt: bool(source.showInstallPrompt, defaultPwaSettings.showInstallPrompt),
         showIosInstallHint: bool(source.showIosInstallHint, defaultPwaSettings.showIosInstallHint),
         splashEnabled: bool(source.splashEnabled, defaultPwaSettings.splashEnabled),
+        splashStyle,
+        splashImageUrl: optionalMediaUrl(source.splashImageUrl),
+        splashTagline: text(source.splashTagline, '', 80),
+        splashDurationMs: intInRange(source.splashDurationMs, defaultPwaSettings.splashDurationMs, 400, 2400),
+        readerModeEnabled: bool(source.readerModeEnabled, defaultPwaSettings.readerModeEnabled),
+        readerTheme,
         serviceWorkerEnabled: bool(source.serviceWorkerEnabled, defaultPwaSettings.serviceWorkerEnabled),
         offlineFallbackEnabled: bool(source.offlineFallbackEnabled, defaultPwaSettings.offlineFallbackEnabled),
         pullToRefresh: bool(source.pullToRefresh, defaultPwaSettings.pullToRefresh),
@@ -291,7 +396,7 @@ export function normalizePwaSettings(value: unknown): PwaSettings {
         appBadgeEnabled: bool(source.appBadgeEnabled, defaultPwaSettings.appBadgeEnabled),
         tabs,
         shortcuts: shortcutsSource.slice(0, 4).map((item, index) => (
-            normalizePwaShortcut(item, defaultPwaSettings.shortcuts[index] ?? { name: '', url: '/', description: '', iconUrl: '/pwa/icon-96.png' })
+            normalizePwaShortcut(item, defaultPwaSettings.shortcuts[index] ?? { name: '', url: '/', description: '', iconUrl: PWA_GENERATED_PACK.icon96 })
         )).filter((item) => item.name && item.url),
     };
 }
@@ -301,23 +406,21 @@ export function enabledPwaTabs(settings: PwaSettings) {
 }
 
 function iconType(src: string) {
+    if (src.includes('/pwa/icon/')) return 'image/png';
     if (src.endsWith('.svg')) return 'image/svg+xml';
     if (src.endsWith('.webp')) return 'image/webp';
     return 'image/png';
 }
 
 export function pwaSettingsToManifest(settings: PwaSettings = defaultPwaSettings) {
-    const icon192 = settings.icon192Url || '/pwa/icon-192.png';
-    const icon512 = settings.icon512Url || '/pwa/icon-512.png';
-    const maskable = settings.maskableIconUrl || '/pwa/icon-maskable-512.png';
-    const monochrome = settings.monochromeIconUrl || '/pwa/icon-monochrome-512.png';
+    const pack = resolvedPwaIconUrls(settings);
     const icons: Array<{ src: string; sizes: string; type: string; purpose: 'any' | 'maskable' | 'monochrome' }> = [
-        { src: icon192, sizes: '192x192', type: iconType(icon192), purpose: 'any' },
-        { src: icon512, sizes: '512x512', type: iconType(icon512), purpose: 'any' },
-        { src: maskable, sizes: '512x512', type: iconType(maskable), purpose: 'maskable' },
-        { src: monochrome, sizes: '512x512', type: iconType(monochrome), purpose: 'monochrome' },
+        { src: pack.icon192, sizes: '192x192', type: iconType(pack.icon192), purpose: 'any' },
+        { src: pack.icon512, sizes: '512x512', type: iconType(pack.icon512), purpose: 'any' },
+        { src: pack.maskable, sizes: '512x512', type: iconType(pack.maskable), purpose: 'maskable' },
+        { src: pack.monochrome, sizes: '512x512', type: iconType(pack.monochrome), purpose: 'monochrome' },
     ];
-    if (settings.iconUrl && settings.iconUrl !== icon192 && settings.iconUrl !== icon512) {
+    if (settings.iconUrl && settings.iconUrl !== pack.icon192 && settings.iconUrl !== pack.icon512 && !isGeneratedIconPath(settings.iconUrl)) {
         icons.push({
             src: settings.iconUrl,
             sizes: 'any',
@@ -367,7 +470,9 @@ export function pwaSettingsToManifest(settings: PwaSettings = defaultPwaSettings
         icons,
         screenshots,
         shortcuts: settings.shortcuts.map((item) => {
-            const icon = item.iconUrl || '/pwa/icon-96.png';
+            const icon = settings.iconAutoPack
+                ? PWA_GENERATED_PACK.icon96
+                : (item.iconUrl || PWA_GENERATED_PACK.icon96);
             return {
                 name: item.name,
                 short_name: item.name,
