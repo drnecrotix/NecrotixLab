@@ -495,7 +495,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                     ) : null}
 
                     {active === 'reading' ? (
-                        <Panel title="Splash & reader" description="Launch splash and journal reader apply only in the installed app. Regular browser tabs keep the current article layout.">
+                        <Panel title="Splash & reader" description="Launch splash stays in the installed app. Journal reader is available in the browser and after install.">
                             <div className="space-y-4">
                                 <Toggle checked={settings.splashEnabled} onChange={(value) => setTop('splashEnabled', value)} label="Launch splash" hint="A short branded splash on first open of an installed session." />
                                 <div>
@@ -526,7 +526,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                     Preview splash
                                 </button>
                                 <div className="border-t border-foreground/10 pt-4">
-                                    <Toggle checked={settings.readerModeEnabled} onChange={(value) => setTop('readerModeEnabled', value)} label="Journal reader mode" hint="A book button on journal articles in the installed app. Paper, sepia and night themes. Off in regular browser tabs." />
+                                    <Toggle checked={settings.readerModeEnabled} onChange={(value) => setTop('readerModeEnabled', value)} label="Journal reader mode" hint="A book button on journal articles in the browser and the installed app. Compact options, low-vision type, paper / sepia / night." />
                                     <label className="mt-3 block text-xs text-muted-foreground">Default reader theme
                                         <select value={settings.readerTheme} onChange={(event) => setTop('readerTheme', event.target.value as PwaReaderTheme)} className={field}>
                                             {PWA_READER_THEMES.map((theme) => <option key={theme} value={theme}>{theme}</option>)}
