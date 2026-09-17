@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { enabledPwaTabs, resolvedPwaIconUrls, type PwaSettings, type PwaTabIcon } from '@/lib/pwa-settings';
+import { readPwaClientPrefs, type PwaClientPrefs } from '@/lib/pwa-client-prefs';
+import { PwaClientSettings } from '@/components/pwa/PwaClientSettings';
 import { PwaReaderMode } from '@/components/pwa/PwaReaderMode';
 import { PwaUpdateNotice } from '@/components/pwa/PwaUpdateNotice';
 
@@ -63,7 +65,8 @@ function isIosDevice() {
     return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
-function haptic() {
+function haptic(enabled: boolean) {
+    if (!enabled) return;
     try {
         window.navigator.vibrate?.(8);
     } catch {
@@ -87,11 +90,13 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
     const [offline, setOffline] = useState(false);
     const [pullOffset, setPullOffset] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
+    const [clientPrefs, setClientPrefs] = useState<PwaClientPrefs>(readPwaClientPrefs);
     const pullRef = useRef(0);
     const startY = useRef(0);
     const pulling = useRef(false);
     const isAdmin = pathname.startsWith('/admin');
     const tabs = useMemo(() => enabledPwaTabs(settings), [settings]);
+    const allowPull = settings.pullToRefresh && clientPrefs.pullToRefresh;
 
     useEffect(() => {
         const sync = () => {
@@ -102,9 +107,18 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
         };
         sync();
         setHydrated(true);
+        setClientPrefs(readPwaClientPrefs());
         const media = window.matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay)');
         media.addEventListener('change', sync);
-        return () => media.removeEventListener('change', sync);
+        const onPrefs = (event: Event) => {
+            const detail = (event as CustomEvent<PwaClientPrefs>).detail;
+            if (detail) setClientPrefs(detail);
+        };
+        window.addEventListener('pwa-client-prefs', onPrefs);
+        return () => {
+            media.removeEventListener('change', sync);
+            window.removeEventListener('pwa-client-prefs', onPrefs);
+        };
     }, [settings.backgroundColor]);
 
     useEffect(() => {
@@ -210,7 +224,7 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
     }, [isAdmin, settings.serviceWorkerEnabled, settings.offlineFallbackEnabled]);
 
     useEffect(() => {
-        if (!standalone || !settings.pullToRefresh || isAdmin) return;
+        if (!standalone || !allowPull || isAdmin) return;
 
         const onStart = (event: TouchEvent) => {
             if (window.scrollY > 2) return;
@@ -249,7 +263,7 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
             window.removeEventListener('touchmove', onMove);
             window.removeEventListener('touchend', onEnd);
         };
-    }, [standalone, settings.pullToRefresh, isAdmin]);
+    }, [standalone, allowPull, isAdmin]);
 
     const install = useCallback(async () => {
         if (!installEvent) return;
@@ -265,7 +279,7 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
     const showInstall = hydrated && !standalone && settings.showInstallPrompt && Boolean(installEvent) && !installDismissed;
     const showIos = hydrated && !standalone && iosHint;
     const showOffline = hydrated && standalone && settings.offlineBannerEnabled && offline;
-    const showPull = standalone && settings.pullToRefresh && (pullOffset > 0 || refreshing);
+    const showPull = standalone && allowPull && (pullOffset > 0 || refreshing);
     const pack = resolvedPwaIconUrls(settings);
     const splashInk = isDarkBackground(settings.backgroundColor) ? '#f4f0ea' : '#16141c';
 
@@ -294,6 +308,7 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
             ) : null}
 
             {hydrated && standalone ? <PwaUpdateNotice settings={settings} standalone={standalone} /> : null}
+            {hydrated && standalone ? <PwaClientSettings standalone={standalone} /> : null}
 
             {showInstall ? (
                 <div className="fixed inset-x-3 bottom-3 z-[140] rounded-2xl border border-white/10 bg-black/85 p-3 text-white shadow-2xl backdrop-blur-xl sm:left-auto sm:right-4 sm:w-[360px]">
@@ -339,7 +354,7 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
                                 <Link
                                     key={tab.id}
                                     href={tab.href}
-                                    onClick={haptic}
+                                    onClick={() => haptic(clientPrefs.haptics)}
                                     className={cn(
                                         'flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 text-[10px] font-medium transition',
                                         active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
