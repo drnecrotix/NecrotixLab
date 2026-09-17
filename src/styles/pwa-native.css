@@ -32,7 +32,7 @@
     }
 }
 
-/* Journal reader — opt-in on /blog/:slug and Wiki publications in the browser and the installed app. */
+/* Journal reader — installed PWA only. Regular browser tabs keep the site header. */
 html[data-pwa-reader] {
     --reader-bg: #f4efe6;
     --reader-fg: #1c1916;
@@ -138,7 +138,7 @@ html[data-pwa-reader] main.min-h-screen > .grid {
 
 html[data-pwa-reader] main.min-h-screen header .flex.flex-wrap.items-center.justify-between,
 html[data-pwa-reader] main.min-h-screen header .border-l,
-html[data-pwa-reader] main.min-h-screen > div.lg\:hidden,
+html[data-pwa-reader] main.min-h-screen > div.lg\\:hidden,
 html[data-pwa-reader] main.min-h-screen article > .mb-6,
 html[data-pwa-reader] main.min-h-screen article > details {
     display: none !important;

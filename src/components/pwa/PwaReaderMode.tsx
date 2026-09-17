@@ -31,7 +31,7 @@ export function PwaReaderMode({
     pathname: string;
     standalone: boolean;
 }) {
-    const allowed = settings.readerModeEnabled && isPwaReaderPath(pathname);
+    const allowed = settings.readerModeEnabled && standalone && isPwaReaderPath(pathname);
     const [open, setOpen] = useState(false);
     const [theme, setTheme] = useState<PwaReaderTheme>(settings.readerTheme);
     const [sizeIndex, setSizeIndex] = useState(1);
@@ -39,7 +39,10 @@ export function PwaReaderMode({
     const [panel, setPanel] = useState(false);
 
     useEffect(() => {
-        if (!allowed) setPanel(false);
+        if (!allowed) {
+            setOpen(false);
+            setPanel(false);
+        }
     }, [allowed]);
 
     useEffect(() => {
