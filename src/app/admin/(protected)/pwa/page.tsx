@@ -23,7 +23,7 @@ export default async function PwaAdminPage({ searchParams }: { searchParams: Pro
                 <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Appearance</p>
                 <h2 className="mt-1 text-3xl font-semibold">Progressive Web App</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    SuperPWA-style controls for the installed app. Pick one source logo and the 192/512/maskable/monochrome pack plus iOS splash are generated from it. Add a launch splash variant and a journal/wiki reader (also in the browser). Native chrome still only appears after install.
+                    SuperPWA-style controls for the installed app. Pick one source logo and the 192/512/maskable/monochrome pack plus iOS splash are generated from it. Add a launch splash variant and a journal/wiki reader (also in the browser). The installed app checks for new releases and offers an update. Native chrome still only appears after install.
                 </p>
             </div>
             <PwaSettingsWorkbench initial={settings} updatedAt={page?.updatedAt.toISOString() ?? null} />
