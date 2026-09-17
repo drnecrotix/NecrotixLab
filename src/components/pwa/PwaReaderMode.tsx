@@ -6,11 +6,10 @@ import { cn } from '@/lib/utils';
 import type { PwaReaderTheme, PwaSettings } from '@/lib/pwa-settings';
 import { isPwaReaderPath } from '@/lib/pwa-settings';
 
-const THEMES: Array<{ id: PwaReaderTheme; label: string }> = [
+const THEMES: Array<{ id: Exclude<PwaReaderTheme, 'system'>; label: string }> = [
     { id: 'paper', label: 'Paper' },
     { id: 'sepia', label: 'Sepia' },
     { id: 'night', label: 'Night' },
-    { id: 'system', label: 'Sys' },
 ];
 
 const SIZES = [0.92, 1, 1.12, 1.26, 1.5, 1.78] as const;
@@ -33,7 +32,8 @@ export function PwaReaderMode({
 }) {
     const allowed = settings.readerModeEnabled && standalone && isPwaReaderPath(pathname);
     const [open, setOpen] = useState(false);
-    const [theme, setTheme] = useState<PwaReaderTheme>(settings.readerTheme);
+    const initialTheme = settings.readerTheme === 'system' ? 'paper' : settings.readerTheme;
+    const [theme, setTheme] = useState<Exclude<PwaReaderTheme, 'system'>>(initialTheme);
     const [sizeIndex, setSizeIndex] = useState(1);
     const [vision, setVision] = useState(false);
     const [panel, setPanel] = useState(false);
