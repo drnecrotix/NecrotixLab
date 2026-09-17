@@ -32,7 +32,7 @@
     }
 }
 
-/* Journal reader — opt-in on /blog/:slug in the browser and the installed app. */
+/* Journal reader — opt-in on /blog/:slug and Wiki publications in the browser and the installed app. */
 html[data-pwa-reader] {
     --reader-bg: #f4efe6;
     --reader-fg: #1c1916;
@@ -110,6 +110,46 @@ html[data-pwa-reader] main.min-h-screen article {
     margin-right: auto;
 }
 
+html[data-pwa-reader] main.min-h-screen .prose {
+    font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+    font-size: calc(1.05rem * var(--reader-scale, 1));
+    line-height: 1.75;
+    max-width: 38rem;
+    color: var(--reader-fg) !important;
+}
+
+html[data-pwa-reader] main.min-h-screen .prose p,
+html[data-pwa-reader] main.min-h-screen .prose li,
+html[data-pwa-reader] main.min-h-screen .prose h2,
+html[data-pwa-reader] main.min-h-screen .prose h3 {
+    color: var(--reader-fg) !important;
+}
+
+html[data-pwa-reader] main.min-h-screen aside {
+    display: none !important;
+}
+
+html[data-pwa-reader] main.min-h-screen > .grid {
+    display: block !important;
+    max-width: 42rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+html[data-pwa-reader] main.min-h-screen header .flex.flex-wrap.items-center.justify-between,
+html[data-pwa-reader] main.min-h-screen header .border-l,
+html[data-pwa-reader] main.min-h-screen > div.lg\:hidden,
+html[data-pwa-reader] main.min-h-screen article > .mb-6,
+html[data-pwa-reader] main.min-h-screen article > details {
+    display: none !important;
+}
+
+html[data-pwa-reader] main.min-h-screen h2,
+html[data-pwa-reader] main.min-h-screen h3,
+html[data-pwa-reader] main.min-h-screen details summary {
+    color: var(--reader-fg) !important;
+}
+
 html[data-pwa-reader] main.min-h-screen .text-muted-foreground {
     color: var(--reader-muted) !important;
 }
@@ -126,7 +166,8 @@ html[data-pwa-reader] [data-back-to-top] {
 
 html[data-pwa-vision='on'] main.min-h-screen h1,
 html[data-pwa-vision='on'] main.min-h-screen article,
-html[data-pwa-vision='on'] main.min-h-screen p {
+html[data-pwa-vision='on'] main.min-h-screen p,
+html[data-pwa-vision='on'] main.min-h-screen .prose {
     font-family: ui-sans-serif, system-ui, 'Segoe UI', sans-serif !important;
     letter-spacing: 0.03em;
     word-spacing: 0.06em;

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { BookOpen, Eye, Minus, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PwaReaderTheme, PwaSettings } from '@/lib/pwa-settings';
+import { isPwaReaderPath } from '@/lib/pwa-settings';
 
 const THEMES: Array<{ id: PwaReaderTheme; label: string }> = [
     { id: 'paper', label: 'Paper' },
@@ -15,10 +16,6 @@ const THEMES: Array<{ id: PwaReaderTheme; label: string }> = [
 const SIZES = [0.92, 1, 1.12, 1.26, 1.5, 1.78] as const;
 const LOW_VISION_MIN_INDEX = 4;
 const STORAGE_KEY = 'pwa-reader';
-
-function isJournalArticle(pathname: string) {
-    return /^\/blog\/[^/]+$/.test(pathname);
-}
 
 function dock(standalone: boolean, rem: number) {
     const offset = standalone ? rem : Math.max(1.1, rem - 4.15);
@@ -34,7 +31,7 @@ export function PwaReaderMode({
     pathname: string;
     standalone: boolean;
 }) {
-    const allowed = settings.readerModeEnabled && isJournalArticle(pathname);
+    const allowed = settings.readerModeEnabled && isPwaReaderPath(pathname);
     const [open, setOpen] = useState(false);
     const [theme, setTheme] = useState<PwaReaderTheme>(settings.readerTheme);
     const [sizeIndex, setSizeIndex] = useState(1);

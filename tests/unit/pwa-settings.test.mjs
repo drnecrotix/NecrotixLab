@@ -6,6 +6,7 @@ import {
     applyGeneratedIconPack,
     defaultPwaSettings,
     enabledPwaTabs,
+    isPwaReaderPath,
     normalizePwaSettings,
     pwaSettingsToManifest,
     resolvedPwaIconUrls,
@@ -138,6 +139,17 @@ test('http screenshots and icons are stripped back to generated PNG defaults', (
     assert.equal(settings.screenshotWideUrl, PWA_SCREENSHOT_WIDE);
     assert.equal(settings.maskableIconUrl, 'https://cdn.example/maskable.png');
     assert.equal(settings.splashImageUrl, '');
+});
+
+test('reader mode covers journal articles and wiki publications', () => {
+    assert.equal(isPwaReaderPath('/blog/the-time'), true);
+    assert.equal(isPwaReaderPath('/blog'), false);
+    assert.equal(isPwaReaderPath('/wiki'), true);
+    assert.equal(isPwaReaderPath('/wiki/faq'), true);
+    assert.equal(isPwaReaderPath('/wiki/bg-gamer'), true);
+    assert.equal(isPwaReaderPath('/wiki/articles'), false);
+    assert.equal(isPwaReaderPath('/wiki/articles/extra'), false);
+    assert.equal(isPwaReaderPath('/projects'), false);
 });
 
 test('apple splash specs are unique device triples with bounded sizes', () => {

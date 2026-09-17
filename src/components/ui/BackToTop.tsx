@@ -8,6 +8,7 @@ import { ArrowUp } from 'lucide-react';
 export function BackToTop() {
     const pathname = usePathname();
     const onBlog = pathname === '/blog' || pathname.startsWith('/blog/');
+    const onWiki = pathname === '/wiki' || pathname.startsWith('/wiki/');
     const [isVisible, setIsVisible] = useState(false);
     // Use refs for values that change rapidly to avoid re-renders
     const isVisibleRef = useRef(false);
@@ -81,7 +82,7 @@ export function BackToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    if (onBlog) return null;
+    if (onBlog || onWiki) return null;
 
     return (
         <AnimatePresence>
