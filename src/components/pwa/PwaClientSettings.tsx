@@ -17,17 +17,20 @@ export function PwaClientSettings({ standalone }: { standalone: boolean }) {
     const { theme, setTheme, resolvedTheme } = useTheme();
     const [open, setOpen] = useState(false);
     const [prefs, setPrefs] = useState<PwaClientPrefs>(readPwaClientPrefs);
+    const [applied, setApplied] = useState(false);
 
     useEffect(() => {
         if (!standalone) {
             setOpen(false);
+            setApplied(false);
             return;
         }
+        if (applied) return;
         const stored = readPwaClientPrefs();
         setPrefs(stored);
-        const nextTheme = appearanceToTheme(stored.appearance);
-        if (theme !== nextTheme && resolvedTheme !== nextTheme) setTheme(nextTheme);
-    }, [standalone, setTheme, theme, resolvedTheme]);
+        setTheme(appearanceToTheme(stored.appearance));
+        setApplied(true);
+    }, [standalone, applied, setTheme]);
 
     useEffect(() => {
         if (!open) return;
