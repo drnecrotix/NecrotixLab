@@ -188,6 +188,13 @@ export function isGeneratedIconPath(src: string) {
     return src.startsWith('/pwa/icon/') || src.startsWith('/pwa/apple-splash/');
 }
 
+/** Journal articles and Wiki publications (main, FAQ, and article slugs). Not the Wiki index. */
+export function isPwaReaderPath(pathname: string) {
+    if (/^\/blog\/[^/]+$/.test(pathname)) return true;
+    if (pathname === '/wiki' || pathname === '/wiki/faq') return true;
+    return /^\/wiki\/[^/]+$/.test(pathname) && pathname !== '/wiki/articles';
+}
+
 export function applyGeneratedIconPack(settings: PwaSettings): PwaSettings {
     return {
         ...settings,

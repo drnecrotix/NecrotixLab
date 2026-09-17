@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import { enabledPwaTabs, resolvedPwaIconUrls, type PwaSettings, type PwaTabIcon } from '@/lib/pwa-settings';
 import { PwaReaderMode } from '@/components/pwa/PwaReaderMode';
+import { PwaUpdateNotice } from '@/components/pwa/PwaUpdateNotice';
 
 type BeforeInstallPromptEvent = Event & {
     prompt: () => Promise<void>;
@@ -84,7 +85,6 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
     const [installDismissed, setInstallDismissed] = useState(false);
     const [iosHint, setIosHint] = useState(false);
     const [offline, setOffline] = useState(false);
-    const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
     const [pullOffset, setPullOffset] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
     const pullRef = useRef(0);
@@ -186,29 +186,26 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
         }
 
         let registration: ServiceWorkerRegistration | undefined;
-        const onUpdateFound = () => {
-            const worker = registration?.installing;
-            if (!worker) return;
-            worker.addEventListener('statechange', () => {
-                if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-                    setWaitingWorker(worker);
-                }
-            });
-        };
 
         void navigator.serviceWorker.register(
             settings.offlineFallbackEnabled ? '/pwa-sw.js?offline=1' : '/pwa-sw.js',
             { scope: '/' },
         ).then((reg) => {
             registration = reg;
-            if (reg.waiting) setWaitingWorker(reg.waiting);
-            reg.addEventListener('updatefound', onUpdateFound);
+            void reg.update();
         }).catch(() => {
             // Hosts without SW support still get native chrome.
         });
 
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') void registration?.update();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        window.addEventListener('focus', onVisible);
+
         return () => {
-            registration?.removeEventListener('updatefound', onUpdateFound);
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', onVisible);
         };
     }, [isAdmin, settings.serviceWorkerEnabled, settings.offlineFallbackEnabled]);
 
@@ -262,18 +259,12 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
         setInstallEvent(null);
     }, [installEvent]);
 
-    const applyUpdate = useCallback(() => {
-        waitingWorker?.postMessage('SKIP_WAITING');
-        window.setTimeout(() => window.location.reload(), 80);
-    }, [waitingWorker]);
-
     if (isAdmin) return null;
 
     const showTabs = hydrated && standalone && settings.nativeChrome && tabs.length > 0;
     const showInstall = hydrated && !standalone && settings.showInstallPrompt && Boolean(installEvent) && !installDismissed;
     const showIos = hydrated && !standalone && iosHint;
     const showOffline = hydrated && standalone && settings.offlineBannerEnabled && offline;
-    const showUpdate = hydrated && standalone && settings.updatePromptEnabled && Boolean(waitingWorker);
     const showPull = standalone && settings.pullToRefresh && (pullOffset > 0 || refreshing);
     const pack = resolvedPwaIconUrls(settings);
     const splashInk = isDarkBackground(settings.backgroundColor) ? '#f4f0ea' : '#16141c';
@@ -302,15 +293,7 @@ export function NativePwaLayer({ settings }: { settings: PwaSettings }) {
                 </div>
             ) : null}
 
-            {showUpdate ? (
-                <div className="fixed inset-x-3 bottom-24 z-[141] rounded-2xl border border-white/10 bg-black/85 p-3 text-white shadow-2xl backdrop-blur-xl sm:left-auto sm:right-4 sm:w-[360px]">
-                    <p className="text-xs font-semibold">Update available</p>
-                    <p className="mt-1 text-[11px] leading-5 text-white/55">A newer version of {settings.shortName} is ready.</p>
-                    <button type="button" onClick={applyUpdate} className="mt-3 w-full rounded-xl bg-white px-3 py-2 text-[11px] font-semibold text-black">
-                        Reload
-                    </button>
-                </div>
-            ) : null}
+            {hydrated && standalone ? <PwaUpdateNotice settings={settings} standalone={standalone} /> : null}
 
             {showInstall ? (
                 <div className="fixed inset-x-3 bottom-3 z-[140] rounded-2xl border border-white/10 bg-black/85 p-3 text-white shadow-2xl backdrop-blur-xl sm:left-auto sm:right-4 sm:w-[360px]">

@@ -50,7 +50,7 @@ const sections: Array<{ id: SectionId; label: string; hint: string }> = [
     { id: 'chrome', label: 'Native chrome', hint: 'Tab bar and status bar' },
     { id: 'tabs', label: 'Tab bar', hint: 'Installed app navigation' },
     { id: 'manifest', label: 'Manifest extras', hint: 'Screenshots, WCO, share' },
-    { id: 'reading', label: 'Splash & reader', hint: 'Launch screen and journal reader' },
+    { id: 'reading', label: 'Splash & reader', hint: 'Launch screen, journal and wiki reader' },
     { id: 'offline', label: 'Offline & updates', hint: 'Opt-in service worker' },
     { id: 'install', label: 'Install prompts', hint: 'Browser banners only if enabled' },
 ];
@@ -495,7 +495,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                     ) : null}
 
                     {active === 'reading' ? (
-                        <Panel title="Splash & reader" description="Launch splash and journal reader apply only in the installed app. Regular browser tabs keep the current article layout.">
+                        <Panel title="Splash & reader" description="Launch splash stays in the installed app. Journal and Wiki reader is available in the browser and after install.">
                             <div className="space-y-4">
                                 <Toggle checked={settings.splashEnabled} onChange={(value) => setTop('splashEnabled', value)} label="Launch splash" hint="A short branded splash on first open of an installed session." />
                                 <div>
@@ -526,7 +526,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                     Preview splash
                                 </button>
                                 <div className="border-t border-foreground/10 pt-4">
-                                    <Toggle checked={settings.readerModeEnabled} onChange={(value) => setTop('readerModeEnabled', value)} label="Journal reader mode" hint="A book button on journal articles in the installed app. Paper, sepia and night themes. Off in regular browser tabs." />
+                                    <Toggle checked={settings.readerModeEnabled} onChange={(value) => setTop('readerModeEnabled', value)} label="Journal & Wiki reader" hint="A book button on journal articles and Wiki publications in the browser and the installed app. Compact options, low-vision type, paper / sepia / night." />
                                     <label className="mt-3 block text-xs text-muted-foreground">Default reader theme
                                         <select value={settings.readerTheme} onChange={(event) => setTop('readerTheme', event.target.value as PwaReaderTheme)} className={field}>
                                             {PWA_READER_THEMES.map((theme) => <option key={theme} value={theme}>{theme}</option>)}
@@ -542,7 +542,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                             <div className="space-y-3">
                                 <Toggle checked={settings.serviceWorkerEnabled} onChange={(value) => setTop('serviceWorkerEnabled', value)} label="Register service worker" hint="Opt-in. Serves /pwa-sw.js. Does not cache /admin or /api." />
                                 <Toggle checked={settings.offlineFallbackEnabled} onChange={(value) => setTop('offlineFallbackEnabled', value)} label="Offline reading" hint="Network-first cache for Home, Journal, Projects, Gallery and Contact, plus /offline.html if a page was never visited." />
-                                <Toggle checked={settings.updatePromptEnabled} onChange={(value) => setTop('updatePromptEnabled', value)} label="Update prompt" hint="Ask before swapping a waiting worker. Only appears in the installed app." />
+                                <Toggle checked={settings.updatePromptEnabled} onChange={(value) => setTop('updatePromptEnabled', value)} label="Update notice" hint="When a new release is on the server, the installed app shows a notice. Update reloads the latest version and activates a waiting service worker if one is registered." />
                                 <Toggle checked={settings.offlineBannerEnabled} onChange={(value) => setTop('offlineBannerEnabled', value)} label="Offline banner" hint="A small status chip when the installed app loses the network." />
                                 <Toggle checked={settings.appBadgeEnabled} onChange={(value) => setTop('appBadgeEnabled', value)} label="App icon badge" hint="Shows a count on the installed icon for new service requests and recent comments. Only for signed-in admins in standalone mode." />
                             </div>

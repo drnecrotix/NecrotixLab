@@ -1,10 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
 import { ArrowUp } from 'lucide-react';
 
 export function BackToTop() {
+    const pathname = usePathname();
+    const onBlog = pathname === '/blog' || pathname.startsWith('/blog/');
+    const onWiki = pathname === '/wiki' || pathname.startsWith('/wiki/');
     const [isVisible, setIsVisible] = useState(false);
     // Use refs for values that change rapidly to avoid re-renders
     const isVisibleRef = useRef(false);
@@ -78,12 +82,15 @@ export function BackToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    if (onBlog || onWiki) return null;
+
     return (
         <AnimatePresence>
             {isVisible && (
                 // Wrapper: Large touch target for magnetic pull
                 <div
                     ref={ref}
+                    data-back-to-top=""
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
                     className="fixed bottom-6 right-6 z-[100] w-32 h-32 flex items-center justify-center pointer-events-auto hide-on-modal transition-all duration-300"
