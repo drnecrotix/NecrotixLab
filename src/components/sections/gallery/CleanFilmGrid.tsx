@@ -25,7 +25,14 @@ type GalleryItem = {
     description: string;
     isNsfw: boolean;
     detailUrl: string;
+    aspectRatio: number;
 };
+
+function galleryAspectRatio(width: number, height: number, type: GalleryItem['type']) {
+    if (type === 'video') return 16 / 9;
+    if (!width || !height) return 4 / 3;
+    return Math.max(0.68, Math.min(1.8, width / height));
+}
 
 function GalleryPreview({ item, sizes, className, fit = 'cover' }: { item: GalleryItem; sizes: string; className?: string; fit?: 'cover' | 'contain' }) {
     return (
@@ -81,6 +88,7 @@ export default function CleanFilmGrid({ isLowPowerMode, content }: { isLowPowerM
             description: item.description,
             isNsfw: item.isNsfw,
             detailUrl: galleryItemHref(item.slug),
+            aspectRatio: galleryAspectRatio(item.imageWidth, item.imageHeight, item.type),
         })), [content.items]);
 
     const availableTypes = useMemo(
@@ -280,10 +288,10 @@ export default function CleanFilmGrid({ isLowPowerMode, content }: { isLowPowerM
 
                     {viewMode === 'grid' && (
                         <div className="space-y-10">
-                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                            <div className="columns-1 gap-3 sm:columns-2 lg:columns-3 2xl:columns-4">
                                 {visibleItems.map((item, index) => (
-                                    <motion.div key={item.id} initial={isLowPowerMode ? { opacity: 0 } : { opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-8%' }} transition={{ duration: 0.35, delay: isLowPowerMode ? 0 : Math.min(index, 10) * 0.035 }}>
-                                        <Link href={item.detailUrl} className="group relative block aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+                                    <motion.div key={item.id} initial={isLowPowerMode ? { opacity: 0 } : { opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-8%' }} transition={{ duration: 0.35, delay: isLowPowerMode ? 0 : Math.min(index, 10) * 0.035 }} className="mb-3 break-inside-avoid">
+                                        <Link href={item.detailUrl} style={{ aspectRatio: item.aspectRatio }} className="group relative block overflow-hidden rounded-xl bg-muted">
                                             <GalleryPreview item={item} sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1535px) 33vw, 25vw" className={cn('transition-transform duration-700', !item.isNsfw && 'group-hover:scale-[1.035]')} />
                                             <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
                                             <div className="absolute left-3 top-3 z-10 rounded-full bg-black/45 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/80 backdrop-blur-sm">{galleryCreativeTypeLabel(item.creativeType)}</div>

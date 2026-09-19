@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { Link2, Loader2, Palette, RefreshCw, Search, Video } from 'lucide-react';
-import { MediaPicker } from '@/components/admin/MediaPicker';
+import { AlertTriangle, CheckCircle2, FileSearch, Link2, Loader2, Palette, RefreshCw, Search, Video } from 'lucide-react';
+import { MediaPicker, type MediaAssetSelection } from '@/components/admin/MediaPicker';
 import { TagInput } from '@/components/admin/TagInput';
+import type { ExtractedMediaMetadata } from '@/lib/media-metadata-types';
 import {
   galleryCreativeTypeLabel,
   galleryCreativeTypeOptions,
@@ -16,6 +17,7 @@ const input = 'mt-2 w-full rounded-xl border border-foreground/10 bg-background 
 const area = `${input} min-h-24 resize-y`;
 type ThumbnailState = 'idle' | 'loading' | 'found' | 'missing' | 'error';
 type EditorTab = 'content' | 'details' | 'series' | 'seo';
+type MetadataImportState = { status: 'loading' | 'success' | 'empty' | 'error'; message: string };
 
 function nextId() {
   return `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -53,6 +55,8 @@ function normalizeItem(item: GalleryItemSetting): GalleryItemSetting {
     motionGraphicsCredits: item.motionGraphicsCredits || '',
     duration: item.duration || '',
     frameRate: item.frameRate || '',
+    imageWidth: Math.max(0, Number(item.imageWidth) || 0),
+    imageHeight: Math.max(0, Number(item.imageHeight) || 0),
   };
 }
 
@@ -106,6 +110,8 @@ function emptyItem(order: number): GalleryItemSetting {
     motionGraphicsCredits: '',
     duration: '',
     frameRate: '',
+    imageWidth: 0,
+    imageHeight: 0,
     copyrightHolder: '',
     license: '',
     seoTitle: '',
@@ -122,6 +128,7 @@ export function GalleryItemsEditor({ initialItems }: { initialItems: GalleryItem
   const [editorTab, setEditorTab] = useState<EditorTab>('content');
   const [query, setQuery] = useState('');
   const [thumbnailStates, setThumbnailStates] = useState<Record<string, ThumbnailState>>({});
+  const [metadataStates, setMetadataStates] = useState<Record<string, MetadataImportState>>({});
   const thumbnailTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const serialized = useMemo(() => JSON.stringify(items.map((item, index) => ({ ...item, order: index }))), [items]);
   const selectedIndex = Math.max(0, items.findIndex((item) => item.id === selectedId));
@@ -146,6 +153,70 @@ export function GalleryItemsEditor({ initialItems }: { initialItems: GalleryItem
 
   const updateById = (id: string, patch: Partial<GalleryItemSetting>) => {
     setItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item));
+  };
+
+  const readFileMetadata = async (id: string, url: string, assetId?: string) => {
+    if (!url) return;
+    setMetadataStates((current) => ({ ...current, [id]: { status: 'loading', message: 'Reading EXIF, IPTC and XMP metadata…' } }));
+    try {
+      const response = await fetch('/api/media/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(assetId ? { assetId } : { url }),
+      });
+      const data = await response.json().catch(() => ({})) as { metadata?: ExtractedMediaMetadata; error?: string };
+      if (!response.ok || !data.metadata) throw new Error(data.error || 'Metadata could not be read.');
+      const metadata = data.metadata;
+      setItems((current) => current.map((item) => {
+        if (item.id !== id) return item;
+        const title = (!item.title || item.title === 'New gallery item') && metadata.title ? metadata.title : item.title;
+        const creator = metadata.artist;
+        const patch: Partial<GalleryItemSetting> = {
+          title,
+          slug: title !== item.title ? gallerySlug(title, item.id) : item.slug,
+          description: item.description || metadata.description,
+          altText: item.altText || metadata.description || metadata.title,
+          dateCreated: item.dateCreated || metadata.dateCreated,
+          location: item.location || metadata.location,
+          software: item.software || metadata.software,
+          copyrightHolder: item.copyrightHolder || metadata.copyrightHolder,
+          resolution: item.resolution || metadata.resolution,
+          imageWidth: metadata.width || item.imageWidth,
+          imageHeight: metadata.height || item.imageHeight,
+          tags: [...new Set([...item.tags, ...metadata.keywords])].slice(0, 30),
+        };
+        if (item.creativeType === 'photography') {
+          Object.assign(patch, {
+            photographer: item.photographer || creator,
+            camera: item.camera || metadata.camera,
+            lens: item.lens || metadata.lens,
+            focalLength: item.focalLength || metadata.focalLength,
+            aperture: item.aperture || metadata.aperture,
+            shutterSpeed: item.shutterSpeed || metadata.shutterSpeed,
+            iso: item.iso || metadata.iso,
+          });
+        } else if (item.creativeType !== 'video') {
+          patch.artist = item.artist || creator;
+          if (item.creativeType === 'digital-art') patch.dimensions = item.dimensions || metadata.resolution;
+        }
+        return { ...item, ...patch };
+      }));
+      const imported = metadata.fieldCount + (metadata.width && metadata.height ? 1 : 0);
+      const privacyNote = metadata.hasGpsCoordinates && !metadata.location ? ' GPS coordinates were detected but not inserted automatically.' : '';
+      setMetadataStates((current) => ({
+        ...current,
+        [id]: imported
+          ? { status: 'success', message: `${imported} metadata groups imported into empty fields.${privacyNote}` }
+          : { status: 'empty', message: `No usable descriptive metadata was found.${privacyNote}` },
+      }));
+    } catch (error) {
+      setMetadataStates((current) => ({ ...current, [id]: { status: 'error', message: error instanceof Error ? error.message : 'Metadata could not be read.' } }));
+    }
+  };
+
+  const handlePrimaryAsset = (itemId: string, asset: MediaAssetSelection) => {
+    if (!asset.mimeType.startsWith('image/')) return;
+    void readFileMetadata(itemId, asset.url, asset.id);
   };
 
   const updateTitle = (index: number, title: string) => {
@@ -406,7 +477,24 @@ export function GalleryItemsEditor({ initialItems }: { initialItems: GalleryItem
                       <span className="min-w-0"><span className="block text-xs font-semibold text-foreground/85">NSFW preview</span><span className="mt-0.5 block text-[10px] text-muted-foreground">Blur preview until View full work.</span></span>
                       <span className="flex shrink-0 items-center gap-2"><span className={`text-[10px] font-semibold ${selected.isNsfw ? 'text-amber-500' : 'text-muted-foreground'}`}>{selected.isNsfw ? 'ON' : 'OFF'}</span><span className={`relative h-6 w-11 rounded-full transition ${selected.isNsfw ? 'bg-amber-400' : 'bg-foreground/15'}`}><span className={`absolute top-1 size-4 rounded-full bg-white shadow-sm transition-transform ${selected.isNsfw ? 'translate-x-6' : 'translate-x-1'}`} /></span></span>
                     </button>
-                    <MediaPicker value={selected.mediaUrl} onChange={(url) => update(selectedIndex, { mediaUrl: url, sourceUrl: '', thumbnailUrl: selected.type === 'image' ? url : selected.thumbnailUrl })} label={selected.type === 'video' ? 'Video file from Media Library' : 'Cover / primary image'} initialKind={selected.type} lockKind />
+                    <MediaPicker value={selected.mediaUrl} onChange={(url) => update(selectedIndex, { mediaUrl: url, sourceUrl: '', thumbnailUrl: selected.type === 'image' ? url : selected.thumbnailUrl })} onAssetSelect={(asset) => handlePrimaryAsset(selected.id, asset)} label={selected.type === 'video' ? 'Video file from Media Library' : 'Cover / primary image'} initialKind={selected.type} lockKind />
+                    {selected.type === 'image' && selected.mediaUrl && (
+                      <div className="rounded-xl border border-foreground/10 bg-foreground/[0.02] p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div><p className="text-xs font-semibold text-foreground/85">File metadata</p><p className="mt-1 text-[10px] leading-4 text-muted-foreground">EXIF, IPTC, XMP and image dimensions fill only empty Work details fields.</p></div>
+                          <button type="button" disabled={metadataStates[selected.id]?.status === 'loading'} onClick={() => void readFileMetadata(selected.id, selected.mediaUrl)} className="inline-flex items-center gap-2 rounded-lg border border-foreground/10 px-3 py-2 text-[11px] font-semibold text-muted-foreground transition hover:bg-foreground/[0.04] hover:text-foreground disabled:opacity-50">
+                            {metadataStates[selected.id]?.status === 'loading' ? <Loader2 className="size-3.5 animate-spin" /> : <FileSearch className="size-3.5" />}
+                            Read metadata
+                          </button>
+                        </div>
+                        {metadataStates[selected.id] && (
+                          <p className={`mt-3 flex items-start gap-2 text-[11px] leading-5 ${metadataStates[selected.id].status === 'error' ? 'text-red-400' : metadataStates[selected.id].status === 'success' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                            {metadataStates[selected.id].status === 'success' ? <CheckCircle2 className="mt-0.5 size-3.5 shrink-0" /> : metadataStates[selected.id].status === 'loading' ? <Loader2 className="mt-0.5 size-3.5 shrink-0 animate-spin" /> : <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />}
+                            {metadataStates[selected.id].message}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     {selected.type === 'video' && (
                       <>
                         <label className="block text-xs text-muted-foreground"><span className="flex items-center gap-1.5"><Link2 className="size-3.5" />Social / external media URL</span><input type="url" value={selected.sourceUrl} onChange={(event) => { const url = event.target.value.trim(); update(selectedIndex, { sourceUrl: url, mediaUrl: url, thumbnailUrl: '' }); scheduleThumbnail(selected.id, url); }} onBlur={(event) => void resolveThumbnail(selected.id, event.target.value)} placeholder="YouTube, TikTok, Vimeo, Instagram, Facebook, X, Pinterest, Dailymotion…" className={input} /><span className="mt-1 block text-[10px] leading-4 text-muted-foreground/60">The original social URL is preserved separately from the embed URL so thumbnails can be refreshed after saving.</span></label>

@@ -109,8 +109,6 @@ export default async function GalleryAdminPage({ searchParams }: { searchParams:
           interfacePanel={interfacePanel}
         />
 
-        <input type="hidden" name="defaultImageDescription" value={settings.defaultImageDescription} readOnly />
-
         <div className="sticky bottom-3 z-20 mt-5 flex justify-end rounded-2xl border border-foreground/10 bg-background/90 p-3 shadow-2xl backdrop-blur-xl sm:bottom-5">
           <button className="w-full rounded-xl bg-foreground px-5 py-3 text-sm font-semibold text-background sm:w-auto">Save Gallery</button>
         </div>

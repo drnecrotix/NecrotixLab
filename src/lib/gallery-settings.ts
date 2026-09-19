@@ -55,6 +55,8 @@ export type GalleryItemSetting = {
   motionGraphicsCredits: string;
   duration: string;
   frameRate: string;
+  imageWidth: number;
+  imageHeight: number;
   copyrightHolder: string;
   license: string;
   seoTitle: string;
@@ -77,15 +79,11 @@ export type GallerySettings = {
   sectionTitle: string;
   filterAll: string;
   collectionsLabel: string;
-  viewLabel: string;
   loadMoreLabel: string;
   emptyLabel: string;
-  defaultImageDescription: string;
   rowsViewTitle: string;
   gridViewTitle: string;
   infiniteViewTitle: string;
-  minimizeTitle: string;
-  maximizeTitle: string;
   items: GalleryItemSetting[];
 };
 
@@ -110,15 +108,11 @@ export const defaultGallerySettings: GallerySettings = {
   sectionTitle: 'Selected Works',
   filterAll: 'All',
   collectionsLabel: 'Creative Types',
-  viewLabel: 'View',
   loadMoreLabel: 'Load More',
   emptyLabel: 'No items found matching this creative type.',
-  defaultImageDescription: 'Gallery Image',
   rowsViewTitle: 'Rows View',
   gridViewTitle: 'Grid View',
   infiniteViewTitle: 'Infinite Preview',
-  minimizeTitle: 'Minimize',
-  maximizeTitle: 'Maximize',
   items: [],
 };
 
@@ -369,7 +363,7 @@ export function socialVideoEmbedUrl(value: unknown) {
   }
 }
 
-function normalizeItems(value: unknown, fallbackDescription: string): GalleryItemSetting[] {
+function normalizeItems(value: unknown): GalleryItemSetting[] {
   if (!Array.isArray(value)) return [];
 
   const normalized = value.slice(0, 250).map((entry, index) => {
@@ -402,7 +396,7 @@ function normalizeItems(value: unknown, fallbackDescription: string): GalleryIte
       socialImageUrl: normalizeUrl(raw.socialImageUrl ?? raw.ogImage),
       title,
       slug: gallerySlug(raw.slug || title, `gallery-item-${index + 1}`),
-      description: text(raw.description, fallbackDescription, 1600),
+      description: optionalText(raw.description, 1600),
       story: optionalText(raw.story ?? raw.about, 12000),
       altText: text(raw.altText, title, 280),
       creativeType,
@@ -441,6 +435,8 @@ function normalizeItems(value: unknown, fallbackDescription: string): GalleryIte
       motionGraphicsCredits: optionalText(raw.motionGraphicsCredits ?? raw.animationCredits, 400),
       duration: optionalText(raw.duration, 80),
       frameRate: optionalText(raw.frameRate ?? raw.fps, 80),
+      imageWidth: Math.max(0, Math.min(100000, Number(raw.imageWidth ?? raw.width) || 0)),
+      imageHeight: Math.max(0, Math.min(100000, Number(raw.imageHeight ?? raw.height) || 0)),
       copyrightHolder: optionalText(raw.copyrightHolder, 200),
       license: optionalText(raw.license, 240),
       seoTitle: optionalText(raw.seoTitle, 180),
@@ -463,7 +459,6 @@ function normalizeItems(value: unknown, fallbackDescription: string): GalleryIte
 
 export function normalizeGallerySettings(value: unknown): GallerySettings {
   const source = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-  const defaultImageDescription = text(source.defaultImageDescription, defaultGallerySettings.defaultImageDescription, 180);
   return {
     heroEyebrow: text(source.heroEyebrow, defaultGallerySettings.heroEyebrow, 40),
     heroTitlePrefix: typeof source.heroTitlePrefix === 'string' ? source.heroTitlePrefix.trim().slice(0, 60) : defaultGallerySettings.heroTitlePrefix,
@@ -477,15 +472,11 @@ export function normalizeGallerySettings(value: unknown): GallerySettings {
     sectionTitle: text(source.sectionTitle, defaultGallerySettings.sectionTitle, 120),
     filterAll: text(source.filterAll, defaultGallerySettings.filterAll, 40),
     collectionsLabel: text(source.collectionsLabel, defaultGallerySettings.collectionsLabel, 60),
-    viewLabel: text(source.viewLabel, defaultGallerySettings.viewLabel, 40),
     loadMoreLabel: text(source.loadMoreLabel, defaultGallerySettings.loadMoreLabel, 60),
     emptyLabel: text(source.emptyLabel, defaultGallerySettings.emptyLabel, 180),
-    defaultImageDescription,
     rowsViewTitle: text(source.rowsViewTitle, defaultGallerySettings.rowsViewTitle, 60),
     gridViewTitle: text(source.gridViewTitle, defaultGallerySettings.gridViewTitle, 60),
     infiniteViewTitle: text(source.infiniteViewTitle, defaultGallerySettings.infiniteViewTitle, 60),
-    minimizeTitle: text(source.minimizeTitle, defaultGallerySettings.minimizeTitle, 60),
-    maximizeTitle: text(source.maximizeTitle, defaultGallerySettings.maximizeTitle, 60),
-    items: normalizeItems(source.items, defaultImageDescription),
+    items: normalizeItems(source.items),
   };
 }
