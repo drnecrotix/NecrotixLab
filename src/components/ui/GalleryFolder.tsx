@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
+import { shouldBypassImageOptimizer } from '@/lib/media-image';
 
 interface FolderProps {
     items: string[]; // Array of image URLs
@@ -112,6 +113,7 @@ export const GalleryFolder = ({
                                             fill
                                             className="object-cover"
                                             sizes="100px"
+                                            unoptimized={shouldBypassImageOptimizer(item)}
                                         />
                                     </div>
                                 )}

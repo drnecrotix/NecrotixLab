@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Minus, Plus, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { shouldBypassImageOptimizer } from '@/lib/media-image';
 
 type Point = { x: number; y: number };
 
@@ -124,7 +125,7 @@ export function GalleryZoomViewer({
           className="absolute inset-0 transition-transform duration-150 ease-out will-change-transform"
           style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) rotate(${rotation}deg) scale(${zoom})` }}
         >
-          {activeImage.startsWith('/') ? <Image key={activeImage} src={activeImage} alt={activeIndex === 0 ? alt : `${alt} - ${activeIndex + 1}`} fill sizes="(max-width: 1180px) 100vw, 1180px" quality={86} priority={activeIndex === 0} draggable={false} onLoad={() => setImageLoaded(true)} className={cn('pointer-events-none object-contain transition-opacity duration-500 [-webkit-user-drag:none]', imageLoaded ? 'opacity-100' : 'opacity-0')} /> : <img key={activeImage} src={activeImage} alt={activeIndex === 0 ? alt : `${alt} - ${activeIndex + 1}`} draggable={false} loading={activeIndex === 0 ? 'eager' : 'lazy'} fetchPriority={activeIndex === 0 ? 'high' : 'auto'} decoding="async" onLoad={() => setImageLoaded(true)} className={cn('pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-500 [-webkit-user-drag:none]', imageLoaded ? 'opacity-100' : 'opacity-0')} />}
+          {activeImage.startsWith('/') ? <Image key={activeImage} src={activeImage} alt={activeIndex === 0 ? alt : `${alt} - ${activeIndex + 1}`} fill sizes="(max-width: 1180px) 100vw, 1180px" quality={86} priority={activeIndex === 0} unoptimized={shouldBypassImageOptimizer(activeImage)} draggable={false} onLoad={() => setImageLoaded(true)} className={cn('pointer-events-none object-contain transition-opacity duration-500 [-webkit-user-drag:none]', imageLoaded ? 'opacity-100' : 'opacity-0')} /> : <img key={activeImage} src={activeImage} alt={activeIndex === 0 ? alt : `${alt} - ${activeIndex + 1}`} draggable={false} loading={activeIndex === 0 ? 'eager' : 'lazy'} fetchPriority={activeIndex === 0 ? 'high' : 'auto'} decoding="async" onLoad={() => setImageLoaded(true)} className={cn('pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-500 [-webkit-user-drag:none]', imageLoaded ? 'opacity-100' : 'opacity-0')} />}
         </div>
 
         <div className="absolute left-2.5 top-2.5 z-20 flex items-center gap-0.5 rounded-full border border-white/10 bg-black/60 p-1 text-white shadow-lg backdrop-blur-md sm:left-4 sm:top-4 sm:gap-1">
@@ -156,7 +157,7 @@ export function GalleryZoomViewer({
               className={cn('relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border bg-black transition sm:h-20 sm:w-28', activeIndex === index ? 'border-foreground/70 ring-1 ring-foreground/20' : 'border-foreground/10 opacity-60 hover:opacity-100')}
               aria-label={`View image ${index + 1}`}
             >
-              {image.startsWith('/') ? <Image src={image} alt="" fill sizes="112px" quality={60} loading="lazy" draggable={false} className="pointer-events-none object-cover [-webkit-user-drag:none]" /> : <img src={image} alt="" loading="lazy" decoding="async" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full object-cover [-webkit-user-drag:none]" />}
+              {image.startsWith('/') ? <Image src={image} alt="" fill sizes="112px" quality={60} loading="lazy" unoptimized={shouldBypassImageOptimizer(image)} draggable={false} className="pointer-events-none object-cover [-webkit-user-drag:none]" /> : <img src={image} alt="" loading="lazy" decoding="async" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full object-cover [-webkit-user-drag:none]" />}
             </button>
           ))}
         </div>

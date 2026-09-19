@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ImageIcon, LayoutGrid, ListFilter, Play, StretchHorizontal, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { shouldBypassImageOptimizer } from '@/lib/media-image';
 import {
     galleryCreativeTypeLabel,
     galleryCreativeTypeOptions,
@@ -39,7 +40,7 @@ function GalleryPreview({ item, sizes, className, fit = 'cover' }: { item: Galle
     return (
         <>
             {item.thumbnail ? (
-                <><div className={cn('absolute inset-0 animate-pulse bg-foreground/[0.06] transition-opacity duration-300', loaded && 'opacity-0')} /><Image src={item.thumbnail} alt={item.title} fill sizes={sizes} loading="lazy" quality={76} onLoad={() => setLoaded(true)} className={cn(fit === 'contain' ? 'object-contain' : 'object-cover', 'transition-[opacity,transform] duration-500', loaded ? 'opacity-100' : 'opacity-0', className, item.isNsfw && 'scale-110 blur-2xl')} /></>
+                <><div className={cn('absolute inset-0 animate-pulse bg-foreground/[0.06] transition-opacity duration-300', loaded && 'opacity-0')} /><Image src={item.thumbnail} alt={item.title} fill sizes={sizes} loading="lazy" quality={76} unoptimized={shouldBypassImageOptimizer(item.thumbnail)} onLoad={() => setLoaded(true)} className={cn(fit === 'contain' ? 'object-contain' : 'object-cover', 'transition-[opacity,transform] duration-500', loaded ? 'opacity-100' : 'opacity-0', className, item.isNsfw && 'scale-110 blur-2xl')} /></>
             ) : (
                 <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950 text-white/60">
                     <div className="flex flex-col items-center gap-2">
