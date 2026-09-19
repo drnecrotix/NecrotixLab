@@ -1,0 +1,23 @@
+export type ExtractedMediaMetadata = {
+    width: number | null;
+    height: number | null;
+    title: string;
+    description: string;
+    artist: string;
+    copyrightHolder: string;
+    dateCreated: string;
+    camera: string;
+    lens: string;
+    focalLength: string;
+    aperture: string;
+    shutterSpeed: string;
+    iso: string;
+    software: string;
+    location: string;
+    resolution: string;
+    keywords: string[];
+    orientation: number | null;
+    hasGpsCoordinates: boolean;
+    sourceKinds: string[];
+    fieldCount: number;
+};

@@ -111,6 +111,7 @@ function typeSpecificDetails(item: GalleryItemSetting): WorkDetail[] {
         { label: 'Shutter', value: item.shutterSpeed },
         { label: 'ISO', value: item.iso },
         { label: 'Lighting', value: item.lighting },
+        { label: 'Resolution', value: item.resolution },
       ];
     case 'video':
       return [

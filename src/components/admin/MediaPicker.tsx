@@ -2,13 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-type MediaAsset = {
+export type MediaAssetSelection = {
     id: string;
     fileName: string;
     mimeType: string;
     url: string;
     altText?: string | null;
+    width?: number | null;
+    height?: number | null;
 };
+
+type MediaAsset = MediaAssetSelection;
 
 type MediaKind = 'all' | 'image' | 'video' | 'file';
 type PickerTab = 'library' | 'upload';
@@ -20,6 +24,7 @@ type Props = {
     label?: string;
     initialKind?: MediaKind;
     lockKind?: boolean;
+    onAssetSelect?: (asset: MediaAssetSelection) => void;
 };
 
 const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,image/avif,.jpg,.jpeg,.png,.webp,.gif,.avif';
@@ -40,7 +45,7 @@ function fileBadge(fileName: string, mimeType = '') {
     return mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'FILE';
 }
 
-export function MediaPicker({ value = '', onChange, inputName, label = 'Media', initialKind = 'all', lockKind = false }: Props) {
+export function MediaPicker({ value = '', onChange, inputName, label = 'Media', initialKind = 'all', lockKind = false, onAssetSelect }: Props) {
     const [assets, setAssets] = useState<MediaAsset[]>([]);
     const [internalSelected, setInternalSelected] = useState(value);
     const [open, setOpen] = useState(false);
@@ -101,8 +106,9 @@ export function MediaPicker({ value = '', onChange, inputName, label = 'Media', 
         onChange?.(url);
     };
 
-    const choose = (url: string) => {
-        setSelection(url);
+    const choose = (asset: MediaAsset) => {
+        setSelection(asset.url);
+        onAssetSelect?.(asset);
         setOpen(false);
     };
 
@@ -122,6 +128,7 @@ export function MediaPicker({ value = '', onChange, inputName, label = 'Media', 
             setAssets((current) => [asset, ...current.filter((item) => item.id !== asset.id)]);
             window.dispatchEvent(new CustomEvent<MediaAsset>(MEDIA_LIBRARY_EVENT, { detail: asset }));
             setSelection(asset.url);
+            onAssetSelect?.(asset);
             setUploadMessage(`${asset.fileName} uploaded and selected.`);
             setTab('library');
         } catch (error) {
@@ -192,7 +199,7 @@ export function MediaPicker({ value = '', onChange, inputName, label = 'Media', 
                                 className="grid max-h-80 min-w-0 grid-cols-2 gap-3 overflow-y-auto overscroll-contain pr-1 md:grid-cols-3"
                             >
                                 {filtered.map((asset) => (
-                                    <button key={asset.id} type="button" onClick={() => choose(asset.url)} className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] text-left hover:border-white/30">
+                                    <button key={asset.id} type="button" onClick={() => choose(asset)} className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] text-left hover:border-white/30">
                                         {asset.mimeType.startsWith('image/') ? (
                                              
                                             <img src={asset.url} alt={asset.altText || asset.fileName} className="aspect-video w-full object-cover" />

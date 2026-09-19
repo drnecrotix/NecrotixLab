@@ -16,6 +16,10 @@ const SIZES = [0.92, 1, 1.12, 1.26, 1.5, 1.78] as const;
 const LOW_VISION_MIN_INDEX = 4;
 const STORAGE_KEY = 'pwa-reader';
 
+function isReaderTheme(value: PwaReaderTheme): value is Exclude<PwaReaderTheme, 'system'> {
+    return THEMES.some((item) => item.id === value);
+}
+
 function dock(standalone: boolean, rem: number) {
     const offset = standalone ? rem : Math.max(1.1, rem - 4.15);
     return `calc(${offset}rem + env(safe-area-inset-bottom, 0px))`;
@@ -50,7 +54,7 @@ export function PwaReaderMode({
             const raw = window.localStorage.getItem(STORAGE_KEY);
             if (!raw) return;
             const parsed = JSON.parse(raw) as { open?: boolean; theme?: PwaReaderTheme; size?: number; vision?: boolean };
-            if (parsed.theme && THEMES.some((item) => item.id === parsed.theme)) setTheme(parsed.theme);
+            if (parsed.theme && isReaderTheme(parsed.theme)) setTheme(parsed.theme);
             if (typeof parsed.size === 'number') {
                 const next = SIZES.findIndex((item) => item === parsed.size);
                 setSizeIndex(next >= 0 ? next : 1);
