@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { BlogPost } from '@/types';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { shouldBypassImageOptimizer } from '@/lib/media-image';
 
 interface BlogCardProps {
     post: BlogPost;
@@ -36,6 +37,7 @@ export function BlogCard({ post, index, isHovered, isLowPowerMode }: BlogCardPro
                     src={post.image}
                     alt={post.title}
                     fill
+                    unoptimized={shouldBypassImageOptimizer(post.image)}
                     className={cn(
                         "object-cover transition-transform duration-1000",
                         isHovered ? "scale-105" : "scale-100"

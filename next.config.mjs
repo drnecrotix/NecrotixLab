@@ -92,6 +92,13 @@ const nextConfig = {
         ];
     },
     images: {
+        localPatterns: [
+            // Next.js 16 blocks local Image src values with query strings unless
+            // they are explicitly allowed. Protected media uses ?scope=gallery.
+            { pathname: '/api/protected-media/**' },
+            { pathname: '/api/gallery-thumbnail/**' },
+            { pathname: '/**', search: '' },
+        ],
         remotePatterns: [
             { protocol: 'https', hostname: 'cdn.jsdelivr.net' },
             { protocol: 'https', hostname: 'images.unsplash.com' },
