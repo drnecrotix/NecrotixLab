@@ -306,6 +306,10 @@ model TrafficSession {
   currentPath     String?
   currentCity     String?
   ipAddress       String?
+  ipAsn           String?
+  ipIsp           String?
+  ipOrganization  String?
+  ipDomain        String?
   countryLookupAt DateTime?
   startedAt       DateTime  @default(now())
   lastSeenAt      DateTime  @default(now())
@@ -315,20 +319,30 @@ model TrafficSession {
 }
 
 model TrafficPageEvent {
-  id          String   @id @default(cuid())
-  sessionHash String
-  path        String
-  countryCode String
-  city        String?
-  ipAddress   String?
-  deviceType  String
-  occurredAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  sessionHash    String
+  path           String
+  countryCode    String
+  city           String?
+  ipAddress      String?
+  ipAsn          String?
+  ipIsp          String?
+  ipOrganization String?
+  ipDomain       String?
+  deviceType     String
+  occurredAt     DateTime @default(now())
 
   @@index([occurredAt])
   @@index([sessionHash, occurredAt])
   @@index([countryCode, occurredAt])
   @@index([deviceType, occurredAt])
   @@index([path, occurredAt])
+}
+
+model TrafficCleanupState {
+  id        String   @id
+  lastRunAt DateTime
+  updatedAt DateTime @updatedAt
 }
 
 model SiteSettings {

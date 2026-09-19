@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Activity, ExternalLink, Globe2, MapPin, Monitor, RefreshCw, Smartphone, Tablet, Users } from 'lucide-react';
+import { Activity, ExternalLink, Globe2, MapPin, Monitor, RefreshCw, Search, Smartphone, Tablet, Users } from 'lucide-react';
 import { AudienceWorldMap } from './AudienceWorldMap';
 import { cn } from '@/lib/utils';
 import type { TrafficRange } from '@/lib/traffic-analytics';
@@ -44,6 +44,13 @@ type ActivityItem = {
     device: string;
     operatingSystem: string;
     ipAddress: string | null;
+    ipVersion: string | null;
+    ipNetwork: {
+        asn: string | null;
+        isp: string | null;
+        organization: string | null;
+        domain: string | null;
+    } | null;
     ipExpired: boolean;
     isLiveCurrent: boolean;
     occurredAt: string;
@@ -83,12 +90,14 @@ type TrafficPayload = {
         pageActivityDays: number;
         sessionHours: number;
         ipHours: number;
+        cleanupIntervalHours: number;
         visitTimeoutMinutes: number;
     };
     updatedAt: string;
 };
 
 type LocationMode = 'countries' | 'cities';
+type ActivityFilter = 'all' | 'live' | 'ip';
 
 const rangeOptions: Array<{ value: TrafficRange; label: string }> = [
     { value: '7d', label: '7 days' },
@@ -237,6 +246,8 @@ export function TrafficAnalyticsPanel({
     const [refreshing, setRefreshing] = useState(false);
     const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
     const [locationMode, setLocationMode] = useState<LocationMode>('countries');
+    const [activityQuery, setActivityQuery] = useState('');
+    const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all');
 
     const refresh = useCallback(async (manual = false) => {
         if (manual) setRefreshing(true);
@@ -271,6 +282,27 @@ export function TrafficAnalyticsPanel({
     const cities = data?.cities || [];
     const liveVisitors = data?.live.visitors ?? 0;
     const period = rangeText(range);
+    const visibleActivity = useMemo(() => {
+        const query = activityQuery.trim().toLocaleLowerCase('en');
+        return (data?.activity.items || []).filter((item) => {
+            if (activityFilter === 'live' && !item.isLiveCurrent) return false;
+            if (activityFilter === 'ip' && !item.ipAddress) return false;
+            if (!query) return true;
+            return [
+                item.path,
+                item.city,
+                item.countryName,
+                item.ipAddress,
+                item.ipVersion,
+                item.ipNetwork?.asn,
+                item.ipNetwork?.isp,
+                item.ipNetwork?.organization,
+                item.ipNetwork?.domain,
+                item.device,
+                item.operatingSystem,
+            ].some((value) => value?.toLocaleLowerCase('en').includes(query));
+        });
+    }, [activityFilter, activityQuery, data]);
     const visibleDescription = showMap
         ? 'Live visitors, retained page activity, visit trends, countries, cities, devices, operating systems and short-lived IP context in one focused view.'
         : description;
@@ -382,23 +414,55 @@ export function TrafficAnalyticsPanel({
                 <div>
                     <p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Retained activity</p>
                     <h4 className="mt-1 text-sm font-semibold">Recent page activity</h4>
-                    <p className="mt-1 text-[10px] text-muted-foreground">Public page paths, location, device, OS and short-lived IP context. Rows marked LIVE are the current page for that active visitor session. Query strings and full user-agent strings are not stored.</p>
+                    <p className="mt-1 text-[10px] text-muted-foreground">Searchable page paths, location, device, OS and short-lived network context. Rows marked LIVE are the current page for that active visitor session.</p>
                 </div>
-                <span className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-2.5 py-1 text-[9px] text-muted-foreground">
-                    {data?.activity.items.length ?? 0} of {data?.activity.total ?? 0}
-                </span>
+                <div className="flex flex-wrap items-center justify-end gap-1.5 text-[9px]">
+                    <span className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-2.5 py-1 text-muted-foreground">{visibleActivity.length} shown · {data?.activity.total ?? 0} total</span>
+                    <span className="rounded-full border border-amber-500/20 bg-amber-500/[0.06] px-2.5 py-1 text-amber-700 dark:text-amber-300">IP context {data?.retention.ipHours ?? 24}h</span>
+                    <span className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-2.5 py-1 text-muted-foreground">Activity {data?.retention.pageActivityDays ?? 30}d</span>
+                </div>
+            </div>
+
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <label className="relative min-w-0 flex-1 sm:max-w-md">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <span className="sr-only">Search recent page activity</span>
+                    <input
+                        type="search"
+                        value={activityQuery}
+                        onChange={(event) => setActivityQuery(event.target.value)}
+                        placeholder="Search URL, location, IP, ASN or provider…"
+                        className="h-9 w-full rounded-lg border border-foreground/10 bg-background/60 pl-9 pr-3 text-[11px] outline-none transition placeholder:text-muted-foreground/65 focus:border-foreground/25"
+                    />
+                </label>
+                <div className="inline-flex self-start rounded-lg border border-foreground/10 bg-background/60 p-0.5">
+                    {([
+                        ['all', 'All'],
+                        ['live', 'Live'],
+                        ['ip', 'Has IP'],
+                    ] as const).map(([value, label]) => (
+                        <button
+                            key={value}
+                            type="button"
+                            onClick={() => setActivityFilter(value)}
+                            className={cn('rounded-md px-2.5 py-1.5 text-[10px] font-medium transition', activityFilter === value ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground')}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div className="admin-contained-scroll mt-3 max-h-[360px] overflow-auto overscroll-contain rounded-xl border border-foreground/10 [scrollbar-gutter:stable]">
-                <div className="min-w-[950px]">
-                    <div className="sticky top-0 z-10 grid grid-cols-[105px_minmax(220px,1.55fr)_minmax(170px,1fr)_105px_115px_minmax(135px,0.9fr)] gap-3 bg-background/95 px-3 py-2 text-[8px] uppercase tracking-[0.12em] text-muted-foreground backdrop-blur">
-                        <span>Time</span><span>Page / URL</span><span>Location</span><span>Device</span><span>OS</span><span>IP address</span>
+                <div className="min-w-[1080px]">
+                    <div className="sticky top-0 z-10 grid grid-cols-[105px_minmax(220px,1.45fr)_minmax(160px,0.9fr)_100px_110px_minmax(250px,1.25fr)] gap-3 bg-background/95 px-3 py-2 text-[8px] uppercase tracking-[0.12em] text-muted-foreground backdrop-blur">
+                        <span>Time</span><span>Page / URL</span><span>Location</span><span>Device</span><span>OS</span><span>IP / network</span>
                     </div>
-                    {data?.activity.items.length ? data.activity.items.map((item) => (
+                    {visibleActivity.length ? visibleActivity.map((item) => (
                         <div
                             key={item.id}
                             className={cn(
-                                'grid grid-cols-[105px_minmax(220px,1.55fr)_minmax(170px,1fr)_105px_115px_minmax(135px,0.9fr)] items-center gap-3 border-t border-foreground/[0.08] px-3 py-2.5 text-[10px] transition-colors',
+                                'grid grid-cols-[105px_minmax(220px,1.45fr)_minmax(160px,0.9fr)_100px_110px_minmax(250px,1.25fr)] items-center gap-3 border-t border-foreground/[0.08] px-3 py-2.5 text-[10px] transition-colors',
                                 item.isLiveCurrent && 'bg-emerald-500/[0.045]',
                             )}
                         >
@@ -422,22 +486,30 @@ export function TrafficAnalyticsPanel({
                             </div>
                             <span className="inline-flex min-w-0 items-center gap-1.5"><DeviceIcon device={item.device} /><span className="truncate">{deviceLabel(item.device)}</span></span>
                             <span className="truncate text-[10px]" title={item.operatingSystem}>{item.operatingSystem}</span>
-                            <span
-                                className={cn(
-                                    'truncate font-mono text-[9px]',
-                                    item.ipAddress ? 'text-foreground' : 'text-muted-foreground',
-                                    item.isLiveCurrent && item.ipAddress && 'font-semibold text-emerald-700 dark:text-emerald-300',
-                                )}
-                                title={item.ipAddress || undefined}
-                            >
-                                {item.ipAddress || (item.ipExpired ? 'Expired' : 'Unavailable')}
-                            </span>
+                            <div className="min-w-0">
+                                <p className={cn('truncate font-mono text-[9px]', item.ipAddress ? 'text-foreground' : 'text-muted-foreground', item.isLiveCurrent && item.ipAddress && 'font-semibold text-emerald-700 dark:text-emerald-300')} title={item.ipAddress || undefined}>
+                                    {item.ipAddress || (item.ipExpired ? 'Expired after 24h' : 'Unavailable')}
+                                    {item.ipVersion ? <span className="ml-1.5 font-sans text-[8px] text-muted-foreground">{item.ipVersion}</span> : null}
+                                </p>
+                                {item.ipAddress ? (
+                                    <>
+                                        <p className="mt-0.5 truncate text-[9px] text-muted-foreground" title={[item.ipNetwork?.isp, item.ipNetwork?.asn].filter(Boolean).join(' · ') || undefined}>
+                                            {[item.ipNetwork?.isp || item.ipNetwork?.organization || 'Provider unavailable', item.ipNetwork?.asn].filter(Boolean).join(' · ')}
+                                        </p>
+                                        {(item.ipNetwork?.organization || item.ipNetwork?.domain) ? (
+                                            <p className="truncate text-[8px] text-muted-foreground/75" title={[item.ipNetwork.organization, item.ipNetwork.domain].filter(Boolean).join(' · ')}>
+                                                {[item.ipNetwork.organization, item.ipNetwork.domain].filter(Boolean).join(' · ')}
+                                            </p>
+                                        ) : null}
+                                    </>
+                                ) : null}
+                            </div>
                         </div>
-                    )) : <p className="border-t border-foreground/[0.08] px-4 py-8 text-center text-xs text-muted-foreground">No retained page activity in this period yet.</p>}
+                    )) : <p className="border-t border-foreground/[0.08] px-4 py-8 text-center text-xs text-muted-foreground">{data?.activity.items.length ? 'No activity matches the current search or filter.' : 'No retained page activity in this period yet.'}</p>}
                 </div>
             </div>
             {(data?.activity.total ?? 0) > (data?.activity.limit ?? 150) ? (
-                <p className="mt-2 text-[9px] leading-4 text-muted-foreground">Showing the latest {data?.activity.limit} entries to keep the dashboard responsive. Aggregate totals still include the full selected period.</p>
+                <p className="mt-2 text-[9px] leading-4 text-muted-foreground">Search and filters apply to the latest {data?.activity.limit} entries kept in this view. Aggregate totals still include the full selected period.</p>
             ) : null}
         </div>
     );
@@ -529,7 +601,7 @@ export function TrafficAnalyticsPanel({
             )}
 
             <p className="mt-4 border-t border-foreground/10 pt-3 text-[9px] leading-4 text-muted-foreground">
-                A visit restarts after about {data?.retention.visitTimeoutMinutes ?? 30} minutes of inactivity. Page activity is retained for up to {data?.retention.pageActivityDays ?? 31} days, while raw IP context expires after about {data?.retention.ipHours ?? 24} hours. City is taken from infrastructure headers where available or resolved through the short-lived IP fallback; precise coordinates are not stored. OS is reduced to a coarse label from the browser user-agent and the full user-agent string is not retained. Country/device aggregates are retained for up to {data?.retention.aggregateDays ?? 31} days.{data?.updatedAt ? ` Last refresh ${new Date(data.updatedAt).toLocaleTimeString()}.` : ''}
+                A visit restarts after about {data?.retention.visitTimeoutMinutes ?? 30} minutes of inactivity. Page activity and country/device aggregates are retained for up to {data?.retention.pageActivityDays ?? 30} days. Raw IP, ASN, provider, organisation and network-domain context expires after about {data?.retention.ipHours ?? 24} hours. Cleanup is claimed at most once every {data?.retention.cleanupIntervalHours ?? 6} hours and runs on the next page-view request. Precise coordinates, query strings and full user-agent strings are not stored.{data?.updatedAt ? ` Last refresh ${new Date(data.updatedAt).toLocaleTimeString()}.` : ''}
             </p>
         </section>
     );
