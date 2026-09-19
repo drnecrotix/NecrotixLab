@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Activity, ExternalLink, Globe2, MapPin, Monitor, RefreshCw, Search, Smartphone, Tablet, Users } from 'lucide-react';
+import { Activity, Download, ExternalLink, Globe2, Loader2, MapPin, Monitor, RefreshCw, Search, Smartphone, Tablet, Users, X } from 'lucide-react';
 import { AudienceWorldMap } from './AudienceWorldMap';
 import { cn } from '@/lib/utils';
 import type { TrafficRange } from '@/lib/traffic-analytics';
@@ -54,6 +54,39 @@ type ActivityItem = {
     ipExpired: boolean;
     isLiveCurrent: boolean;
     occurredAt: string;
+};
+
+type ActivityDetail = {
+    event: {
+        id: string;
+        occurredAt: string;
+        path: string;
+        countryCode: string;
+        countryName: string;
+        city: string | null;
+        device: string;
+        operatingSystem: string;
+        ipAddress: string | null;
+        ipVersion: string | null;
+        network: ActivityItem['ipNetwork'];
+    };
+    visitor: {
+        id: string;
+        firstSeenAt: string;
+        lastSeenAt: string;
+        totalEvents: number;
+        isLiveCurrent: boolean;
+    };
+    history: Array<{
+        id: string;
+        path: string;
+        countryName: string;
+        city: string | null;
+        device: string;
+        operatingSystem: string;
+        occurredAt: string;
+        isCurrent: boolean;
+    }>;
 };
 
 type TrafficPayload = {
@@ -231,11 +264,15 @@ function VisitsChart({ rows }: { rows: TrafficPayload['chart'] }) {
 
 export function TrafficAnalyticsPanel({
     showMap = false,
+    showActivity = false,
+    locationLimit,
     title = 'Traffic overview',
     description = 'See who is online now, what they are viewing, total visits and where visitors come from.',
     refreshIntervalMs = 10000,
 }: {
     showMap?: boolean;
+    showActivity?: boolean;
+    locationLimit?: number;
     title?: string;
     description?: string;
     refreshIntervalMs?: number;
@@ -248,6 +285,9 @@ export function TrafficAnalyticsPanel({
     const [locationMode, setLocationMode] = useState<LocationMode>('countries');
     const [activityQuery, setActivityQuery] = useState('');
     const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all');
+    const [activityDetail, setActivityDetail] = useState<ActivityDetail | null>(null);
+    const [activityDetailLoading, setActivityDetailLoading] = useState(false);
+    const [activityDetailError, setActivityDetailError] = useState('');
 
     const refresh = useCallback(async (manual = false) => {
         if (manual) setRefreshing(true);
@@ -280,6 +320,8 @@ export function TrafficAnalyticsPanel({
     const knownLivePages = data?.live.pages.filter((page) => page.path !== 'Unknown page') || [];
     const unknownLivePage = data?.live.pages.find((page) => page.path === 'Unknown page');
     const cities = data?.cities || [];
+    const displayedCountries = locationLimit ? countries.slice(0, locationLimit) : countries;
+    const displayedCities = locationLimit ? cities.slice(0, locationLimit) : cities;
     const liveVisitors = data?.live.visitors ?? 0;
     const period = rangeText(range);
     const visibleActivity = useMemo(() => {
@@ -306,6 +348,22 @@ export function TrafficAnalyticsPanel({
     const visibleDescription = showMap
         ? 'Live visitors, retained page activity, visit trends, countries, cities, devices, operating systems and short-lived IP context in one focused view.'
         : description;
+
+    const openActivityDetail = useCallback(async (id: string) => {
+        setActivityDetail(null);
+        setActivityDetailError('');
+        setActivityDetailLoading(true);
+        try {
+            const response = await fetch(`/api/admin/traffic/event/${encodeURIComponent(id)}`, { cache: 'no-store' });
+            const payload = await response.json().catch(() => ({})) as ActivityDetail & { error?: string };
+            if (!response.ok) throw new Error(payload.error || `Activity detail request failed (${response.status})`);
+            setActivityDetail(payload);
+        } catch (err) {
+            setActivityDetailError(err instanceof Error ? err.message : 'Could not load activity details.');
+        } finally {
+            setActivityDetailLoading(false);
+        }
+    }, []);
 
     const locationPanel = (
         <div className="min-w-0 rounded-2xl border border-foreground/10 bg-background/40 p-4">
@@ -338,7 +396,7 @@ export function TrafficAnalyticsPanel({
                         <span>Country</span><span className="text-right">Visits</span><span className="text-right">Online</span>
                     </div>
                     <div className="admin-contained-scroll max-h-[250px] overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
-                        {countries.length ? countries.map((country) => (
+                        {displayedCountries.length ? displayedCountries.map((country) => (
                             <button
                                 key={country.code}
                                 type="button"
@@ -361,7 +419,7 @@ export function TrafficAnalyticsPanel({
                         <span>City</span><span className="text-right">Views</span><span className="text-right">Online</span>
                     </div>
                     <div className="admin-contained-scroll max-h-[250px] overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
-                        {cities.length ? cities.map((city) => (
+                        {displayedCities.length ? displayedCities.map((city) => (
                             <div key={`${city.countryCode}:${city.name}`} className="grid grid-cols-[minmax(0,1fr)_70px_62px] gap-2 border-t border-foreground/[0.08] px-3 py-2 text-[11px]">
                                 <div className="min-w-0">
                                     <p className="truncate">{city.name}</p>
@@ -382,7 +440,7 @@ export function TrafficAnalyticsPanel({
             )}
 
             <p className="mt-2 text-[9px] leading-4 text-muted-foreground">
-                {locationMode === 'countries' ? `${period} · visit totals plus live visitors` : `${period} · retained page activity plus live visitors`}
+                {locationLimit ? `Top ${locationLimit} · ` : ''}{locationMode === 'countries' ? `${period} · visit totals plus live visitors` : `${period} · retained page activity plus live visitors`}
             </p>
         </div>
     );
@@ -417,6 +475,9 @@ export function TrafficAnalyticsPanel({
                     <p className="mt-1 text-[10px] text-muted-foreground">Searchable page paths, location, device, OS and short-lived network context. Rows marked LIVE are the current page for that active visitor session.</p>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-1.5 text-[9px]">
+                    <a href={`/api/admin/traffic/export?range=${range}`} download className="inline-flex items-center gap-1.5 rounded-full border border-foreground/10 bg-background/60 px-2.5 py-1 font-medium text-foreground transition hover:bg-foreground/[0.06]">
+                        <Download className="size-3" /> Export CSV
+                    </a>
                     <span className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-2.5 py-1 text-muted-foreground">{visibleActivity.length} shown · {data?.activity.total ?? 0} total</span>
                     <span className="rounded-full border border-amber-500/20 bg-amber-500/[0.06] px-2.5 py-1 text-amber-700 dark:text-amber-300">IP context {data?.retention.ipHours ?? 24}h</span>
                     <span className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-2.5 py-1 text-muted-foreground">Activity {data?.retention.pageActivityDays ?? 30}d</span>
@@ -487,22 +548,11 @@ export function TrafficAnalyticsPanel({
                             <span className="inline-flex min-w-0 items-center gap-1.5"><DeviceIcon device={item.device} /><span className="truncate">{deviceLabel(item.device)}</span></span>
                             <span className="truncate text-[10px]" title={item.operatingSystem}>{item.operatingSystem}</span>
                             <div className="min-w-0">
-                                <p className={cn('truncate font-mono text-[9px]', item.ipAddress ? 'text-foreground' : 'text-muted-foreground', item.isLiveCurrent && item.ipAddress && 'font-semibold text-emerald-700 dark:text-emerald-300')} title={item.ipAddress || undefined}>
-                                    {item.ipAddress || (item.ipExpired ? 'Expired after 24h' : 'Unavailable')}
-                                    {item.ipVersion ? <span className="ml-1.5 font-sans text-[8px] text-muted-foreground">{item.ipVersion}</span> : null}
-                                </p>
                                 {item.ipAddress ? (
-                                    <>
-                                        <p className="mt-0.5 truncate text-[9px] text-muted-foreground" title={[item.ipNetwork?.isp, item.ipNetwork?.asn].filter(Boolean).join(' · ') || undefined}>
-                                            {[item.ipNetwork?.isp || item.ipNetwork?.organization || 'Provider unavailable', item.ipNetwork?.asn].filter(Boolean).join(' · ')}
-                                        </p>
-                                        {(item.ipNetwork?.organization || item.ipNetwork?.domain) ? (
-                                            <p className="truncate text-[8px] text-muted-foreground/75" title={[item.ipNetwork.organization, item.ipNetwork.domain].filter(Boolean).join(' · ')}>
-                                                {[item.ipNetwork.organization, item.ipNetwork.domain].filter(Boolean).join(' · ')}
-                                            </p>
-                                        ) : null}
-                                    </>
-                                ) : null}
+                                    <button type="button" onClick={() => void openActivityDetail(item.id)} className={cn('max-w-full truncate font-mono text-[9px] underline decoration-dotted underline-offset-4 transition hover:text-emerald-600', item.isLiveCurrent && 'font-semibold text-emerald-700 dark:text-emerald-300')} title="Open visitor and network details">
+                                        {item.ipAddress}
+                                    </button>
+                                ) : <span className="text-[9px] text-muted-foreground">{item.ipExpired ? 'Expired after 24h' : 'Unavailable'}</span>}
                             </div>
                         </div>
                     )) : <p className="border-t border-foreground/[0.08] px-4 py-8 text-center text-xs text-muted-foreground">{data?.activity.items.length ? 'No activity matches the current search or filter.' : 'No retained page activity in this period yet.'}</p>}
@@ -515,6 +565,7 @@ export function TrafficAnalyticsPanel({
     );
 
     return (
+        <>
         <section className="rounded-2xl border border-foreground/10 bg-foreground/[0.018] p-4 sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0">
@@ -577,7 +628,7 @@ export function TrafficAnalyticsPanel({
                 <VisitsChart rows={data?.chart || []} />
             </div>
 
-            {activityPanel}
+            {showActivity ? activityPanel : null}
 
             {showMap ? (
                 <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
@@ -604,5 +655,41 @@ export function TrafficAnalyticsPanel({
                 A visit restarts after about {data?.retention.visitTimeoutMinutes ?? 30} minutes of inactivity. Page activity and country/device aggregates are retained for up to {data?.retention.pageActivityDays ?? 30} days. Raw IP, ASN, provider, organisation and network-domain context expires after about {data?.retention.ipHours ?? 24} hours. Cleanup is claimed at most once every {data?.retention.cleanupIntervalHours ?? 6} hours and runs on the next page-view request. Precise coordinates, query strings and full user-agent strings are not stored.{data?.updatedAt ? ` Last refresh ${new Date(data.updatedAt).toLocaleTimeString()}.` : ''}
             </p>
         </section>
+        {(activityDetailLoading || activityDetailError || activityDetail) ? (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Visitor activity details" onMouseDown={(event) => { if (event.currentTarget === event.target) { setActivityDetail(null); setActivityDetailError(''); } }}>
+                <div className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-foreground/15 bg-background p-5 shadow-2xl sm:p-6">
+                    <div className="flex items-start justify-between gap-4">
+                        <div><p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Visitor detail</p><h4 className="mt-1 text-lg font-semibold">Network and browsing context</h4></div>
+                        <button type="button" onClick={() => { setActivityDetail(null); setActivityDetailError(''); }} className="rounded-lg border border-foreground/10 p-2 text-muted-foreground hover:text-foreground" aria-label="Close details"><X className="size-4" /></button>
+                    </div>
+                    {activityDetailLoading ? <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Loading details…</div> : null}
+                    {activityDetailError ? <div className="mt-5 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-600 dark:text-red-300">{activityDetailError}</div> : null}
+                    {activityDetail ? (
+                        <div className="mt-5 space-y-5">
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                {[
+                                    ['IP address', activityDetail.event.ipAddress ? `${activityDetail.event.ipAddress} · ${activityDetail.event.ipVersion || 'IP'}` : 'Expired or unavailable'],
+                                    ['Location', [activityDetail.event.city, activityDetail.event.countryName].filter(Boolean).join(', ')],
+                                    ['Provider', activityDetail.event.network?.isp || 'Unavailable'],
+                                    ['ASN', activityDetail.event.network?.asn || 'Unavailable'],
+                                    ['Organisation', activityDetail.event.network?.organization || 'Unavailable'],
+                                    ['Network domain', activityDetail.event.network?.domain || 'Unavailable'],
+                                    ['Anonymous visitor', activityDetail.visitor.id],
+                                    ['Page events', String(activityDetail.visitor.totalEvents)],
+                                ].map(([label, value]) => <div key={label} className="rounded-xl border border-foreground/10 bg-foreground/[0.025] px-3 py-2.5"><p className="text-[8px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p><p className="mt-1 break-words font-mono text-[11px]">{value}</p></div>)}
+                            </div>
+                            <div>
+                                <div className="flex items-center justify-between gap-3"><h5 className="text-sm font-semibold">Recent pages</h5><span className="text-[9px] text-muted-foreground">First seen {activityTime(activityDetail.visitor.firstSeenAt)}</span></div>
+                                <div className="mt-2 overflow-hidden rounded-xl border border-foreground/10">
+                                    {activityDetail.history.map((entry) => <div key={entry.id} className={cn('flex items-center justify-between gap-3 border-t border-foreground/[0.08] px-3 py-2.5 first:border-t-0', entry.isCurrent && 'bg-emerald-500/[0.06]')}><div className="min-w-0"><p className="truncate font-mono text-[10px]">{entry.path}</p><p className="mt-0.5 truncate text-[9px] text-muted-foreground">{activityTime(entry.occurredAt)} · {entry.device} · {entry.operatingSystem}</p></div>{entry.isCurrent ? <span className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[8px] font-semibold uppercase text-emerald-600">Live</span> : null}</div>)}
+                                </div>
+                            </div>
+                            <p className="text-[9px] leading-4 text-muted-foreground">IP and network context is visible only during its short retention window. The visitor identifier is an abbreviated one-way session hash, not an account identity.</p>
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+        ) : null}
+        </>
     );
 }

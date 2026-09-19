@@ -7,6 +7,7 @@ import {
     TRAFFIC_METRIC_RETENTION_DAYS,
     TRAFFIC_PAGE_EVENT_RETENTION_DAYS,
     normalizeAsn,
+    latestLiveEventIds,
     trafficRetentionCutoffs,
 } from '../../src/lib/traffic-analytics.ts';
 
@@ -31,4 +32,16 @@ test('ASN values are normalized for consistent display and search', () => {
     assert.equal(normalizeAsn(15169), 'AS15169');
     assert.equal(normalizeAsn('as13335'), 'AS13335');
     assert.equal(normalizeAsn('not-an-asn'), null);
+});
+
+test('only the latest matching page event is marked live for a visitor session', () => {
+    const currentPaths = new Map([['visitor-a', '/projects']]);
+    const liveIds = latestLiveEventIds([
+        { id: 'newest', sessionHash: 'visitor-a', path: '/projects' },
+        { id: 'older-same-page', sessionHash: 'visitor-a', path: '/projects' },
+        { id: 'old-home', sessionHash: 'visitor-a', path: '/' },
+    ], currentPaths);
+
+    assert.equal(liveIds.get('visitor-a'), 'newest');
+    assert.equal([...liveIds.values()].includes('older-same-page'), false);
 });

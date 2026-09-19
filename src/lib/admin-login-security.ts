@@ -115,3 +115,16 @@ export function recordAdminLoginFailure(descriptors: LoginThrottleDescriptor[]) 
 export function clearAdminLoginFailures(descriptors: LoginThrottleDescriptor[]) {
     for (const { key } of descriptors) throttleBuckets.delete(key);
 }
+
+export function adminLoginSecuritySnapshot() {
+    const now = Date.now();
+    pruneExpiredBuckets(now);
+    return {
+        activeBuckets: throttleBuckets.size,
+        lockedBuckets: [...throttleBuckets.values()].filter((bucket) => bucket.lockedUntil > now).length,
+        windowMinutes: WINDOW_MS / 60_000,
+        lockMinutes: LOCK_MS / 60_000,
+        ipFailureLimit: IP_FAILURE_LIMIT,
+        emailFailureLimit: EMAIL_FAILURE_LIMIT,
+    };
+}

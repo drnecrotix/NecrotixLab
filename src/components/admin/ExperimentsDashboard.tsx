@@ -270,6 +270,7 @@ export function ExperimentsDashboard() {
             {view === 'audience' ? (
                 <TrafficAnalyticsPanel
                     showMap
+                    showActivity
                     refreshIntervalMs={5000}
                     title="Audience & traffic"
                     description="Live and period traffic analytics with pages, visits, countries, optional live city headers and device distribution."
