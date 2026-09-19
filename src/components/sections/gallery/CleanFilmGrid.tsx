@@ -35,17 +35,11 @@ function galleryAspectRatio(width: number, height: number, type: GalleryItem['ty
 }
 
 function GalleryPreview({ item, sizes, className, fit = 'cover' }: { item: GalleryItem; sizes: string; className?: string; fit?: 'cover' | 'contain' }) {
+    const [loaded, setLoaded] = useState(false);
     return (
         <>
             {item.thumbnail ? (
-                <Image
-                    src={item.thumbnail}
-                    alt={item.title}
-                    fill
-                    sizes={sizes}
-                    loading="lazy"
-                    className={cn(fit === 'contain' ? 'object-contain' : 'object-cover', className, item.isNsfw && 'scale-110 blur-2xl')}
-                />
+                <><div className={cn('absolute inset-0 animate-pulse bg-foreground/[0.06] transition-opacity duration-300', loaded && 'opacity-0')} /><Image src={item.thumbnail} alt={item.title} fill sizes={sizes} loading="lazy" quality={76} onLoad={() => setLoaded(true)} className={cn(fit === 'contain' ? 'object-contain' : 'object-cover', 'transition-[opacity,transform] duration-500', loaded ? 'opacity-100' : 'opacity-0', className, item.isNsfw && 'scale-110 blur-2xl')} /></>
             ) : (
                 <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950 text-white/60">
                     <div className="flex flex-col items-center gap-2">

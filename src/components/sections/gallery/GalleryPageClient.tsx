@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import CleanFilmGrid from '@/components/sections/gallery/CleanFilmGrid';
 import ManifestoHero from '@/components/sections/gallery/ManifestoHero';
@@ -26,14 +27,24 @@ export function GalleryPageClient({
   activeTag?: string | null;
 }) {
   const { isLowPowerMode } = usePerformance();
+  const [canRenderWebGl, setCanRenderWebGl] = useState(false);
+
+  useEffect(() => {
+    try {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('webgl2', { failIfMajorPerformanceCaveat: true }) || canvas.getContext('webgl', { failIfMajorPerformanceCaveat: true });
+      setCanRenderWebGl(Boolean(context));
+      context?.getExtension('WEBGL_lose_context')?.loseContext();
+    } catch {
+      setCanRenderWebGl(false);
+    }
+  }, []);
 
   return (
     <main className="bg-background min-h-screen selection:bg-cyan-500/30 selection:text-cyan-500 overflow-x-hidden relative">
-      {!isLowPowerMode && (
+      {!isLowPowerMode && canRenderWebGl && (
         <div className="fixed inset-0 z-0 pointer-events-none opacity-50 dark:opacity-50 mix-blend-multiply dark:mix-blend-screen">
-          <DeferredMount>
-            <GLSLHills />
-          </DeferredMount>
+          <ErrorBoundary fallback={null}><DeferredMount><GLSLHills /></DeferredMount></ErrorBoundary>
         </div>
       )}
       <div className="relative z-10">

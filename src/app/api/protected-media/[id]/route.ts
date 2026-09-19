@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createHash } from 'node:crypto';
 import sharp from 'sharp';
 import { contentReferencesMedia } from '@/lib/blog-media-protection';
 import { normalizeGallerySettings } from '@/lib/gallery-settings';
@@ -23,20 +24,21 @@ function watermarkSvg(text: string, imageWidth: number, opacity: number, size: C
     return { input, width, height };
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
+    const galleryOnly = new URL(request.url).searchParams.get('scope') === 'gallery';
     const [asset, posts, projects, siteSettings, watermarkPage] = await Promise.all([
-        prisma.mediaAsset.findUnique({ where: { id }, select: { key: true, url: true, mimeType: true } }),
-        prisma.post.findMany({
+        prisma.mediaAsset.findUnique({ where: { id }, select: { key: true, url: true, mimeType: true, updatedAt: true } }),
+        galleryOnly ? Promise.resolve([]) : prisma.post.findMany({
             where: { status: 'PUBLISHED', OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
             select: { content: true },
         }),
-        prisma.project.findMany({
+        galleryOnly ? Promise.resolve([]) : prisma.project.findMany({
             where: { status: { not: 'ARCHIVED' } },
             select: { content: true },
         }),
-        prisma.siteSettings.findUnique({ where: { id: 'default' }, select: { galleryContent: true } }),
-        prisma.page.findUnique({ where: { slug: CONTENT_WATERMARK_CONFIG_SLUG }, select: { content: true } }),
+        prisma.siteSettings.findUnique({ where: { id: 'default' }, select: { galleryContent: true, updatedAt: true } }),
+        prisma.page.findUnique({ where: { slug: CONTENT_WATERMARK_CONFIG_SLUG }, select: { content: true, updatedAt: true } }),
     ]);
 
     const gallery = normalizeGallerySettings(siteSettings?.galleryContent);
@@ -55,6 +57,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     if (!asset || !asset.mimeType.startsWith('image/') || !publicContentReferencesAsset) {
         return new NextResponse('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
     }
+
+    const etag = `"${createHash('sha256').update(`${id}:${asset.updatedAt.toISOString()}:${siteSettings?.updatedAt.toISOString() || ''}:${watermarkPage?.updatedAt.toISOString() || ''}`).digest('hex').slice(0, 24)}"`;
+    if (request.headers.get('if-none-match') === etag) return new NextResponse(null, { status: 304, headers: { ETag: etag, 'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800' } });
 
     try {
         const settings = normalizeContentWatermarkSettings(watermarkPage?.content);
@@ -80,7 +85,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
             headers: {
                 'Content-Type': 'image/webp',
                 'Content-Disposition': 'inline',
-                'Cache-Control': 'private, no-store, max-age=0',
+                'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+                'ETag': etag,
                 'X-Content-Type-Options': 'nosniff',
                 'X-Robots-Tag': 'noindex, nofollow, noarchive, noimageindex',
                 'Referrer-Policy': 'same-origin',

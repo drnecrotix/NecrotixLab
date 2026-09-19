@@ -345,6 +345,22 @@ model TrafficCleanupState {
   updatedAt DateTime @updatedAt
 }
 
+model SiteHealthLog {
+  id          String   @id @default(cuid())
+  source      String
+  checkId     String
+  severity    String
+  title       String
+  message     String   @db.Text
+  fingerprint String
+  details     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source, severity, createdAt])
+  @@index([fingerprint, createdAt])
+}
+
 model SiteSettings {
   id                  String   @id @default("default")
   siteName            String   @default("Dr Necrotix")
