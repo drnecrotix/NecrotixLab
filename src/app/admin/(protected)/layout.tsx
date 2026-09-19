@@ -43,6 +43,8 @@ const navGroups = [
         ['Redirects', '/admin/redirects'],
     ]],
     ['Tools', [
+        ['Site Health', '/admin/site-health'],
+        ['Security', '/admin/security'],
         ['AI Assistant', '/admin/assistant'],
         ['Experiments', '/admin/experiments'],
         ['API Integrations', '/admin/api-integrations'],
@@ -75,7 +77,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         groupLabel,
         items
             .filter(([label]) => label !== 'Comments' || canManageSensitiveTools)
-            .filter(([label]) => !['API Integrations', 'Experiments', 'Service Requests', 'Service Pricing', 'Service Monitoring'].includes(label) || canManageSensitiveTools)
+            .filter(([label]) => !['Site Health', 'Security', 'API Integrations', 'Experiments', 'Service Requests', 'Service Pricing', 'Service Monitoring'].includes(label) || canManageSensitiveTools)
             .map(([label, href]) => [href === '/admin/experience' ? journeyPageName : label, href] as const),
     ] as const).filter(([, items]) => items.length > 0);
 

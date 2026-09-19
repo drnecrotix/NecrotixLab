@@ -5,11 +5,11 @@ import type { GallerySettings } from '@/lib/gallery-settings';
 
 type ProtectedContent = { html?: string; text?: string; featuredImage?: string };
 
-function protectedUrl(id: string) {
-    return `/api/protected-media/${encodeURIComponent(id)}`;
+function protectedUrl(id: string, scope?: 'gallery') {
+    return `/api/protected-media/${encodeURIComponent(id)}${scope ? `?scope=${scope}` : ''}`;
 }
 
-export async function protectManagedMediaUrls(urls: Iterable<string>) {
+export async function protectManagedMediaUrls(urls: Iterable<string>, scope?: 'gallery') {
     const unique = [...new Set([...urls].filter(Boolean))];
     if (!unique.length) return new Map<string, string>();
     const assets = await prisma.mediaAsset.findMany({
@@ -20,7 +20,7 @@ export async function protectManagedMediaUrls(urls: Iterable<string>) {
         },
         select: { id: true, url: true },
     });
-    return new Map(assets.map((asset) => [asset.url, protectedUrl(asset.id)]));
+    return new Map(assets.map((asset) => [asset.url, protectedUrl(asset.id, scope)]));
 }
 
 export async function protectBlogMedia(content: ProtectedContent): Promise<ProtectedContent> {
@@ -49,7 +49,7 @@ export async function protectGalleryMedia(content: GallerySettings): Promise<Gal
     const urls = content.items.flatMap((item) => item.type === 'image'
         ? [item.mediaUrl, item.thumbnailUrl, item.socialImageUrl, ...item.additionalImages]
         : [item.thumbnailUrl, item.socialImageUrl]);
-    const replacements = await protectManagedMediaUrls(urls);
+    const replacements = await protectManagedMediaUrls(urls, 'gallery');
     const replace = (url: string) => replacements.get(url) ?? url;
     return {
         ...content,
