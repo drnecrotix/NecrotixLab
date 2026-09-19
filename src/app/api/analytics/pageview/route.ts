@@ -4,22 +4,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import {
     COUNTRY_LOOKUP_RETRY_HOURS,
-    TRAFFIC_IP_RETENTION_HOURS,
-    TRAFFIC_METRIC_RETENTION_DAYS,
-    TRAFFIC_PAGE_EVENT_RETENTION_DAYS,
     TRAFFIC_SESSION_COOKIE,
-    TRAFFIC_SESSION_RETENTION_HOURS,
     TRAFFIC_VISIT_TIMEOUT_MINUTES,
     cityFromHeaders,
     clientIpFromHeaders,
     countryCodeFromHeaders,
     deviceFromUserAgent,
     encodePageEventDeviceContext,
-    ipLocationFromIp,
+    ipContextFromIp,
     isLikelyBot,
     operatingSystemFromUserAgent,
     startOfUtcHour,
 } from '@/lib/traffic-analytics';
+import { cleanupTrafficAnalyticsIfDue } from '@/lib/traffic-retention';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,17 +108,30 @@ export async function POST(request: NextRequest) {
         : (ipChanged ? 'XX' : (existing?.countryCode || 'XX'));
     let currentCity = headerCity || (ipChanged ? null : existing?.currentCity) || null;
     let countryLookupAt = ipChanged ? null : (existing?.countryLookupAt || null);
+    let ipAsn = ipChanged ? null : (existing?.ipAsn || null);
+    let ipIsp = ipChanged ? null : (existing?.ipIsp || null);
+    let ipOrganization = ipChanged ? null : (existing?.ipOrganization || null);
+    let ipDomain = ipChanged ? null : (existing?.ipDomain || null);
+    if (!ipAddress) {
+        ipAsn = null;
+        ipIsp = null;
+        ipOrganization = null;
+        ipDomain = null;
+    }
 
     const retryBefore = new Date(now.getTime() - COUNTRY_LOOKUP_RETRY_HOURS * 60 * 60 * 1000);
-    const needsFallbackLocation = Boolean(ipAddress)
-        && !headerCity
-        && (countryCode === 'XX' || !currentCity)
+    const needsIpContext = Boolean(ipAddress)
+        && (ipChanged || !ipAsn || !ipIsp || (!headerCity && (countryCode === 'XX' || !currentCity)))
         && (!countryLookupAt || countryLookupAt < retryBefore);
 
-    if (needsFallbackLocation && ipAddress) {
-        const location = await ipLocationFromIp(ipAddress);
-        if (headerCountry === 'XX' && location.countryCode !== 'XX') countryCode = location.countryCode;
-        if (location.city) currentCity = location.city;
+    if (needsIpContext && ipAddress) {
+        const context = await ipContextFromIp(ipAddress);
+        if (headerCountry === 'XX' && context.countryCode !== 'XX') countryCode = context.countryCode;
+        if (!headerCity && context.city) currentCity = context.city;
+        ipAsn = context.asn;
+        ipIsp = context.isp;
+        ipOrganization = context.organization;
+        ipDomain = context.domain;
         countryLookupAt = now;
     }
 
@@ -152,6 +162,10 @@ export async function POST(request: NextRequest) {
             currentPath,
             currentCity,
             ipAddress,
+            ipAsn,
+            ipIsp,
+            ipOrganization,
+            ipDomain,
             countryLookupAt,
             startedAt: now,
             lastSeenAt: now,
@@ -163,6 +177,10 @@ export async function POST(request: NextRequest) {
             currentPath,
             currentCity,
             ipAddress,
+            ipAsn,
+            ipIsp,
+            ipOrganization,
+            ipDomain,
             countryLookupAt,
         },
     });
@@ -202,6 +220,10 @@ export async function POST(request: NextRequest) {
                         countryCode,
                         city: currentCity,
                         ipAddress,
+                        ipAsn,
+                        ipIsp,
+                        ipOrganization,
+                        ipDomain,
                         deviceType: pageEventDeviceType,
                         occurredAt: now,
                     },
@@ -212,21 +234,7 @@ export async function POST(request: NextRequest) {
         }
     }
 
-    if (Math.random() < 0.025) {
-        const staleSession = new Date(now.getTime() - TRAFFIC_SESSION_RETENTION_HOURS * 60 * 60 * 1000);
-        const staleMetric = new Date(now.getTime() - TRAFFIC_METRIC_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-        const stalePageEvent = new Date(now.getTime() - TRAFFIC_PAGE_EVENT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-        const stalePageIp = new Date(now.getTime() - TRAFFIC_IP_RETENTION_HOURS * 60 * 60 * 1000);
-        void Promise.all([
-            prisma.trafficSession.deleteMany({ where: { lastSeenAt: { lt: staleSession } } }),
-            prisma.trafficMetric.deleteMany({ where: { bucketStart: { lt: staleMetric } } }),
-            prisma.trafficPageEvent.deleteMany({ where: { occurredAt: { lt: stalePageEvent } } }),
-            prisma.trafficPageEvent.updateMany({
-                where: { occurredAt: { lt: stalePageIp }, ipAddress: { not: null } },
-                data: { ipAddress: null },
-            }),
-        ]).catch(() => undefined);
-    }
+    await cleanupTrafficAnalyticsIfDue(now).catch(() => false);
 
     const response = new NextResponse(null, { status: 204 });
     if (!request.cookies.get(TRAFFIC_SESSION_COOKIE)?.value) {

@@ -5,14 +5,25 @@ export type TrafficOperatingSystem = 'Windows' | 'macOS' | 'iOS/iPadOS' | 'Andro
 export const TRAFFIC_SESSION_COOKIE = 'necrotix_traffic_session';
 export const TRAFFIC_SESSION_RETENTION_HOURS = 24;
 export const TRAFFIC_IP_RETENTION_HOURS = 24;
-export const TRAFFIC_METRIC_RETENTION_DAYS = 31;
-export const TRAFFIC_PAGE_EVENT_RETENTION_DAYS = 31;
+export const TRAFFIC_METRIC_RETENTION_DAYS = 30;
+export const TRAFFIC_PAGE_EVENT_RETENTION_DAYS = 30;
+export const TRAFFIC_CLEANUP_INTERVAL_HOURS = 6;
 export const TRAFFIC_PAGE_EVENT_ADMIN_LIMIT = 150;
 export const TRAFFIC_VISIT_TIMEOUT_MINUTES = 30;
 export const LIVE_VISITOR_WINDOW_MINUTES = 5;
 export const COUNTRY_LOOKUP_RETRY_HOURS = 6;
 
 const PAGE_EVENT_DEVICE_SEPARATOR = '::';
+
+export function trafficRetentionCutoffs(now: Date) {
+    return {
+        session: new Date(now.getTime() - TRAFFIC_SESSION_RETENTION_HOURS * 60 * 60 * 1000),
+        metric: new Date(now.getTime() - TRAFFIC_METRIC_RETENTION_DAYS * 24 * 60 * 60 * 1000),
+        pageEvent: new Date(now.getTime() - TRAFFIC_PAGE_EVENT_RETENTION_DAYS * 24 * 60 * 60 * 1000),
+        ipContext: new Date(now.getTime() - TRAFFIC_IP_RETENTION_HOURS * 60 * 60 * 1000),
+        cleanupClaim: new Date(now.getTime() - TRAFFIC_CLEANUP_INTERVAL_HOURS * 60 * 60 * 1000),
+    };
+}
 
 export function parseTrafficRange(value: string | null | undefined): TrafficRange {
     return value === '7d' || value === '30d' ? value : '24h';
@@ -135,12 +146,37 @@ export function clientIpFromHeaders(headers: Headers) {
     return null;
 }
 
-type IpLocation = {
+export type IpContext = {
     countryCode: string;
     city: string | null;
+    asn: string | null;
+    isp: string | null;
+    organization: string | null;
+    domain: string | null;
 };
 
-export async function ipLocationFromIp(ipAddress: string): Promise<IpLocation> {
+function sanitizeNetworkLabel(value: string | null | undefined, maxLength = 120) {
+    if (!value?.trim()) return null;
+    const sanitized = value.replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, maxLength);
+    return sanitized || null;
+}
+
+export function normalizeAsn(value: string | number | null | undefined) {
+    if (value === null || value === undefined) return null;
+    const digits = String(value).trim().replace(/^AS/i, '');
+    return /^\d{1,10}$/.test(digits) ? `AS${digits}` : null;
+}
+
+const EMPTY_IP_CONTEXT: IpContext = {
+    countryCode: 'XX',
+    city: null,
+    asn: null,
+    isp: null,
+    organization: null,
+    domain: null,
+};
+
+export async function ipContextFromIp(ipAddress: string): Promise<IpContext> {
     try {
         const response = await fetch(`https://ipwho.is/${encodeURIComponent(ipAddress)}`, {
             cache: 'no-store',
@@ -150,27 +186,41 @@ export async function ipLocationFromIp(ipAddress: string): Promise<IpLocation> {
             },
             signal: AbortSignal.timeout(1800),
         });
-        if (!response.ok) return { countryCode: 'XX', city: null };
+        if (!response.ok) return EMPTY_IP_CONTEXT;
 
         const payload = await response.json() as {
             success?: boolean;
             country_code?: string;
             city?: string;
+            connection?: {
+                asn?: string | number;
+                isp?: string;
+                org?: string;
+                domain?: string;
+            };
         };
-        if (payload.success === false) return { countryCode: 'XX', city: null };
+        if (payload.success === false) return EMPTY_IP_CONTEXT;
 
         const country = payload.country_code?.trim().toUpperCase();
         return {
             countryCode: country && /^[A-Z]{2}$/.test(country) ? country : 'XX',
             city: decodeLocationHeader(payload.city),
+            asn: normalizeAsn(payload.connection?.asn),
+            isp: sanitizeNetworkLabel(payload.connection?.isp),
+            organization: sanitizeNetworkLabel(payload.connection?.org),
+            domain: sanitizeNetworkLabel(payload.connection?.domain, 100),
         };
     } catch {
-        return { countryCode: 'XX', city: null };
+        return EMPTY_IP_CONTEXT;
     }
 }
 
+export async function ipLocationFromIp(ipAddress: string) {
+    return ipContextFromIp(ipAddress);
+}
+
 export async function countryCodeFromIp(ipAddress: string) {
-    const location = await ipLocationFromIp(ipAddress);
+    const location = await ipContextFromIp(ipAddress);
     return location.countryCode;
 }
 

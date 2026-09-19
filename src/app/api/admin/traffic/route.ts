@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import {
     LIVE_VISITOR_WINDOW_MINUTES,
     TRAFFIC_IP_RETENTION_HOURS,
+    TRAFFIC_CLEANUP_INTERVAL_HOURS,
     TRAFFIC_METRIC_RETENTION_DAYS,
     TRAFFIC_PAGE_EVENT_ADMIN_LIMIT,
     TRAFFIC_PAGE_EVENT_RETENTION_DAYS,
@@ -92,6 +93,10 @@ export async function GET(request: NextRequest) {
                 countryCode: true,
                 city: true,
                 ipAddress: true,
+                ipAsn: true,
+                ipIsp: true,
+                ipOrganization: true,
+                ipDomain: true,
                 deviceType: true,
                 occurredAt: true,
             },
@@ -226,6 +231,15 @@ export async function GET(request: NextRequest) {
             device,
             operatingSystem,
             ipAddress: item.occurredAt >= ipCutoff ? item.ipAddress : null,
+            ipVersion: item.occurredAt >= ipCutoff && item.ipAddress
+                ? (item.ipAddress.includes(':') ? 'IPv6' : 'IPv4')
+                : null,
+            ipNetwork: item.occurredAt >= ipCutoff ? {
+                asn: item.ipAsn,
+                isp: item.ipIsp,
+                organization: item.ipOrganization,
+                domain: item.ipDomain,
+            } : null,
             ipExpired: item.occurredAt < ipCutoff,
             isLiveCurrent: liveCurrentPathBySession.get(item.sessionHash) === item.path,
             occurredAt: item.occurredAt.toISOString(),
@@ -262,6 +276,7 @@ export async function GET(request: NextRequest) {
             pageActivityDays: TRAFFIC_PAGE_EVENT_RETENTION_DAYS,
             sessionHours: TRAFFIC_SESSION_RETENTION_HOURS,
             ipHours: TRAFFIC_IP_RETENTION_HOURS,
+            cleanupIntervalHours: TRAFFIC_CLEANUP_INTERVAL_HOURS,
             visitTimeoutMinutes: TRAFFIC_VISIT_TIMEOUT_MINUTES,
         },
         updatedAt: now.toISOString(),
