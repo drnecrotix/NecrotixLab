@@ -25,6 +25,20 @@ export function trafficRetentionCutoffs(now: Date) {
     };
 }
 
+export function latestLiveEventIds(
+    events: Array<{ id: string; sessionHash: string; path: string }>,
+    currentPathBySession: Map<string, string>,
+) {
+    const result = new Map<string, string>();
+    for (const event of events) {
+        if (result.has(event.sessionHash)) continue;
+        if (currentPathBySession.get(event.sessionHash) === event.path) {
+            result.set(event.sessionHash, event.id);
+        }
+    }
+    return result;
+}
+
 export function parseTrafficRange(value: string | null | undefined): TrafficRange {
     return value === '7d' || value === '30d' ? value : '24h';
 }

@@ -12,6 +12,7 @@ import {
     TRAFFIC_VISIT_TIMEOUT_MINUTES,
     countryName,
     decodePageEventDeviceContext,
+    latestLiveEventIds,
     parseTrafficRange,
     startOfUtcDay,
     startOfUtcHour,
@@ -220,6 +221,8 @@ export async function GET(request: NextRequest) {
             };
         });
 
+    const liveCurrentEventIdBySession = latestLiveEventIds(recentActivity, liveCurrentPathBySession);
+
     const activity = recentActivity.map((item) => {
         const { device, operatingSystem } = decodePageEventDeviceContext(item.deviceType);
         return {
@@ -241,7 +244,7 @@ export async function GET(request: NextRequest) {
                 domain: item.ipDomain,
             } : null,
             ipExpired: item.occurredAt < ipCutoff,
-            isLiveCurrent: liveCurrentPathBySession.get(item.sessionHash) === item.path,
+            isLiveCurrent: liveCurrentEventIdBySession.get(item.sessionHash) === item.id,
             occurredAt: item.occurredAt.toISOString(),
         };
     });
