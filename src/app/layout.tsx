@@ -11,6 +11,7 @@ import { defaultPwaSettings, resolvedPwaIconUrls } from '@/lib/pwa-settings';
 import { appleSplashStartupImages } from '@/lib/pwa-icons';
 import { getPwaSettings } from '@/lib/pwa-settings.server';
 import { NativePwaLayer } from '@/components/pwa/NativePwaLayer';
+import { RuntimeErrorReporter } from '@/components/analytics/RuntimeErrorReporter';
 
 import '@/styles/globals.css';
 import '@/styles/mobile-polish.css';
@@ -190,6 +191,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                                     <ConditionalNavigation>{children}</ConditionalNavigation>
                                 </ArcPreloaderWrapper>
                                 <TrafficAnalyticsTracker />
+                                <RuntimeErrorReporter />
                                 <ChatBot headless />
                                 <NativePwaLayer settings={pwa} />
                             </ThemeAwareClickSpark>

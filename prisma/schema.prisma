@@ -353,6 +353,8 @@ model SiteHealthLog {
   title       String
   message     String   @db.Text
   fingerprint String
+  occurrences Int      @default(1)
+  lastSeenAt  DateTime @default(now())
   details     Json?
   createdAt   DateTime @default(now())
 

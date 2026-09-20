@@ -1,3 +1,13 @@
+/* Shared workspace styling: calm surfaces, readable controls and clear focus. */
+.admin-shell { --background: 220 20% 98%; --foreground: 222 25% 14%; --muted-foreground: 220 10% 40%; --border: 220 15% 87%; }
+.dark .admin-shell { --background: 225 17% 8%; --foreground: 220 14% 93%; --muted-foreground: 220 10% 65%; --border: 225 12% 22%; }
+.admin-shell :is(button, a, input, select, textarea, summary):focus-visible { outline: 2px solid #38bdf8; outline-offset: 3px; }
+.admin-shell h1, .admin-shell h2, .admin-shell h3 { letter-spacing: -0.025em; }
+.admin-shell .admin-quick-link { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem .65rem; border: 1px solid hsl(var(--foreground) / .12); border-radius: .5rem; font-size: .75rem; }
+.admin-shell .admin-quick-link:hover { background: hsl(var(--foreground) / .06); }
+.admin-shell[data-density="compact"] #admin-content { padding: 1.25rem; }
+.admin-shell[data-density="compact"] :is(td, th) { padding-top: .45rem; padding-bottom: .45rem; }
+.admin-shell[data-density="compact"] nav a { min-height: 2rem; padding-top: .35rem; padding-bottom: .35rem; }
 /* Compatibility layer for legacy CMS views that were authored as dark-only utilities. */
 html:not(.dark) .admin-shell .text-white\/30,
 html:not(.dark) .admin-shell .text-white\/35,

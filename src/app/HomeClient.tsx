@@ -7,12 +7,6 @@ import { HeroVisual } from '@/components/sections/HeroVisual';
 import { HomeBlogSection } from '@/components/home/HomeBlogSection';
 import { HomeProjectsSection } from '@/components/home/HomeProjectsSection';
 import { usePreloadState } from '@/components/ui/arc-preloader-hero';
-import { useExperimentTelemetry } from '@/lib/experiments-client';
-import {
-    EXPERIMENT_VARIANT_COOKIE,
-    serializeExperimentVariants,
-    type ExperimentVariantMap,
-} from '@/lib/experiments';
 import type { HomepageContent } from '@/lib/homepage-content';
 import type { PublicIdentity } from '@/lib/public-identity';
 import type { PublicPost } from '@/lib/cms-posts';
@@ -40,22 +34,18 @@ type Props = {
     identity: PublicIdentity;
     posts: PublicPost[];
     projects: Project[];
-    experimentVariants: ExperimentVariantMap;
 };
 
-export default function HomeClient({ content, identity, posts, projects, experimentVariants }: Props) {
+export default function HomeClient({ content, identity, posts, projects }: Props) {
     const { phase } = usePreloadState();
-    const trackExperiment = useExperimentTelemetry(experimentVariants);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoadingExit, setIsInitialLoadingExit] = useState(false);
     const [skipAnimation, setSkipAnimation] = useState(false);
-    const [isFirstVisit, setIsFirstVisit] = useState<boolean | null>(null);
     const autoScrollInProgress = useRef(false);
 
     useEffect(() => {
         const hasLoaded = readPortfolioLoaded();
         const frame = window.requestAnimationFrame(() => {
-            setIsFirstVisit(!hasLoaded);
             if (hasLoaded) {
                 setSkipAnimation(true);
                 setIsLoading(false);
@@ -64,26 +54,13 @@ export default function HomeClient({ content, identity, posts, projects, experim
         return () => window.cancelAnimationFrame(frame);
     }, []);
 
-    useEffect(() => {
-        const serialized = serializeExperimentVariants(experimentVariants);
-        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-        document.cookie = `${EXPERIMENT_VARIANT_COOKIE}=${serialized}; Path=/; SameSite=Lax${secure}`;
-    }, [experimentVariants]);
 
     const isReadyToAnimate = isLoading ? isInitialLoadingExit : phase === 'reveal' || phase === 'done';
     const showBlog = content.showBlogPosts && posts.length > 0;
     const showProjects = content.showProjects && projects.length > 0;
-    const orderExperimentApplies = showBlog && showProjects;
-    const projectsFirst = orderExperimentApplies && experimentVariants['home-section-order'] === 'B';
-    const loaderDuration = experimentVariants['niko-loader-duration'] === 'B' ? 2000 : 2500;
-
-    useEffect(() => {
-        if (orderExperimentApplies) trackExperiment('home-section-order', 'exposure');
-    }, [orderExperimentApplies, trackExperiment]);
-
-    useEffect(() => {
-        if (isFirstVisit === true) trackExperiment('niko-loader-duration', 'exposure');
-    }, [isFirstVisit, trackExperiment]);
+    const bothSectionsVisible = showBlog && showProjects;
+    const projectsFirst = false;
+    const loaderDuration = 2000;
 
     const handleLoadingComplete = () => {
         setIsLoading(false);
@@ -91,41 +68,9 @@ export default function HomeClient({ content, identity, posts, projects, experim
         writePortfolioLoaded();
     };
 
-    useEffect(() => {
-        if (isLoading || isFirstVisit !== true) return;
-
-        const markEngaged = () => trackExperiment('niko-loader-duration', 'engaged');
-        const timer = window.setTimeout(markEngaged, 10000);
-        window.addEventListener('pointerdown', markEngaged, { once: true, passive: true });
-        window.addEventListener('wheel', markEngaged, { once: true, passive: true });
-        window.addEventListener('keydown', markEngaged, { once: true });
-
-        return () => {
-            window.clearTimeout(timer);
-            window.removeEventListener('pointerdown', markEngaged);
-            window.removeEventListener('wheel', markEngaged);
-            window.removeEventListener('keydown', markEngaged);
-        };
-    }, [isFirstVisit, isLoading, trackExperiment]);
 
     useEffect(() => {
-        if (isLoading || !showProjects) return;
-        const section = document.getElementById('home-projects');
-        if (!section) return;
-
-        const observer = new IntersectionObserver((entries) => {
-            if (!entries.some((entry) => entry.isIntersecting)) return;
-            if (isFirstVisit === true) trackExperiment('niko-loader-duration', 'projects_seen');
-            if (orderExperimentApplies) trackExperiment('home-section-order', 'projects_seen');
-            observer.disconnect();
-        }, { threshold: 0.25 });
-
-        observer.observe(section);
-        return () => observer.disconnect();
-    }, [isFirstVisit, isLoading, orderExperimentApplies, showProjects, trackExperiment]);
-
-    useEffect(() => {
-        if (isLoading || !orderExperimentApplies) return;
+        if (isLoading || !bothSectionsVisible) return;
 
         const desktopPointer = window.matchMedia('(min-width: 1024px) and (pointer: fine)');
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -185,20 +130,10 @@ export default function HomeClient({ content, identity, posts, projects, experim
             autoScrollInProgress.current = false;
             window.removeEventListener('wheel', handleWheel);
         };
-    }, [isLoading, orderExperimentApplies, projectsFirst]);
+    }, [isLoading, bothSectionsVisible, projectsFirst]);
 
-    const handleProjectOpen = () => {
-        if (isFirstVisit === true) trackExperiment('niko-loader-duration', 'project_open');
-        if (orderExperimentApplies) trackExperiment('home-section-order', 'project_open');
-    };
-
-    const handleBlogOpen = () => {
-        if (isFirstVisit === true) trackExperiment('niko-loader-duration', 'blog_open');
-        if (orderExperimentApplies) trackExperiment('home-section-order', 'blog_open');
-    };
-
-    const journalSection = showBlog ? <HomeBlogSection posts={posts} onPostOpen={handleBlogOpen} /> : null;
-    const projectsSection = showProjects ? <HomeProjectsSection projects={projects} onProjectOpen={handleProjectOpen} /> : null;
+    const journalSection = showBlog ? <HomeBlogSection posts={posts} /> : null;
+    const projectsSection = showProjects ? <HomeProjectsSection projects={projects} /> : null;
 
     return (
         <>

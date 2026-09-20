@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { auth, signOut } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { AdminDesktopNavigation } from '@/components/admin/AdminDesktopNavigation';
+import { AdminWorkspaceHeader } from '@/components/admin/AdminWorkspaceHeader';
 import { AdminMobileNavigation, type AdminNavGroup, type AdminNavItem } from '@/components/admin/AdminMobileNavigation';
 
 const dashboardItem = ['Dashboard', '/admin'] as const satisfies AdminNavItem;
@@ -46,7 +47,7 @@ const navGroups = [
         ['Site Health', '/admin/site-health'],
         ['Security', '/admin/security'],
         ['AI Assistant', '/admin/assistant'],
-        ['Experiments', '/admin/experiments'],
+        ['Audience & traffic', '/admin/experiments'],
         ['API Integrations', '/admin/api-integrations'],
     ]],
     ['Administration', [
@@ -70,14 +71,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         prisma.siteSettings.findUnique({ where: { id: 'default' }, select: { siteName: true } }).catch(() => null),
         prisma.page.findUnique({ where: { slug: '__experience-config' }, select: { title: true } }).catch(() => null),
     ]);
-    const siteName = settings?.siteName ?? 'Portfolio';
+    const siteName = settings?.siteName ?? 'NecrotixLab';
     const journeyPageName = journeyPage?.title && journeyPage.title !== LEGACY_JOURNEY_TITLE ? journeyPage.title : 'Journey';
     const canManageSensitiveTools = session.user.role === 'OWNER' || session.user.role === 'ADMIN';
     const visibleNavGroups: AdminNavGroup[] = navGroups.map(([groupLabel, items]) => [
         groupLabel,
         items
             .filter(([label]) => label !== 'Comments' || canManageSensitiveTools)
-            .filter(([label]) => !['Site Health', 'Security', 'API Integrations', 'Experiments', 'Service Requests', 'Service Pricing', 'Service Monitoring'].includes(label) || canManageSensitiveTools)
+            .filter(([label]) => !['Site Health', 'Security', 'API Integrations', 'Audience & traffic', 'Service Requests', 'Service Pricing', 'Service Monitoring'].includes(label) || canManageSensitiveTools)
             .map(([label, href]) => [href === '/admin/experience' ? journeyPageName : label, href] as const),
     ] as const).filter(([, items]) => items.length > 0);
 
@@ -88,6 +89,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <AdminDesktopNavigation siteName={siteName} role={session.user.role} dashboardItem={dashboardItem} navGroups={visibleNavGroups} signOutAction={signOutAction} />
 
             <main id="admin-content" className="min-w-0 overflow-x-hidden p-3 sm:p-5 md:p-7 lg:p-9 xl:p-10 [&_button]:max-w-full [&_input]:max-w-full [&_select]:max-w-full [&_textarea]:max-w-full">
+                <AdminWorkspaceHeader groups={visibleNavGroups} />
                 {children}
             </main>
         </div>
