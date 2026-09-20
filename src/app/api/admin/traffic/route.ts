@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     const liveCutoff = new Date(now.getTime() - LIVE_VISITOR_WINDOW_MINUTES * 60 * 1000);
     const ipCutoff = new Date(now.getTime() - TRAFFIC_IP_RETENTION_HOURS * 60 * 60 * 1000);
 
-    const [rows, liveSessions, recentActivity, recentActivityTotal, cityRows] = await Promise.all([
+    const [rows, liveSessions, recentActivity, recentActivityTotal, cityRows, visitorGroups] = await Promise.all([
         prisma.trafficMetric.findMany({
             where: { bucketStart: { gte: cutoff } },
             orderBy: { bucketStart: 'asc' },
@@ -112,7 +112,19 @@ export async function GET(request: NextRequest) {
             orderBy: { _count: { city: 'desc' } },
             take: 100,
         }),
+        prisma.trafficPageEvent.groupBy({
+            by: ['sessionHash'],
+            where: { occurredAt: { gte: cutoff } },
+            _max: { occurredAt: true },
+            _count: { _all: true },
+            orderBy: { _max: { occurredAt: 'desc' } },
+            take: TRAFFIC_PAGE_EVENT_ADMIN_LIMIT,
+        }),
     ]);
+    const visitorEvents = visitorGroups.length ? await prisma.trafficPageEvent.findMany({
+        where: { OR: visitorGroups.map((group) => ({ sessionHash: group.sessionHash, occurredAt: group._max.occurredAt! })) },
+        orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+    }) : [];
 
     const chart = buildChartBuckets(range, now);
     const chartByKey = new Map(chart.map((bucket) => [bucket.key, bucket]));
@@ -223,10 +235,11 @@ export async function GET(request: NextRequest) {
 
     const liveCurrentEventIdBySession = latestLiveEventIds(recentActivity, liveCurrentPathBySession);
 
-    const activity = recentActivity.map((item) => {
+    const serializeActivity = (item: typeof recentActivity[number]) => {
         const { device, operatingSystem } = decodePageEventDeviceContext(item.deviceType);
         return {
             id: item.id,
+            visitorId: item.sessionHash.slice(0, 12),
             path: item.path,
             countryCode: item.countryCode,
             countryName: countryName(item.countryCode),
@@ -247,7 +260,19 @@ export async function GET(request: NextRequest) {
             isLiveCurrent: liveCurrentEventIdBySession.get(item.sessionHash) === item.id,
             occurredAt: item.occurredAt.toISOString(),
         };
-    });
+    };
+    const activity = recentActivity.map(serializeActivity);
+    const seenVisitors = new Set<string>();
+    const visitorCounts = new Map(visitorGroups.map((group) => [group.sessionHash, group._count._all]));
+    const visitors = visitorEvents.filter((item) => {
+        if (seenVisitors.has(item.sessionHash)) return false;
+        seenVisitors.add(item.sessionHash);
+        return true;
+    }).map((item) => ({
+        ...serializeActivity(item),
+        isLiveCurrent: liveCurrentPathBySession.get(item.sessionHash) === item.path,
+        pageEvents: visitorCounts.get(item.sessionHash) || 1,
+    }));
 
     return NextResponse.json({
         range,
@@ -269,6 +294,7 @@ export async function GET(request: NextRequest) {
         countries,
         cities,
         devices,
+        visitors: { items: visitors, limit: TRAFFIC_PAGE_EVENT_ADMIN_LIMIT },
         activity: {
             items: activity,
             total: recentActivityTotal,

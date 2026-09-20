@@ -30,8 +30,10 @@ export function latestLiveEventIds(
     currentPathBySession: Map<string, string>,
 ) {
     const result = new Map<string, string>();
+    const seen = new Set<string>();
     for (const event of events) {
-        if (result.has(event.sessionHash)) continue;
+        if (seen.has(event.sessionHash)) continue;
+        seen.add(event.sessionHash);
         if (currentPathBySession.get(event.sessionHash) === event.path) {
             result.set(event.sessionHash, event.id);
         }

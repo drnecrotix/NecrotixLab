@@ -10,8 +10,6 @@ export const metadata: Metadata = {
 
 const rows = [
     ['locale', 'Cookie', 'Remembers a language selected by the visitor.', 'Up to 1 year', 'Preference / requested functionality'],
-    ['necrotix_experiment_variants', 'Session cookie', 'Keeps the randomly assigned homepage A/B variants stable for the current browser session so repeated refreshes do not move the same session between variants.', 'Browser session', 'First-party measurement'],
-    ['necrotix_experiment_session', 'HTTP-only session cookie', 'Random first-party identifier used only to deduplicate A/B exposure and outcome events for the current browser session. The server stores only a one-way hash of this value in short-retention experiment rows.', 'Browser session; deduplicated experiment rows up to about 31 days', 'First-party measurement'],
     ['necrotix_traffic_session', 'HTTP-only session cookie', 'Random first-party session identifier used to estimate visits, live traffic and retained public-page activity. The server stores only a one-way hash of the cookie value with analytics records.', 'Browser session; live session record about 24 hours; page activity up to about 30 days', 'First-party measurement'],
     ['necrotix_blog_like_id', 'Cookie', 'Pseudonymous identifier created when Blog Like functionality is used, so the site can remember and toggle that interaction.', 'Up to 2 years', 'Functional interaction'],
     ['necrotix_gallery_like_id', 'Cookie', 'Pseudonymous identifier created when Gallery Like functionality is used.', 'Up to 2 years', 'Functional interaction'],
@@ -64,7 +62,7 @@ export default function CookiesPage() {
             <section>
                 <h2>3. First-party functional and measurement storage</h2>
                 <p className="mt-4">Storage used for requested functionality includes language, theme, authentication, private-site access, Likes and session-level view markers. These entries are separate from advertising and cross-site behavioural tracking.</p>
-                <p className="mt-3">NecrotixLab also runs limited first-party A/B tests. The variant cookie keeps randomly assigned experiment variants stable for the current browser session. A separate random HTTP-only experiment-session cookie is hashed by the server and used only to ensure the same exposure or outcome is not counted repeatedly for the same experiment and browser session. Deduplicated rows contain the experiment ID, hashed session reference, variant, event and timestamp and are intended to expire after about 31 days. They do not store a name, email address, raw IP address, city or precise location. Aggregate experiment counters do not contain the session hash. When the browser sends the Do Not Track signal, experiment telemetry is not submitted.</p>
+                <p className="mt-3">Homepage A/B testing has been retired. No new experiment cookies or events are created. Cookies from an earlier version expire with the browser session.</p>
                 <p className="mt-3">Short-retention traffic analytics uses a separate random HTTP-only session cookie. Its random value is hashed server-side before it is associated with analytics records. A visit is counted again after about 30 minutes of inactivity. Real public-page navigation can be retained as a page-activity row containing the public pathname, country code, coarse city where available, broad device class and the hashed traffic-session reference. Query strings and URL fragments are removed before storage.</p>
                 <p className="mt-3">Country and city headers supplied by hosting/CDN infrastructure are preferred. When a public client IP address is available, the server can send it to <strong>ipwho.is</strong> for short-lived country, city and network-provider context. Raw IP, ASN, ISP, organisation and network-domain details are shown only in recent administration analytics and are cleared from page-activity records after about 24 hours. Latitude, longitude and other precise coordinates returned by a provider are not stored. The page path, country, city and broad device class can remain for up to about 30 days. Retention cleanup is checked every six hours and runs on the next page-view request.</p>
                 <p className="mt-3">When a browser sends the Do Not Track signal, the public page-view tracker does not submit traffic analytics events.</p>
@@ -79,7 +77,7 @@ export default function CookiesPage() {
 
             <section>
                 <h2>5. Managing storage</h2>
-                <p className="mt-4">You can delete cookies, local storage and session storage through your browser settings. Deleting functional or measurement storage can reset language, theme, Like state, view-session markers, A/B assignment, experiment-session state, traffic-session state, chat history or private-access state.</p>
+                <p className="mt-4">You can delete cookies, local storage and session storage through your browser settings. Deleting functional or measurement storage can reset language, theme, Like state, view-session markers, traffic-session state, chat history or private-access state.</p>
                 <p className="mt-3">Blocking all cookies may prevent authentication, Private mode and some interactive or measurement features from working correctly.</p>
             </section>
 

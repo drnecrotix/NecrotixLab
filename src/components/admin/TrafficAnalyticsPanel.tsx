@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import * as Dialog from '@radix-ui/react-dialog';
 import { Activity, Download, ExternalLink, Globe2, Loader2, MapPin, Monitor, RefreshCw, Search, Smartphone, Tablet, Users, X } from 'lucide-react';
 import { AudienceWorldMap } from './AudienceWorldMap';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,8 @@ type LivePage = {
 
 type ActivityItem = {
     id: string;
+    visitorId: string;
+    pageEvents?: number;
     path: string;
     countryCode: string;
     countryName: string;
@@ -113,6 +116,7 @@ type TrafficPayload = {
         pageViews: number;
         visits: number;
     }>;
+    visitors: { items: ActivityItem[]; limit: number };
     activity: {
         items: ActivityItem[];
         total: number;
@@ -284,10 +288,18 @@ export function TrafficAnalyticsPanel({
     const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
     const [locationMode, setLocationMode] = useState<LocationMode>('countries');
     const [activityQuery, setActivityQuery] = useState('');
+    const [activityView, setActivityView] = useState<'visitors' | 'pages'>('visitors');
     const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all');
     const [activityDetail, setActivityDetail] = useState<ActivityDetail | null>(null);
     const [activityDetailLoading, setActivityDetailLoading] = useState(false);
     const [activityDetailError, setActivityDetailError] = useState('');
+    const detailRequest = useRef<AbortController | null>(null);
+    const closeActivityDetail = useCallback(() => {
+        detailRequest.current?.abort();
+        detailRequest.current = null;
+        setActivityDetail(null); setActivityDetailError(''); setActivityDetailLoading(false);
+    }, []);
+    useEffect(() => () => detailRequest.current?.abort(), []);
 
     const refresh = useCallback(async (manual = false) => {
         if (manual) setRefreshing(true);
@@ -339,11 +351,12 @@ export function TrafficAnalyticsPanel({
     const period = rangeText(range);
     const visibleActivity = useMemo(() => {
         const query = activityQuery.trim().toLocaleLowerCase('en');
-        return (data?.activity.items || []).filter((item) => {
+        return (activityView === 'visitors' ? data?.visitors?.items || [] : data?.activity.items || []).filter((item) => {
             if (activityFilter === 'live' && !item.isLiveCurrent) return false;
             if (activityFilter === 'ip' && !item.ipAddress) return false;
             if (!query) return true;
             return [
+                item.visitorId,
                 item.path,
                 item.city,
                 item.countryName,
@@ -357,24 +370,27 @@ export function TrafficAnalyticsPanel({
                 item.operatingSystem,
             ].some((value) => value?.toLocaleLowerCase('en').includes(query));
         });
-    }, [activityFilter, activityQuery, data]);
+    }, [activityFilter, activityQuery, activityView, data]);
     const visibleDescription = showMap
         ? 'Live visitors, retained page activity, visit trends, countries, cities, devices, operating systems and short-lived IP context in one focused view.'
         : description;
 
     const openActivityDetail = useCallback(async (id: string) => {
+        detailRequest.current?.abort();
+        const controller = new AbortController();
+        detailRequest.current = controller;
         setActivityDetail(null);
         setActivityDetailError('');
         setActivityDetailLoading(true);
         try {
-            const response = await fetch(`/api/admin/traffic/event/${encodeURIComponent(id)}`, { cache: 'no-store' });
+            const response = await fetch(`/api/admin/traffic/event/${encodeURIComponent(id)}`, { cache: 'no-store', signal: controller.signal });
             const payload = await response.json().catch(() => ({})) as ActivityDetail & { error?: string };
             if (!response.ok) throw new Error(payload.error || `Activity detail request failed (${response.status})`);
-            setActivityDetail(payload);
+            if (!controller.signal.aborted) setActivityDetail(payload);
         } catch (err) {
-            setActivityDetailError(err instanceof Error ? err.message : 'Could not load activity details.');
+            if (!controller.signal.aborted) setActivityDetailError(err instanceof Error ? err.message : 'Could not load activity details.');
         } finally {
-            setActivityDetailLoading(false);
+            if (detailRequest.current === controller) setActivityDetailLoading(false);
         }
     }, []);
 
@@ -483,24 +499,27 @@ export function TrafficAnalyticsPanel({
         <div className="mt-4 min-w-0 rounded-2xl border border-foreground/10 bg-background/40 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Retained activity</p>
-                    <h4 className="mt-1 text-sm font-semibold">Recent page activity</h4>
-                    <p className="mt-1 text-[10px] text-muted-foreground">Searchable page paths, location, device, OS and short-lived network context. Rows marked LIVE are the current page for that active visitor session.</p>
+                    <p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Audience</p>
+                    <h4 className="mt-1 text-sm font-semibold">{activityView === 'visitors' ? 'Visitors' : 'Recent page activity'}</h4>
+                    <p className="mt-1 text-[10px] text-muted-foreground">One row per browser session, with device, location and clickable IP details. LIVE identifies its latest active page within the five-minute heartbeat window.</p>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-1.5 text-[9px]">
                     <a href={`/api/admin/traffic/export?range=${range}`} download className="inline-flex items-center gap-1.5 rounded-full border border-foreground/10 bg-background/60 px-2.5 py-1 font-medium text-foreground transition hover:bg-foreground/[0.06]">
                         <Download className="size-3" /> Export CSV
                     </a>
-                    <span className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-2.5 py-1 text-muted-foreground">{visibleActivity.length} shown · {data?.activity.total ?? 0} total</span>
+                    <span className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-2.5 py-1 text-muted-foreground">{visibleActivity.length} {activityView === 'visitors' ? 'visitors shown' : `shown · ${data?.activity.total ?? 0} events`}</span>
                     <span className="rounded-full border border-amber-500/20 bg-amber-500/[0.06] px-2.5 py-1 text-amber-700 dark:text-amber-300">IP context {data?.retention.ipHours ?? 24}h</span>
                     <span className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-2.5 py-1 text-muted-foreground">Activity {data?.retention.pageActivityDays ?? 30}d</span>
                 </div>
             </div>
 
+            <div className="mt-3 flex gap-2" role="group" aria-label="Audience list view">
+                {(['visitors', 'pages'] as const).map((view) => <button key={view} type="button" aria-pressed={activityView === view} onClick={() => setActivityView(view)} className={cn('rounded-lg border px-3 py-2 text-xs', activityView === view ? 'border-foreground/20 bg-foreground text-background' : 'border-foreground/10 text-muted-foreground')}>{view === 'visitors' ? 'Visitors' : 'Page history'}</button>)}
+            </div>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <label className="relative min-w-0 flex-1 sm:max-w-md">
                     <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <span className="sr-only">Search recent page activity</span>
+                    <span className="sr-only">Search visitors and page activity</span>
                     <input
                         type="search"
                         value={activityQuery}
@@ -529,18 +548,18 @@ export function TrafficAnalyticsPanel({
 
             <div className="admin-contained-scroll mt-3 max-h-[360px] overflow-auto overscroll-contain rounded-xl border border-foreground/10 [scrollbar-gutter:stable]">
                 <div className="min-w-[1080px]">
-                    <div className="sticky top-0 z-10 grid grid-cols-[105px_minmax(220px,1.45fr)_minmax(160px,0.9fr)_100px_110px_minmax(250px,1.25fr)] gap-3 bg-background/95 px-3 py-2 text-[8px] uppercase tracking-[0.12em] text-muted-foreground backdrop-blur">
-                        <span>Time</span><span>Page / URL</span><span>Location</span><span>Device</span><span>OS</span><span>IP / network</span>
+                    <div className="sticky top-0 z-10 traffic-visitor-row grid gap-3 bg-background/95 px-3 py-2 text-[8px] uppercase tracking-[0.12em] text-muted-foreground backdrop-blur">
+                        <span>Visitor / last visit</span><span>Page / URL</span><span>Location</span><span>Device</span><span>OS</span><span>IP address / details</span>
                     </div>
                     {visibleActivity.length ? visibleActivity.map((item) => (
                         <div
                             key={item.id}
                             className={cn(
-                                'grid grid-cols-[105px_minmax(220px,1.45fr)_minmax(160px,0.9fr)_100px_110px_minmax(250px,1.25fr)] items-center gap-3 border-t border-foreground/[0.08] px-3 py-2.5 text-[10px] transition-colors',
+                                'traffic-visitor-row grid items-center gap-3 border-t border-foreground/[0.08] px-3 py-2.5 text-[10px] transition-colors',
                                 item.isLiveCurrent && 'bg-emerald-500/[0.045]',
                             )}
                         >
-                            <span className="whitespace-nowrap text-muted-foreground">{activityTime(item.occurredAt)}</span>
+                            <div className="min-w-0"><button type="button" onClick={() => void openActivityDetail(item.id)} className="font-mono text-[10px] underline decoration-dotted underline-offset-4" title="Open visitor details">{item.visitorId}</button><p className="mt-1 whitespace-nowrap text-[9px] text-muted-foreground">{activityTime(item.occurredAt)}</p></div>
                             <div className="flex min-w-0 items-center gap-2">
                                 <Link href={item.path} target="_blank" rel="noreferrer" className="inline-flex min-w-0 flex-1 items-center gap-1.5 hover:underline">
                                     <span className="truncate font-mono text-[10px]">{item.path}</span><ExternalLink className="size-3 shrink-0 text-muted-foreground" />
@@ -571,7 +590,8 @@ export function TrafficAnalyticsPanel({
                     )) : <p className="border-t border-foreground/[0.08] px-4 py-8 text-center text-xs text-muted-foreground">{data?.activity.items.length ? 'No activity matches the current search or filter.' : 'No retained page activity in this period yet.'}</p>}
                 </div>
             </div>
-            {(data?.activity.total ?? 0) > (data?.activity.limit ?? 150) ? (
+            {activityView === 'visitors' ? <p className="mt-2 text-[9px] leading-4 text-muted-foreground">Latest {data?.visitors?.limit ?? 150} visitor sessions in this period. A session identifies a browser, not a person. IP and location can be unavailable or approximate.</p> : null}
+            {activityView === 'pages' && (data?.activity.total ?? 0) > (data?.activity.limit ?? 150) ? (
                 <p className="mt-2 text-[9px] leading-4 text-muted-foreground">Search and filters apply to the latest {data?.activity.limit} entries kept in this view. Aggregate totals still include the full selected period.</p>
             ) : null}
         </div>
@@ -668,12 +688,14 @@ export function TrafficAnalyticsPanel({
                 A visit restarts after about {data?.retention.visitTimeoutMinutes ?? 30} minutes of inactivity. Page activity and country/device aggregates are retained for up to {data?.retention.pageActivityDays ?? 30} days. Raw IP, ASN, provider, organisation and network-domain context expires after about {data?.retention.ipHours ?? 24} hours. Cleanup is claimed at most once every {data?.retention.cleanupIntervalHours ?? 6} hours and runs on the next page-view request. Precise coordinates, query strings and full user-agent strings are not stored.{data?.updatedAt ? ` Last refresh ${new Date(data.updatedAt).toLocaleTimeString()}.` : ''}
             </p>
         </section>
-        {(activityDetailLoading || activityDetailError || activityDetail) ? (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Visitor activity details" onMouseDown={(event) => { if (event.currentTarget === event.target) { setActivityDetail(null); setActivityDetailError(''); } }}>
-                <div className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-foreground/15 bg-background p-5 shadow-2xl sm:p-6">
+        <Dialog.Root open={Boolean(activityDetailLoading || activityDetailError || activityDetail)} onOpenChange={(open) => { if (!open) closeActivityDetail(); }}>
+            <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm" />
+                <Dialog.Content className="admin-shell fixed left-1/2 top-1/2 z-[101] max-h-[88vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-foreground/15 bg-background p-5 text-foreground shadow-2xl sm:p-6">
+                    <Dialog.Description className="sr-only">Device, location, network context and recent pages for this visitor session.</Dialog.Description>
                     <div className="flex items-start justify-between gap-4">
-                        <div><p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Visitor detail</p><h4 className="mt-1 text-lg font-semibold">Network and browsing context</h4></div>
-                        <button type="button" onClick={() => { setActivityDetail(null); setActivityDetailError(''); }} className="rounded-lg border border-foreground/10 p-2 text-muted-foreground hover:text-foreground" aria-label="Close details"><X className="size-4" /></button>
+                        <div><p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Visitor detail</p><Dialog.Title className="mt-1 text-lg font-semibold">Network and browsing context</Dialog.Title></div>
+                        <button type="button" onClick={closeActivityDetail} className="rounded-lg border border-foreground/10 p-2 text-muted-foreground hover:text-foreground" aria-label="Close details"><X className="size-4" /></button>
                     </div>
                     {activityDetailLoading ? <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Loading details…</div> : null}
                     {activityDetailError ? <div className="mt-5 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-600 dark:text-red-300">{activityDetailError}</div> : null}
@@ -683,6 +705,9 @@ export function TrafficAnalyticsPanel({
                                 {[
                                     ['IP address', activityDetail.event.ipAddress ? `${activityDetail.event.ipAddress} · ${activityDetail.event.ipVersion || 'IP'}` : 'Expired or unavailable'],
                                     ['Location', [activityDetail.event.city, activityDetail.event.countryName].filter(Boolean).join(', ')],
+                                    ['Device', deviceLabel(activityDetail.event.device)],
+                                    ['Operating system', activityDetail.event.operatingSystem],
+                                    ['Last seen', activityTime(activityDetail.visitor.lastSeenAt)],
                                     ['Provider', activityDetail.event.network?.isp || 'Unavailable'],
                                     ['ASN', activityDetail.event.network?.asn || 'Unavailable'],
                                     ['Organisation', activityDetail.event.network?.organization || 'Unavailable'],
@@ -700,9 +725,9 @@ export function TrafficAnalyticsPanel({
                             <p className="text-[9px] leading-4 text-muted-foreground">IP and network context is visible only during its short retention window. The visitor identifier is an abbreviated one-way session hash, not an account identity.</p>
                         </div>
                     ) : null}
-                </div>
-            </div>
-        ) : null}
+                </Dialog.Content>
+            </Dialog.Portal>
+        </Dialog.Root>
         </>
     );
 }

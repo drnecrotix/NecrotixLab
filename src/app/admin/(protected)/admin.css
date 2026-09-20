@@ -147,3 +147,6 @@ html:not(.dark) .admin-shell select option {
     .admin-pricing-table tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 1rem 0; }
     .admin-pricing-table th, .admin-pricing-table td { display: block; padding: .5rem 0; }
 }
+
+/* Keep visitor columns readable inside their own horizontal scroller. */
+.traffic-visitor-row { grid-template-columns: 105px minmax(220px,1.45fr) minmax(160px,.9fr) 100px 110px minmax(250px,1.25fr); }
