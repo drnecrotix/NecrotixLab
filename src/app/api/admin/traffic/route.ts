@@ -14,6 +14,7 @@ import {
     decodePageEventDeviceContext,
     latestLiveEventIds,
     parseTrafficRange,
+    prioritizeLatestLiveVisitors,
     startOfUtcDay,
     startOfUtcHour,
     trafficRangeHours,
@@ -264,15 +265,14 @@ export async function GET(request: NextRequest) {
     const activity = recentActivity.map(serializeActivity);
     const seenVisitors = new Set<string>();
     const visitorCounts = new Map(visitorGroups.map((group) => [group.sessionHash, group._count._all]));
-    const visitors = visitorEvents.filter((item) => {
+    const visitors = prioritizeLatestLiveVisitors(visitorEvents.filter((item) => {
         if (seenVisitors.has(item.sessionHash)) return false;
         seenVisitors.add(item.sessionHash);
         return true;
     }).map((item) => ({
         ...serializeActivity(item),
-        isLiveCurrent: liveCurrentPathBySession.get(item.sessionHash) === item.path,
         pageEvents: visitorCounts.get(item.sessionHash) || 1,
-    }));
+    })));
 
     return NextResponse.json({
         range,
