@@ -45,3 +45,13 @@ test('only the latest matching page event is marked live for a visitor session',
     assert.equal(liveIds.get('visitor-a'), 'newest');
     assert.equal([...liveIds.values()].includes('older-same-page'), false);
 });
+
+test('a stale heartbeat cannot mark an older page live after navigation', () => {
+    const liveIds = latestLiveEventIds([
+        { id: 'latest-a', sessionHash: 'visitor-a', path: '/gallery' },
+        { id: 'latest-b', sessionHash: 'visitor-b', path: '/blog' },
+        { id: 'older-a', sessionHash: 'visitor-a', path: '/projects' },
+    ], new Map([['visitor-a', '/projects'], ['visitor-b', '/blog']]));
+    assert.equal(liveIds.has('visitor-a'), false);
+    assert.equal(liveIds.get('visitor-b'), 'latest-b');
+});
