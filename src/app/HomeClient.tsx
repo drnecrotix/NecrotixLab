@@ -153,7 +153,7 @@ export default function HomeClient({ content, identity, posts, projects }: Props
                     identity={identity}
                 />
             </motion.main>
-            <HomeCapabilitiesSection />
+            <HomeCapabilitiesSection discordUrl={identity.discordUrl} />
             <HomeEngineeringSection />
             {projectsFirst ? <>{projectsSection}{journalSection}</> : <>{journalSection}{projectsSection}</>}
             <HomeServicesAndLabSection projects={projects} />
