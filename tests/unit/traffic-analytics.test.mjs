@@ -8,6 +8,7 @@ import {
     TRAFFIC_PAGE_EVENT_RETENTION_DAYS,
     normalizeAsn,
     latestLiveEventIds,
+    prioritizeLatestLiveVisitors,
     trafficRetentionCutoffs,
 } from '../../src/lib/traffic-analytics.ts';
 
@@ -54,4 +55,25 @@ test('a stale heartbeat cannot mark an older page live after navigation', () => 
     ], new Map([['visitor-a', '/projects'], ['visitor-b', '/blog']]));
     assert.equal(liveIds.has('visitor-a'), false);
     assert.equal(liveIds.get('visitor-b'), 'latest-b');
+});
+
+test('Visitors keeps only the newest session live for a shared IP and sorts live rows first', () => {
+    const visitors = prioritizeLatestLiveVisitors([
+        { id: 'offline-newer', visitorId: 'visitor-c', ipAddress: '198.51.100.8', isLiveCurrent: false, occurredAt: '2026-09-20T12:04:00.000Z' },
+        { id: 'older-live', visitorId: 'visitor-a', ipAddress: '203.0.113.7', isLiveCurrent: true, occurredAt: '2026-09-20T12:01:00.000Z' },
+        { id: 'newest-live', visitorId: 'visitor-b', ipAddress: '203.0.113.7', isLiveCurrent: true, occurredAt: '2026-09-20T12:03:00.000Z' },
+    ]);
+
+    assert.deepEqual(visitors.map((visitor) => visitor.id), ['newest-live', 'offline-newer', 'older-live']);
+    assert.equal(visitors.find((visitor) => visitor.id === 'newest-live')?.isLiveCurrent, true);
+    assert.equal(visitors.find((visitor) => visitor.id === 'older-live')?.isLiveCurrent, false);
+});
+
+test('Visitors without retained IP context stay distinct by visitor session', () => {
+    const visitors = prioritizeLatestLiveVisitors([
+        { id: 'visitor-a-live', visitorId: 'visitor-a', ipAddress: null, isLiveCurrent: true, occurredAt: '2026-09-20T12:01:00.000Z' },
+        { id: 'visitor-b-live', visitorId: 'visitor-b', ipAddress: null, isLiveCurrent: true, occurredAt: '2026-09-20T12:02:00.000Z' },
+    ]);
+
+    assert.equal(visitors.filter((visitor) => visitor.isLiveCurrent).length, 2);
 });
