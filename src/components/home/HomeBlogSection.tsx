@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import type { PublicPost } from '@/lib/cms-posts';
+import type { HomepageContent } from '@/lib/homepage-content';
 
 type Props = {
     posts: PublicPost[];
+    content: HomepageContent;
     onPostOpen?: () => void;
 };
 
@@ -22,9 +24,9 @@ function PostMeta({ post }: { post: PublicPost }) {
     );
 }
 
-export function HomeBlogSection({ posts, onPostOpen }: Props) {
+export function HomeBlogSection({ posts, content, onPostOpen }: Props) {
     const reduceMotion = useReducedMotion();
-    const visiblePosts = posts.slice(0, 5);
+    const visiblePosts = posts.slice(0, content.homeBlogPostLimit);
     const [leadPost, ...supportingPosts] = visiblePosts;
 
     if (!leadPost) return null;
@@ -41,7 +43,7 @@ export function HomeBlogSection({ posts, onPostOpen }: Props) {
                 >
                     <div className="flex flex-wrap items-center gap-3">
                         <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-primary/80 shadow-[0_0_18px_hsl(var(--primary)/0.3)]" />
-                        <p className="font-mono text-sm font-semibold uppercase tracking-[0.28em] text-foreground/80">Journal</p>
+                        <div><p className="font-mono text-sm font-semibold uppercase tracking-[0.28em] text-foreground/80">{content.homeBlogTitle}</p><p className="mt-1 text-xs text-muted-foreground">{content.homeBlogSubtitle}</p></div>
                         <span className="rounded-md border border-foreground/10 px-2 py-1 font-mono text-[10px] text-muted-foreground">{visiblePosts.length}</span>
                     </div>
                     <Link href="/blog" onClick={onPostOpen} className="group inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground/65 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background">
