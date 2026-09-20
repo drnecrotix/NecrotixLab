@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Activity, AlertTriangle, ArrowUpRight, CheckCircle2, ChevronDown, Database, ExternalLink, FileClock, Gauge, KeyRound, Loader2, RefreshCw, ShieldCheck, Sparkles, Trash2, Wrench } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowUpRight, CheckCircle2, ChevronDown, Database, ExternalLink, Gauge, KeyRound, Loader2, RefreshCw, ShieldCheck, Sparkles, Wrench } from 'lucide-react';
+import { OperationalErrorLog } from './OperationalErrorLog';
 import { cn } from '@/lib/utils';
 import type { CheckStatus, OperationalCheck } from '@/lib/site-health';
 
@@ -64,7 +65,6 @@ export function AdminOperationsWorkbench({ mode }: { mode: 'health' | 'security'
     const [clearing, setClearing] = useState(false);
     const [error, setError] = useState('');
     const [category, setCategory] = useState('All');
-    const [logFilter, setLogFilter] = useState('all');
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -91,7 +91,6 @@ export function AdminOperationsWorkbench({ mode }: { mode: 'health' | 'security'
     const checks = mode === 'health' ? data?.health || [] : data?.security || [];
     const categories = useMemo(() => ['All', ...new Set(checks.map((entry) => entry.category))], [checks]);
     const visibleChecks = category === 'All' ? checks : checks.filter((entry) => entry.category === category);
-    const visibleLogs = logs.filter((entry) => logFilter === 'all' || entry.severity === logFilter);
     const currentStatus = mode === 'health' ? data?.status : data?.securityStatus;
     const problems = checks.filter((entry) => entry.status !== 'ok').length;
 
@@ -129,11 +128,7 @@ export function AdminOperationsWorkbench({ mode }: { mode: 'health' | 'security'
                 <div className="grid gap-3 lg:grid-cols-2">{visibleChecks.map((entry) => <CheckCard key={entry.id} check={entry} />)}</div>
             </section>
 
-            {mode === 'health' ? <section className="rounded-2xl border border-foreground/10 bg-foreground/[0.018] p-4 sm:p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Error log</p><h2 className="mt-1 text-lg font-semibold">Last {data?.logRetentionDays ?? 7} days</h2><p className="mt-1 text-[10px] text-muted-foreground">Repeated identical issues are grouped for 15 minutes to avoid log noise.</p></div><button type="button" onClick={() => void clearLogs()} disabled={clearing || !logs.length} className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 px-3 py-2 text-[10px] font-medium text-red-600 transition hover:bg-red-500/[0.06] disabled:opacity-40"><Trash2 className="size-3.5" /> Clear log</button></div>
-                <div className="mt-4 flex gap-1">{['all', 'error', 'warning'].map((value) => <button key={value} onClick={() => setLogFilter(value)} className={cn('rounded-md px-2.5 py-1.5 text-[9px] font-medium capitalize', logFilter === value ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground')}>{value}</button>)}</div>
-                <div className="mt-3 overflow-hidden rounded-xl border border-foreground/10">{visibleLogs.length ? visibleLogs.map((entry) => <div key={entry.id} className="grid gap-2 border-t border-foreground/[0.08] px-3 py-3 first:border-t-0 sm:grid-cols-[120px_90px_minmax(0,1fr)]"><span className="font-mono text-[9px] text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</span><span className={cn('w-fit rounded-full border px-2 py-0.5 text-[8px] font-semibold uppercase', tone(entry.severity as CheckStatus))}>{entry.severity}</span><div className="min-w-0"><p className="text-xs font-medium">{entry.title}</p><p className="mt-1 break-words text-[10px] leading-4 text-muted-foreground">{entry.message}</p></div></div>) : <div className="py-12 text-center"><FileClock className="mx-auto size-5 text-muted-foreground" /><p className="mt-2 text-xs font-medium">No matching issues</p><p className="mt-1 text-[10px] text-muted-foreground">New warnings and errors will appear here automatically.</p></div>}</div>
-            </section> : <section className="rounded-2xl border border-foreground/10 bg-foreground/[0.018] p-4 sm:p-5"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 size-5 text-emerald-500" /><div><h2 className="text-sm font-semibold">Analysis boundaries</h2><p className="mt-1 text-[10px] leading-5 text-muted-foreground">This panel verifies configured safeguards and current operational signals. It does not label normal visitors as attackers and does not replace edge DDoS protection, a WAF or dependency scanning in CI.</p><a href="https://github.com/drnecrotix/Portfolio/actions" target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-medium underline decoration-dotted underline-offset-4">Open GitHub security and CI results <ExternalLink className="size-3" /></a></div></div></section>}
+            {mode === 'health' ? <OperationalErrorLog logs={logs} clearing={clearing} onClear={() => void clearLogs()} /> : <section className="rounded-2xl border border-foreground/10 bg-foreground/[0.018] p-4 sm:p-5"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 size-5 text-emerald-500" /><div><h2 className="text-sm font-semibold">Analysis boundaries</h2><p className="mt-1 text-[10px] leading-5 text-muted-foreground">This panel verifies configured safeguards and current operational signals. It does not label normal visitors as attackers and does not replace edge DDoS protection, a WAF or dependency scanning in CI.</p><a href="https://github.com/drnecrotix/Portfolio/actions" target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-medium underline decoration-dotted underline-offset-4">Open GitHub security and CI results <ExternalLink className="size-3" /></a></div></div></section>}
         </div>
     );
 }

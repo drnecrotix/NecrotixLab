@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { AdminNavigationSearch } from './AdminNavigationSearch';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Layers, ShoppingBag, Palette, Send, Wrench, Settings, LayoutDashboard } from 'lucide-react';
 import { AdminThemeToggle } from '@/components/admin/AdminThemeToggle';
 import type { AdminNavGroup, AdminNavItem } from '@/components/admin/AdminMobileNavigation';
 
@@ -61,11 +61,11 @@ export function AdminDesktopNavigation({
                             <section key={groupLabel} className="overflow-hidden rounded-xl border border-foreground/10 bg-foreground/[0.012]">
                                 <button
                                     type="button"
-                                    onClick={() => setOpenGroup((current) => current === groupLabel ? null : groupLabel)}
+                                    onClick={() => setOpenGroup((current) => current === groupLabel ? '' : groupLabel)}
                                     className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground transition hover:text-foreground"
                                     aria-expanded={isOpen}
                                 >
-                                    <span>{groupLabel}</span>
+                                    <span className="flex items-center gap-2">{(() => { const Icon = ({ Content: Layers, Commerce: ShoppingBag, Appearance: Palette, 'Publishing & SEO': Send, Tools: Wrench, Administration: Settings } as Record<string, typeof LayoutDashboard>)[groupLabel] || LayoutDashboard; return <Icon className="size-4" />; })()}{groupLabel}</span>
                                     <ChevronDown className={`size-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                                 </button>
                                 {isOpen && (

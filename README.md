@@ -1,10 +1,10 @@
 <div align="center">
 
-# Necrotix Lab Portfolio CMS
+# NecrotixLab
 
 **A full-stack portfolio, publishing platform, knowledge base and digital storefront with a custom administration system.**
 
-[![Portfolio CI](https://github.com/drnecrotix/Portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/drnecrotix/Portfolio/actions/workflows/ci.yml)
+[![NecrotixLab CI](https://github.com/drnecrotix/Portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/drnecrotix/Portfolio/actions/workflows/ci.yml)
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-database-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
@@ -18,7 +18,7 @@
 
 ## What this project is
 
-Necrotix Lab Portfolio CMS is a production-oriented website and administration platform built for a creator, developer or small studio that wants full control over content, presentation, commerce and deployment without relying on WordPress or a hosted page builder.
+NecrotixLab is a production-oriented website and administration platform built for a creator, developer or small studio that wants full control over content, presentation, commerce and deployment without relying on WordPress or a hosted page builder.
 
 The public site and the CMS are part of the same application. Content is stored in PostgreSQL, managed through a protected `/admin` area and rendered through Next.js App Router.
 
@@ -27,7 +27,7 @@ The public site and the CMS are part of the same application. Content is stored 
 | **Portfolio** | Homepage, Projects, Blog, Gallery, Wiki, FAQ, Journey, Career Dossier, Lab, custom Pages and Contact |
 | **CMS** | Content editing, media management, comments, navigation, footer, revisions, SEO, redirects and user roles |
 | **Commerce** | Digital Store, free/paid products, cart, orders, Creem, Lemon Squeezy and protected digital delivery |
-| **Operations** | Traffic analytics, Site Mode, A/B experiments, health status, API integrations and GitHub self-updates |
+| **Operations** | Traffic analytics, Site Mode, runtime error reporting, Site Health and Security, API integrations and GitHub self-updates |
 | **Quality** | TypeScript, Prisma migration checks, Playwright responsive tests, live-site audit and protected-design CI guard |
 
 > The repository is a heavily modified derivative of the MIT-licensed **PersonalBlog** project by **Syahril Arfian Almazril (Arfazrll)**. See [License and Credits](docs/wiki/License-and-Credits.md).
@@ -195,19 +195,14 @@ Supports internal and absolute redirects with validation around protected/reserv
 
 Optional CMS-integrated AI tooling when a supported provider is configured.
 
-#### Experiments
+#### Audience and traffic
 
-Built-in A/B experiment monitoring for design and product decisions.
+Audience analytics with a flat country map. A/B testing has been retired.
 
-- Variant A / Variant B comparison
-- exposures and conversions
-- conversion rate
-- confidence interval context
-- absolute difference and relative lift
-- sample balance
-- split-health warnings
-- audience/traffic context
-- country and device distribution
+- country and city distribution
+- recent visits and page activity
+- visitor details and data export
+- configurable refresh frequency
 
 #### API Integrations
 

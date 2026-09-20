@@ -305,10 +305,23 @@ export function TrafficAnalyticsPanel({
 
     useEffect(() => {
         const frame = window.requestAnimationFrame(() => void refresh());
-        const timer = window.setInterval(() => void refresh(), Math.max(5000, refreshIntervalMs));
+        let timer: number | undefined;
+        const schedule = () => {
+            if (timer) clearInterval(timer);
+            let interval = refreshIntervalMs;
+            try {
+                const saved = localStorage.getItem('necrotix-admin-refresh');
+                if (saved === '0') return;
+                if (saved === '30' || saved === '60') interval = Number(saved) * 1000;
+            } catch { /* use default */ }
+            timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, Math.max(5000, interval));
+        };
+        schedule();
+        window.addEventListener('necrotix-admin-preferences', schedule);
         return () => {
             window.cancelAnimationFrame(frame);
             window.clearInterval(timer);
+            window.removeEventListener('necrotix-admin-preferences', schedule);
         };
     }, [refresh, refreshIntervalMs]);
 
@@ -316,7 +329,7 @@ export function TrafficAnalyticsPanel({
         () => data?.countries.filter((country) => country.code !== 'XX' && country.visits > 0) || [],
         [data],
     );
-    const selectedCountry = countries.find((country) => country.code === selectedCountryCode) || countries[0] || null;
+    const selectedCountry = (selectedCountryCode ? countries.find((country) => country.code === selectedCountryCode) : countries[0]) || null;
     const knownLivePages = data?.live.pages.filter((page) => page.path !== 'Unknown page') || [];
     const unknownLivePage = data?.live.pages.find((page) => page.path === 'Unknown page');
     const cities = data?.cities || [];
@@ -637,7 +650,7 @@ export function TrafficAnalyticsPanel({
                             <div><p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Visual map</p><h4 className="mt-1 text-sm font-semibold">Where visits come from</h4></div>
                             {selectedCountry ? <span className="text-[9px] text-muted-foreground"><strong className="text-foreground">{selectedCountry.name}</strong> · {selectedCountry.visits} visits · {selectedCountry.liveVisitors} online</span> : null}
                         </div>
-                        <AudienceWorldMap countries={data?.countries || []} selectedCode={selectedCountry?.code} />
+                        <AudienceWorldMap countries={data?.countries || []} selectedCode={selectedCountryCode} onSelect={setSelectedCountryCode} />
                     </div>
                     <div className="min-w-0 space-y-4">
                         {locationPanel}

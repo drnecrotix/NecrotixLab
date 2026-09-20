@@ -6,6 +6,8 @@ import { normalizeGallerySettings } from '@/lib/gallery-settings';
 import { normalizeContentWatermarkSettings, CONTENT_WATERMARK_CONFIG_SLUG, type ContentWatermarkSize } from '@/lib/content-watermark';
 import { readMediaFile } from '@/lib/media-storage';
 import { prisma } from '@/lib/prisma';
+import { galleryImageWidth } from '@/lib/gallery-image';
+import { recordRuntimeError } from '@/lib/runtime-errors.server';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +28,8 @@ function watermarkSvg(text: string, imageWidth: number, opacity: number, size: C
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
+    const requestedWidth = Number(new URL(request.url).searchParams.get('w'));
+    const targetWidth = galleryImageWidth(Number.isFinite(requestedWidth) && requestedWidth > 0 ? requestedWidth : 2560);
     const galleryOnly = new URL(request.url).searchParams.get('scope') === 'gallery';
     const [asset, posts, projects, siteSettings, watermarkPage] = await Promise.all([
         prisma.mediaAsset.findUnique({ where: { id }, select: { key: true, url: true, mimeType: true, updatedAt: true } }),
@@ -58,7 +62,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         return new NextResponse('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
     }
 
-    const etag = `"${createHash('sha256').update(`${id}:${asset.updatedAt.toISOString()}:${siteSettings?.updatedAt.toISOString() || ''}:${watermarkPage?.updatedAt.toISOString() || ''}`).digest('hex').slice(0, 24)}"`;
+    const etag = `"${createHash('sha256').update(`v2:${targetWidth}:${id}:${asset.updatedAt.toISOString()}:${siteSettings?.updatedAt.toISOString() || ''}:${watermarkPage?.updatedAt.toISOString() || ''}`).digest('hex').slice(0, 24)}"`;
     if (request.headers.get('if-none-match') === etag) return new NextResponse(null, { status: 304, headers: { ETag: etag, 'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800' } });
 
     try {
@@ -67,8 +71,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         const pipeline = sharp(source, { animated: false }).rotate();
         const metadata = await pipeline.metadata();
         const swapsDimensions = [5, 6, 7, 8].includes(metadata.orientation ?? 1);
-        const width = Math.max(1, (swapsDimensions ? metadata.height : metadata.width) ?? 1200);
-        const height = Math.max(1, (swapsDimensions ? metadata.width : metadata.height) ?? 630);
+        const sourceWidth = Math.max(1, (swapsDimensions ? metadata.height : metadata.width) ?? 1200);
+        const sourceHeight = Math.max(1, (swapsDimensions ? metadata.width : metadata.height) ?? 630);
+        const width = Math.min(sourceWidth, targetWidth);
+        const height = Math.max(1, Math.round(sourceHeight * width / sourceWidth));
+        pipeline.resize({ width, withoutEnlargement: true });
         let rendered = pipeline;
 
         if (settings.enabled && settings.renderMode === 'pixel') {
@@ -92,7 +99,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
                 'Referrer-Policy': 'same-origin',
             },
         });
-    } catch {
-        return new NextResponse('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
+    } catch (error) {
+        await recordRuntimeError({ source: 'media', kind: 'image', path: '/api/protected-media/[id]', status: 503, code: error instanceof Error ? error.name : 'MediaProcessingError' });
+        return new NextResponse('Image temporarily unavailable', { status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '5' } });
     }
 }

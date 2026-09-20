@@ -18,6 +18,8 @@ import {
     SunMoon,
 } from 'lucide-react';
 import { MediaPicker } from '@/components/admin/MediaPicker';
+import { SettingsSaveButton } from './SettingsSaveButton';
+import { AdminPreferences } from './AdminPreferences';
 import type { GeneralSiteSettings } from '@/lib/site-settings';
 import { updateGeneralSettings, updatePageAccessSettings } from '@/app/admin/(protected)/settings/actions';
 
@@ -168,6 +170,7 @@ export function GeneralSettingsWorkbench({ initialSettings, initialAccess }: { i
 
     return (
         <div className="space-y-5">
+            <AdminPreferences />
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] pb-4"><div><div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-white/30"><Settings2 className="size-3.5" /> Settings / General</div><h2 className="mt-1.5 text-2xl font-semibold tracking-[-0.03em] text-white">Site configuration</h2></div><div className="flex items-center gap-2 text-[10px] text-white/30"><span>{configuredSocials} socials</span><span>·</span><span>{settings.defaultTheme === 'dark' ? 'Night' : 'Day'} default</span></div></div>
 
             <div className="grid min-w-0 gap-5 xl:grid-cols-[190px_minmax(0,1fr)_340px]">
@@ -180,7 +183,7 @@ export function GeneralSettingsWorkbench({ initialSettings, initialAccess }: { i
                                 <div className="space-y-3">{(Object.keys(accessMeta) as AccessKey[]).map((key) => <div key={key} className="rounded-xl border border-white/[0.07] bg-black/15 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><span className="text-sm font-semibold text-white/85">{accessMeta[key].title}</span><span className="font-mono text-[9px] text-white/25">{accessMeta[key].path}</span></div><p className="mt-1 text-xs leading-5 text-white/32">{accessMeta[key].description}</p></div><div className="grid grid-cols-3 gap-1 rounded-xl border border-white/[0.07] bg-black/20 p-1">{accessOptions.map((option) => { const Icon = option.icon; const selected = access[key] === option.value; return <button key={option.value} type="button" onClick={() => setAccess((current) => ({ ...current, [key]: option.value }))} className={`flex min-w-[84px] items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[10px] transition ${selected ? 'bg-white text-black' : 'text-white/40 hover:bg-white/[0.05] hover:text-white/70'}`}><Icon className="size-3.5" /> {option.label}</button>; })}</div></div></div>)}</div>
                                 <div className="mt-5 rounded-xl border border-amber-300/10 bg-amber-300/[0.035] px-4 py-3 text-xs leading-5 text-amber-100/55">Admin-only and disabled sections are removed from the public sitemap. Existing Store download grants stay independent.</div>
                             </Panel>
-                            <div className="mt-6 flex justify-end"><button className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black">Save page access</button></div>
+                            <div className="mt-6 flex justify-end"><SettingsSaveButton>Save page access</SettingsSaveButton></div>
                         </form>
                     ) : (
                         <form action={updateGeneralSettings} className="p-5 sm:p-6">
@@ -195,7 +198,7 @@ export function GeneralSettingsWorkbench({ initialSettings, initialAccess }: { i
 
                             {active === 'regional' ? <Panel title="Regional defaults" description="Locale influences formatting and the IANA timezone drives local-time displays."><div className="grid gap-4 md:grid-cols-2"><label className="text-xs text-white/45">Locale<input value={settings.locale} onChange={(event) => setTop('locale', event.target.value)} placeholder="en" className={input} /></label><label className="text-xs text-white/45">Timezone<input value={settings.timezone} onChange={(event) => setTop('timezone', event.target.value)} placeholder="Europe/Sofia" className={input} /></label></div></Panel> : null}
 
-                            <div className="mt-7 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-4"><span className="text-[10px] text-white/30">Changes are previewed locally until saved.</span><button className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black">Save settings</button></div>
+                            <div className="mt-7 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-4"><span className="text-[10px] text-white/30">Changes are previewed locally until saved.</span><SettingsSaveButton>Save settings</SettingsSaveButton></div>
                         </form>
                     )}
                 </div>

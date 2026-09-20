@@ -1,4 +1,4 @@
-name: Portfolio CI
+name: NecrotixLab CI
 
 on:
   pull_request:
