@@ -351,7 +351,7 @@ export function TrafficAnalyticsPanel({
     const period = rangeText(range);
     const visibleActivity = useMemo(() => {
         const query = activityQuery.trim().toLocaleLowerCase('en');
-        return (activityView === 'visitors' ? data?.visitors?.items || [] : data?.activity.items || []).filter((item) => {
+        const items = (activityView === 'visitors' ? data?.visitors?.items || [] : data?.activity.items || []).filter((item) => {
             if (activityFilter === 'live' && !item.isLiveCurrent) return false;
             if (activityFilter === 'ip' && !item.ipAddress) return false;
             if (!query) return true;
@@ -369,6 +369,11 @@ export function TrafficAnalyticsPanel({
                 item.device,
                 item.operatingSystem,
             ].some((value) => value?.toLocaleLowerCase('en').includes(query));
+        });
+        if (activityView !== 'visitors') return items;
+        return items.sort((a, b) => {
+            if (a.isLiveCurrent !== b.isLiveCurrent) return a.isLiveCurrent ? -1 : 1;
+            return b.occurredAt.localeCompare(a.occurredAt);
         });
     }, [activityFilter, activityQuery, activityView, data]);
     const visibleDescription = showMap
