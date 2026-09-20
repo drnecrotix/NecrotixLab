@@ -41,6 +41,35 @@ export function latestLiveEventIds(
     return result;
 }
 
+export function prioritizeLatestLiveVisitors<Visitor extends {
+    id: string;
+    visitorId: string;
+    ipAddress: string | null;
+    isLiveCurrent: boolean;
+    occurredAt: string;
+}>(visitors: Visitor[]) {
+    const claimedLiveIdentities = new Set<string>();
+    const normalized = [...visitors]
+        .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.id.localeCompare(a.id))
+        .map((visitor) => {
+            if (!visitor.isLiveCurrent) return visitor;
+
+            const identity = visitor.ipAddress
+                ? `ip:${visitor.ipAddress.trim().toLocaleLowerCase('en')}`
+                : `visitor:${visitor.visitorId}`;
+            if (claimedLiveIdentities.has(identity)) {
+                return { ...visitor, isLiveCurrent: false };
+            }
+            claimedLiveIdentities.add(identity);
+            return visitor;
+        });
+
+    return normalized.sort((a, b) => {
+        if (a.isLiveCurrent !== b.isLiveCurrent) return a.isLiveCurrent ? -1 : 1;
+        return b.occurredAt.localeCompare(a.occurredAt) || b.id.localeCompare(a.id);
+    });
+}
+
 export function parseTrafficRange(value: string | null | undefined): TrafficRange {
     return value === '7d' || value === '30d' ? value : '24h';
 }
