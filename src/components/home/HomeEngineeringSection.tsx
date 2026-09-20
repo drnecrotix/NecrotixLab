@@ -23,8 +23,8 @@ export function HomeEngineeringSection() {
     return (
         <section id="engineering-cnc" aria-labelledby="engineering-title" className="relative overflow-hidden border-t border-foreground/10 bg-zinc-950 px-6 py-16 text-zinc-100 md:px-16 md:py-20 lg:px-24 lg:py-24">
             <div aria-hidden="true" className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.045)_1px,transparent_1px)] [background-size:32px_32px]" />
-            <div className="relative mx-auto grid w-full max-w-[1400px] gap-12 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:gap-20">
-                <div>
+            <div className="relative mx-auto grid w-full min-w-0 max-w-[1400px] gap-12 lg:grid-cols-[minmax(0,.72fr)_minmax(0,1.28fr)] lg:items-center lg:gap-20">
+                <div className="min-w-0">
                     <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.26em] text-amber-400">Engineering / CNC Lab</p>
                     <h2 id="engineering-title" className="mt-5 max-w-[11ch] text-4xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-5xl lg:text-6xl">From geometry to machine-ready logic.</h2>
                     <p className="mt-6 max-w-xl text-base leading-7 text-zinc-400">A developing technical practice for CAD preparation, CNC programming, toolpath planning and production documentation.</p>
@@ -37,15 +37,15 @@ export function HomeEngineeringSection() {
                     </div>
                 </div>
 
-                <motion.div initial={reduceMotion ? false : { opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: reduceMotion ? 0 : 0.55 }} className="overflow-hidden border border-white/15 bg-black/55 shadow-[0_30px_100px_-45px_rgba(251,191,36,.35)] backdrop-blur">
+                <motion.div initial={reduceMotion ? false : { opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.12 }} transition={{ duration: reduceMotion ? 0 : 0.55 }} className="w-full min-w-0 overflow-hidden border border-white/15 bg-black/55 shadow-[0_30px_100px_-45px_rgba(251,191,36,.35)] backdrop-blur">
                     <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
                         <div className="flex items-center gap-3"><span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,.8)]" /><span className="font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-400">NL-CNC / Toolpath preview</span></div>
                         <button type="button" onClick={() => setRunning((value) => !value)} className="grid size-9 place-items-center border border-white/10 text-zinc-300 transition hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400" aria-label={running ? 'Pause toolpath simulation' : 'Play toolpath simulation'}>{running ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}</button>
                     </div>
 
-                    <div className="grid lg:grid-cols-[1fr_230px]">
-                        <div className="relative aspect-[4/3] min-h-[330px] overflow-hidden border-b border-white/10 lg:border-b-0 lg:border-r">
-                            <svg viewBox="0 0 620 460" className="h-full w-full" role="img" aria-label="Animated CNC toolpath around a mechanical plate">
+                    <div className="grid min-w-0 lg:grid-cols-[minmax(0,1fr)_230px]">
+                        <div className="relative aspect-[5/4] min-h-0 min-w-0 overflow-hidden border-b border-white/10 sm:aspect-[4/3] lg:border-b-0 lg:border-r">
+                            <svg viewBox="0 0 620 460" preserveAspectRatio="xMidYMid meet" className="block h-full w-full max-w-full" role="img" aria-label="Animated CNC toolpath around a mechanical plate">
                                 <defs><pattern id="cnc-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="rgba(255,255,255,.055)" strokeWidth="1" /></pattern></defs>
                                 <rect width="620" height="460" fill="url(#cnc-grid)" />
                                 <g fill="none" stroke="rgba(255,255,255,.28)" strokeWidth="2">
@@ -54,10 +54,9 @@ export function HomeEngineeringSection() {
                                     <circle cx="150" cy="164" r="15" /><circle cx="450" cy="164" r="15" /><circle cx="150" cy="320" r="15" /><circle cx="450" cy="320" r="15" />
                                     <circle cx="298" cy="241" r="48" /><path d="M250 241H346M298 193V289" stroke="rgba(255,255,255,.12)" strokeWidth="1" />
                                 </g>
-                                <motion.path d="M78 138L122 112H446L504 170V324L456 370H150L96 316V166L122 112M164 168H412Q432 168 432 188V294Q432 314 412 314H184Q164 314 164 294V188Q164 168 184 168M346 241A48 48 0 1 1 250 241A48 48 0 1 1 346 241" fill="none" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" strokeDasharray="9 8" animate={{ strokeDashoffset: animatePath ? -170 : 0 }} transition={animatePath ? { duration: 12, ease: 'linear', repeat: Infinity } : { duration: 0 }} />
-                                <motion.g animate={animatePath ? { offsetDistance: ['0%', '100%'] } : { offsetDistance: '32%' }} transition={animatePath ? { duration: 12, ease: 'linear', repeat: Infinity } : { duration: 0 }} style={{ offsetPath: "path('M78 138 L122 112 H446 L504 170 V324 L456 370 H150 L96 316 V166 L122 112')" }}>
-                                    <circle r="7" fill="#fbbf24" /><circle r="16" fill="none" stroke="rgba(251,191,36,.35)" />
-                                </motion.g>
+                                <motion.path d="M78 138L122 112H446L504 170V324L456 370H150L96 316V166L122 112M164 168H412Q432 168 432 188V294Q432 314 412 314H184Q164 314 164 294V188Q164 168 184 168M346 241A48 48 0 1 1 250 241A48 48 0 1 1 346 241" fill="none" stroke="#fbbf24" strokeWidth="3" strokeLinecap="round" strokeDasharray="9 8" initial={{ strokeDashoffset: 0 }} animate={{ strokeDashoffset: animatePath ? -170 : 0 }} transition={animatePath ? { duration: 8, ease: 'linear', repeat: Infinity } : { duration: 0 }} />
+                                <motion.circle r="16" fill="none" stroke="rgba(251,191,36,.35)" animate={animatePath ? { cx: [78, 122, 446, 504, 504, 456, 150, 96, 96, 122], cy: [138, 112, 112, 170, 324, 370, 370, 316, 166, 112] } : { cx: 446, cy: 112 }} transition={animatePath ? { duration: 8, ease: 'linear', repeat: Infinity, times: [0, .07, .31, .4, .58, .66, .84, .91, .97, 1] } : { duration: 0 }} />
+                                <motion.circle r="7" fill="#fbbf24" animate={animatePath ? { cx: [78, 122, 446, 504, 504, 456, 150, 96, 96, 122], cy: [138, 112, 112, 170, 324, 370, 370, 316, 166, 112] } : { cx: 446, cy: 112 }} transition={animatePath ? { duration: 8, ease: 'linear', repeat: Infinity, times: [0, .07, .31, .4, .58, .66, .84, .91, .97, 1] } : { duration: 0 }} />
                                 <g className="font-mono" fontSize="10" fill="rgba(255,255,255,.4)"><text x="26" y="434">X 108.000</text><text x="122" y="434">Y 046.000</text><text x="218" y="434">Z -03.000</text><text x="520" y="434">MM</text></g>
                             </svg>
                             <div className="absolute left-4 top-4 border border-white/10 bg-black/55 px-3 py-2 font-mono text-[9px] uppercase leading-5 tracking-[0.14em] text-zinc-400"><span className="text-zinc-100">Work offset</span><br />G54 / XY plane</div>

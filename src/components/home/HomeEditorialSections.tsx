@@ -3,27 +3,33 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Braces, MessageCircleMore, Palette, ScanSearch } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Braces, Check, CircleDot, MessageCircleMore, Palette, ScanSearch, Sparkles } from 'lucide-react';
 import type { Project } from '@/types';
 
 const capabilities = [
     { number: '01', title: 'Digital products', description: 'Websites, dashboards, portals and focused tools built around a real workflow.', note: 'Design / Development / Systems', icon: Braces, href: '/projects' },
-    { number: '02', title: 'Communities & systems', description: 'Discord ecosystems, automation and infrastructure that help communities grow.', note: 'Community / Automation / Operations', icon: MessageCircleMore, href: '/wiki/bg-gamer' },
+    { number: '02', title: 'Discord Community', description: 'BG-GAMER brings people, moderation, automation and community operations into one evolving ecosystem.', note: '2,800+ members / Automation / Operations', icon: MessageCircleMore, href: '/wiki/bg-gamer' },
     { number: '03', title: 'Visual stories', description: 'Digital art, photography and editorial experiences with a distinct identity.', note: 'Art direction / Content / Interaction', icon: Palette, href: '/gallery' },
 ] as const;
 
-const services = [
-    { title: 'Build something new', description: 'A website, portal or digital tool shaped from idea to a usable release.', deliverable: 'Strategy + design + development', href: '/services' },
-    { title: 'Improve what exists', description: 'A practical review of usability, performance, accessibility and technical health.', deliverable: 'Audit + priorities + implementation', href: '/website-inspector' },
-    { title: 'Shape a community', description: 'Structure, permissions, automation and tools for a safer community ecosystem.', deliverable: 'Architecture + setup + operations', href: '/services' },
-    { title: 'Create a visual experience', description: 'A visual identity, editorial story or interactive presentation made to be remembered.', deliverable: 'Direction + assets + experience', href: '/contact' },
+const workflow = [
+    { number: '01', title: 'Decode', note: 'Goals, users and constraints become a useful brief.' },
+    { number: '02', title: 'Shape', note: 'Structure and interaction are tested before heavy build work.' },
+    { number: '03', title: 'Build', note: 'The chosen direction becomes a responsive working system.' },
+    { number: '04', title: 'Refine', note: 'Real use, health checks and feedback guide the next pass.' },
+] as const;
+
+const serviceSignals = [
+    ['Best fit', 'Focused websites, tools, communities and visual systems'],
+    ['Working style', 'Direct collaboration with the person designing and building'],
+    ['Useful output', 'A working release, clear handoff and practical next steps'],
 ] as const;
 
 function EditorialLabel({ children }: { children: ReactNode }) {
     return <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{children}</p>;
 }
 
-export function HomeCapabilitiesSection() {
+export function HomeCapabilitiesSection({ discordUrl }: { discordUrl?: string }) {
     const reduceMotion = useReducedMotion();
 
     return (
@@ -46,6 +52,8 @@ export function HomeCapabilitiesSection() {
                 <div className="grid lg:grid-cols-3">
                     {capabilities.map((capability, index) => {
                         const Icon = capability.icon;
+                        const href = capability.title === 'Discord Community' && discordUrl ? discordUrl : capability.href;
+                        const external = href.startsWith('http');
                         return (
                             <motion.article key={capability.title} initial={reduceMotion ? false : { opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: reduceMotion ? 0 : 0.45, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }} className="group relative border-b border-foreground/10 py-8 lg:border-b-0 lg:border-r lg:px-8 lg:py-10 lg:first:pl-0 lg:last:border-r-0 lg:last:pr-0">
                                 <div className="flex items-center justify-between"><span className="font-mono text-[11px] text-muted-foreground">{capability.number}</span><Icon aria-hidden="true" className="size-5 text-foreground/45 transition-colors group-hover:text-foreground" strokeWidth={1.5} /></div>
@@ -53,7 +61,7 @@ export function HomeCapabilitiesSection() {
                                 <p className="mt-3 max-w-sm text-[15px] leading-7 text-muted-foreground">{capability.description}</p>
                                 <div className="mt-8 flex items-end justify-between gap-4 border-t border-foreground/10 pt-4">
                                     <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{capability.note}</span>
-                                    <Link href={capability.href} aria-label={`Explore ${capability.title}`} className="grid size-9 shrink-0 place-items-center rounded-full border border-foreground/15 transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><ArrowUpRight className="size-4" /></Link>
+                                    <Link href={href} target={external ? '_blank' : undefined} rel={external ? 'noreferrer' : undefined} aria-label={`Explore ${capability.title}`} className="grid size-9 shrink-0 place-items-center rounded-full border border-foreground/15 transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><ArrowUpRight className="size-4" /></Link>
                                 </div>
                             </motion.article>
                         );
@@ -69,21 +77,21 @@ export function HomeServicesAndLabSection({ projects }: { projects: Project[] })
 
     return (
         <>
-            <section aria-labelledby="services-title" className="border-t border-foreground/10 bg-foreground text-background">
-                <div className="mx-auto grid w-full max-w-[1600px] lg:grid-cols-[0.72fr_1.28fr]">
-                    <div className="flex flex-col justify-between border-b border-background/15 px-6 py-14 md:px-16 md:py-20 lg:border-b-0 lg:border-r lg:px-20 lg:py-24">
-                        <div><p className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-background/50">Services / Ways I can help</p><h2 id="services-title" className="mt-5 max-w-[9ch] text-4xl font-semibold leading-none tracking-[-0.055em] sm:text-5xl lg:text-6xl">From rough idea to working system.</h2></div>
-                        <div className="mt-12"><p className="max-w-md text-base leading-7 text-background/60">One creator across strategy, visual direction and implementation. Clear scope, direct communication and no agency layers.</p><Link href="/services" className="group mt-7 inline-flex min-h-11 items-center gap-2 border-b border-background/30 text-sm font-semibold transition-colors hover:border-background">View services <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></Link></div>
+            <section aria-labelledby="services-title" className="relative overflow-hidden border-t border-foreground/10 bg-foreground px-6 py-16 text-background md:px-16 md:py-20 lg:px-24 lg:py-24">
+                <div aria-hidden="true" className="absolute inset-0 opacity-[0.08] [background-image:radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)] [background-size:24px_24px]" />
+                <div className="relative mx-auto grid w-full max-w-[1400px] gap-12 xl:grid-cols-[0.72fr_1.28fr] xl:gap-20">
+                    <div className="flex flex-col justify-between">
+                        <div><p className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-background/50">Services / Ways I can help</p><h2 id="services-title" className="mt-5 max-w-[10ch] text-4xl font-semibold leading-none tracking-[-0.055em] sm:text-5xl lg:text-6xl">Turn uncertainty into something usable.</h2><p className="mt-6 max-w-lg text-base leading-7 text-background/60">Bring a rough idea, an awkward workflow or a product that is not doing its job. I help find the useful core, make it visible and turn it into a working release.</p></div>
+                        <div className="mt-10 flex flex-wrap gap-3"><Link href="/services" className="group inline-flex min-h-11 items-center gap-2 rounded-full bg-background px-5 text-sm font-semibold text-foreground">Find the right starting point <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></Link><Link href="/contact" className="inline-flex min-h-11 items-center rounded-full border border-background/20 px-5 text-sm font-semibold text-background/75 transition hover:border-background/45 hover:text-background">Discuss an idea</Link></div>
                     </div>
-                    <div>
-                        {services.map((service, index) => (
-                            <Link key={service.title} href={service.href} className="group grid gap-4 border-b border-background/15 px-6 py-8 transition-colors last:border-b-0 hover:bg-background/[0.06] md:grid-cols-[54px_minmax(0,1fr)_220px_28px] md:items-center md:px-12 lg:px-16">
-                                <span className="font-mono text-[11px] text-background/35">{String(index + 1).padStart(2, '0')}</span>
-                                <div><h3 className="text-xl font-semibold tracking-[-0.025em] sm:text-2xl">{service.title}</h3><p className="mt-2 max-w-xl text-sm leading-6 text-background/55">{service.description}</p></div>
-                                <p className="font-mono text-[9px] uppercase leading-5 tracking-[0.16em] text-background/45">{service.deliverable}</p>
-                                <ArrowUpRight className="size-5 text-background/45 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-background" />
-                            </Link>
-                        ))}
+
+                    <div className="min-w-0 border border-background/15 bg-background/[0.035] shadow-[0_32px_100px_-55px_rgba(255,255,255,.35)] backdrop-blur-sm">
+                        <div className="flex items-center justify-between gap-4 border-b border-background/15 px-4 py-3 sm:px-5"><div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.18em] text-background/50"><span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,.75)]" /> NecrotixLab / working model</div><span className="font-mono text-[9px] text-background/35">IDEA → RELEASE</span></div>
+                        <div className="grid sm:grid-cols-2">
+                            {workflow.map((step, index) => <article key={step.title} className="group relative min-h-48 border-b border-background/15 p-6 odd:sm:border-r sm:p-7"><div className="flex items-center justify-between"><span className="font-mono text-[10px] text-background/35">{step.number}</span>{index === 0 ? <CircleDot className="size-4 text-amber-300" /> : index === workflow.length - 1 ? <Check className="size-4 text-emerald-300" /> : <span className="h-px w-8 bg-background/20" />}</div><h3 className="mt-8 text-2xl font-semibold tracking-[-0.035em]">{step.title}</h3><p className="mt-3 max-w-xs text-sm leading-6 text-background/50">{step.note}</p></article>)}
+                        </div>
+                        <div className="grid border-t border-background/15 md:grid-cols-3">{serviceSignals.map(([label, value]) => <div key={label} className="border-b border-background/15 px-5 py-5 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0"><p className="font-mono text-[8px] uppercase tracking-[0.18em] text-amber-300/75">{label}</p><p className="mt-2 text-xs leading-5 text-background/60">{value}</p></div>)}</div>
+                        <div className="flex items-center gap-2 border-t border-background/15 px-5 py-3 font-mono text-[9px] uppercase tracking-[0.14em] text-background/40"><Sparkles className="size-3.5 text-amber-300" /> Scope before complexity</div>
                     </div>
                 </div>
             </section>

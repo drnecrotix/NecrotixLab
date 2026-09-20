@@ -39,19 +39,23 @@ export function HomeProjectsSection({ projects, onProjectOpen }: Props) {
     const priority = { completed: 0, ongoing: 1, planned: 2, archived: 3 } as const;
     const preferredProjects = [...projects].sort((a, b) => priority[a.status] - priority[b.status]).slice(0, 3);
     const [leadProject, ...supportingProjects] = preferredProjects;
+    const completedInSelection = preferredProjects.filter((project) => project.status === 'completed').length;
 
     if (!leadProject) return null;
 
     return (
         <section id="home-projects" aria-labelledby="projects-title" className="scroll-mt-24 border-t border-foreground/10 bg-background px-6 py-16 md:px-16 md:py-20 lg:scroll-mt-28 lg:px-24 lg:py-24">
             <div className="mx-auto w-full max-w-[1400px]">
-                <div className="mb-10 grid gap-6 border-b border-foreground/10 pb-8 lg:grid-cols-[1fr_auto] lg:items-end">
+                <div className="relative mb-10 overflow-hidden border-b border-foreground/10 pb-8">
+                    <div aria-hidden="true" className="absolute -right-24 -top-28 size-72 rounded-full border border-foreground/[0.06]" />
+                    <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
                     <div>
                         <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Selected work / Case studies</p>
-                        <h2 id="projects-title" className="mt-4 text-4xl font-semibold leading-none tracking-[-0.05em] text-foreground sm:text-5xl">Built with purpose.</h2>
-                        <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">A focused selection of digital products, communities and visual systems - including the thinking behind them.</p>
+                        <h2 id="projects-title" className="mt-4 max-w-[11ch] text-5xl font-semibold leading-[0.92] tracking-[-0.065em] text-foreground sm:text-6xl lg:text-7xl">Built with purpose.</h2>
+                        <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">Not a wall of thumbnails. A small evidence board showing the problem, the system and the decisions that made each project useful.</p>
                     </div>
-                    <Link href="/projects" onClick={onProjectOpen} className="group inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-foreground/65 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background">Explore all projects <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></Link>
+                    <div className="flex flex-col items-start gap-5 lg:items-end"><div className="grid grid-cols-3 border-y border-foreground/10 text-left lg:min-w-[390px]">{[[String(preferredProjects.length).padStart(2, '0'), 'Selected'], [String(completedInSelection).padStart(2, '0'), 'Completed'], ['01', 'Featured']].map(([value, label]) => <div key={label} className="border-r border-foreground/10 px-4 py-4 last:border-r-0"><strong className="block font-mono text-lg font-medium tabular-nums">{value}</strong><span className="mt-1 block font-mono text-[8px] uppercase tracking-[0.16em] text-muted-foreground">{label}</span></div>)}</div><Link href="/projects" onClick={onProjectOpen} className="group inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-foreground/65 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background">Explore the complete archive <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></Link></div>
+                    </div>
                 </div>
 
                 <motion.article initial={reduceMotion ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.16, 1, 0.3, 1] }}>

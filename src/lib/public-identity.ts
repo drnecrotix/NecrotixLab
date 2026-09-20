@@ -6,6 +6,7 @@ export type PublicIdentity = {
     githubUrl: string;
     linkedinUrl: string;
     instagramUrl: string;
+    discordUrl: string;
 };
 
 export const defaultPublicIdentity: PublicIdentity = {
@@ -14,6 +15,7 @@ export const defaultPublicIdentity: PublicIdentity = {
     githubUrl: defaultGeneralSiteSettings.socialLinks.github,
     linkedinUrl: '',
     instagramUrl: defaultGeneralSiteSettings.socialLinks.instagram,
+    discordUrl: defaultGeneralSiteSettings.socialLinks.discord,
 };
 
 export function buildPublicIdentity(settings: Parameters<typeof normalizeGeneralSiteSettings>[0], profileImage?: string): PublicIdentity {
@@ -24,5 +26,6 @@ export function buildPublicIdentity(settings: Parameters<typeof normalizeGeneral
         githubUrl: general.socialLinks.github,
         linkedinUrl: general.socialLinks.linkedin,
         instagramUrl: general.socialLinks.instagram,
+        discordUrl: general.socialLinks.discord,
     };
 }

@@ -7,15 +7,20 @@ import {
     Blocks,
     DraftingCompass,
     FileCode2,
+    FileCheck2,
     FileSearch,
+    FileText,
     Globe2,
     HeartPulse,
+    ImageIcon,
     LifeBuoy,
     MonitorSmartphone,
     Route,
     ScanSearch,
     SearchCode,
     ShieldCheck,
+    ShieldAlert,
+    Video,
     Workflow,
 } from 'lucide-react';
 import { BackToLabLink } from '@/components/services/BackToLabLink';
@@ -55,6 +60,11 @@ const toolIcons: Record<ServiceToolIcon, typeof HeartPulse> = {
     'scan-search': ScanSearch,
     binary: Binary,
     wrench: Workflow,
+    'file-text': FileText,
+    image: ImageIcon,
+    video: Video,
+    'file-check': FileCheck2,
+    'shield-alert': ShieldAlert,
 };
 
 export default async function ServicesPage() {
