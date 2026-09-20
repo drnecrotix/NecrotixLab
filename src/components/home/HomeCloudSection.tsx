@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
+import type { HomepageContent } from '@/lib/homepage-content';
 
 const nodes = [
     { label: 'FILES', x: 92, y: 82 },
@@ -10,22 +11,23 @@ const nodes = [
     { label: 'SYNC', x: 508, y: 318 },
 ] as const;
 
-export function HomeCloudSection() {
+export function HomeCloudSection({ content }: { content: HomepageContent }) {
     const reduceMotion = useReducedMotion();
     const moving = !reduceMotion;
+    const features = content.cloudFeatures.split('\n').map((item) => item.trim()).filter(Boolean).slice(0, 8);
 
     return (
         <section aria-labelledby="cloud-title" className="border-t border-foreground/10 bg-[linear-gradient(180deg,hsl(var(--foreground)/0.025),transparent_70%)] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
             <div className="mx-auto grid w-full min-w-0 max-w-[1400px] gap-12 lg:grid-cols-[0.72fr_1.28fr] lg:items-center lg:gap-20">
                 <div>
-                    <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-500">Kreatrics / Private cloud</p>
-                    <h2 id="cloud-title" className="mt-5 max-w-[11ch] text-4xl font-semibold leading-[0.96] tracking-[-0.055em] sm:text-5xl lg:text-6xl">One space for work that needs to stay connected.</h2>
-                    <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground">cloud.kreatrics.com is the cloud access point for Kreatrics - a dedicated workspace for files, shared material and the services that will connect the wider platform.</p>
-                    <div className="mt-7 flex flex-wrap gap-2 font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">{['Browser access', 'Organized files', 'Controlled sharing', 'Growing platform'].map((item) => <span key={item} className="border border-foreground/10 px-3 py-2">{item}</span>)}</div>
-                    <a href="https://cloud.kreatrics.com" target="_blank" rel="noreferrer" className="group mt-8 inline-flex min-h-11 items-center gap-2 rounded-full bg-foreground px-5 text-sm font-semibold text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-4 focus-visible:ring-offset-background">Open Kreatrics Cloud <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></a>
+                    <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-500">{content.cloudEyebrow}</p>
+                    <h2 id="cloud-title" className="mt-5 max-w-[11ch] text-4xl font-semibold leading-[0.96] tracking-[-0.055em] sm:text-5xl lg:text-6xl">{content.cloudTitle}</h2>
+                    <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground">{content.cloudDescription}</p>
+                    <div className="mt-7 flex flex-wrap gap-2 font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">{features.map((item) => <span key={item} className="border border-foreground/10 px-3 py-2">{item}</span>)}</div>
+                    <a href={content.cloudUrl} target="_blank" rel="noreferrer" className="group mt-8 inline-flex min-h-11 items-center gap-2 rounded-full bg-foreground px-5 text-sm font-semibold text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-4 focus-visible:ring-offset-background">{content.cloudButtonLabel} <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></a>
                 </div>
 
-                <div className="min-w-0 overflow-hidden border border-foreground/10 bg-background/80 shadow-[0_30px_100px_-60px_rgba(14,165,233,.55)]">
+                <div className="min-w-0 overflow-hidden border border-foreground/10 bg-background/80">
                     <div className="flex items-center justify-between border-b border-foreground/10 px-4 py-3 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground"><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-sky-500 shadow-[0_0_12px_rgba(14,165,233,.7)]" /> Cloud workspace</span><span>cloud.kreatrics.com</span></div>
                     <div className="relative aspect-[5/4] min-h-0 w-full sm:aspect-[3/2]">
                         <svg viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" className="block h-full w-full" role="img" aria-label="Animated diagram connecting files, access, sharing and synchronization to Kreatrics Cloud">
