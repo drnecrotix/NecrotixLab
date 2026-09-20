@@ -3,6 +3,7 @@ export const SERVICE_TOOLS_CONFIG_SLUG = '__service-tools-config';
 export const SERVICE_TOOL_ICONS = [
     'heart-pulse', 'accessibility', 'search-code', 'route', 'shield-check', 'globe',
     'drafting-compass', 'file-code', 'blocks', 'scan-search', 'binary', 'wrench',
+    'file-text', 'image', 'video', 'file-check', 'shield-alert',
 ] as const;
 
 export type ServiceToolIcon = typeof SERVICE_TOOL_ICONS[number];
@@ -24,6 +25,11 @@ export const DEFAULT_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'broken-links', name: 'Broken Links', href: '/site-crawl', icon: 'route', enabled: true, visible: true, comingSoon: false },
     { id: 'email-security', name: 'Email Security', href: '/email-domain-security', icon: 'shield-check', enabled: true, visible: true, comingSoon: false },
     { id: 'whois', name: 'WHOIS Lookup', href: '/tools/whois', icon: 'globe', enabled: false, visible: true, comingSoon: true },
+    { id: 'document-converter', name: 'Document Formats', href: '/tools/document-converter', icon: 'file-text', enabled: false, visible: true, comingSoon: true },
+    { id: 'image-converter', name: 'Image Formats', href: '/tools/image-converter', icon: 'image', enabled: false, visible: true, comingSoon: true },
+    { id: 'social-video', name: 'Social Video Download', href: '/tools/social-video', icon: 'video', enabled: false, visible: true, comingSoon: true },
+    { id: 'pdf-file-check', name: 'PDF File Check', href: '/tools/pdf-file-check', icon: 'file-check', enabled: false, visible: true, comingSoon: true },
+    { id: 'url-scam-check', name: 'URL Scam Check', href: '/tools/url-scam-check', icon: 'shield-alert', enabled: false, visible: true, comingSoon: true },
     { id: 'dxf-inspector', name: 'DXF Inspector', href: '/tools/dxf-inspector', icon: 'drafting-compass', enabled: false, visible: true, comingSoon: true },
     { id: 'gcode-viewer', name: 'G-code Viewer', href: '/tools/gcode-viewer', icon: 'file-code', enabled: false, visible: true, comingSoon: true },
     { id: 'dxf-to-gcode', name: 'DXF to G-code', href: '/tools/dxf-to-gcode', icon: 'blocks', enabled: false, visible: true, comingSoon: true },
