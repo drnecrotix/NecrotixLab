@@ -135,8 +135,8 @@ export default function HomeClient({ content, identity, posts, projects }: Props
         };
     }, [isLoading, bothSectionsVisible, projectsFirst]);
 
-    const journalSection = showBlog ? <HomeBlogSection posts={posts} /> : null;
-    const projectsSection = showProjects ? <HomeProjectsSection projects={projects} /> : null;
+    const journalSection = showBlog ? <HomeBlogSection posts={posts} content={content} /> : null;
+    const projectsSection = showProjects ? <HomeProjectsSection projects={projects} content={content} /> : null;
 
     return (
         <>
@@ -154,10 +154,11 @@ export default function HomeClient({ content, identity, posts, projects }: Props
                     identity={identity}
                 />
             </motion.main>
-            <HomeCapabilitiesSection discordUrl={identity.discordUrl} />
-            <HomeCloudSection />
-            <HomeEngineeringSection />
-            {projectsFirst ? <>{projectsSection}{journalSection}</> : <>{journalSection}{projectsSection}</>}
+            <HomeCapabilitiesSection discordUrl={identity.discordUrl} content={content} />
+            {journalSection}
+            <HomeEngineeringSection content={content} />
+            {projectsSection}
+            <HomeCloudSection content={content} />
             <HomeServicesAndLabSection projects={projects} />
         </>
     );

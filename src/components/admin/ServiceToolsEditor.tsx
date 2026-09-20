@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
-import { SERVICE_TOOL_ICONS, type ServiceTool } from '@/modules/service-tools/settings';
+import { type ServiceTool } from '@/modules/service-tools/settings';
+import { IconPicker } from '@/components/admin/IconPicker';
 
 const field = 'min-h-11 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500';
 
@@ -31,7 +32,7 @@ export function ServiceToolsEditor({ initialTools, action }: { initialTools: Ser
                         <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-[1fr_1.2fr_.8fr]">
                             <label className="text-xs text-muted-foreground">Name<input value={tool.name} onChange={(event) => patch(index, { name: event.target.value })} className={`${field} mt-1.5 text-foreground`} /></label>
                             <label className="text-xs text-muted-foreground">Internal URL<input value={tool.href} onChange={(event) => patch(index, { href: event.target.value })} placeholder="/tools/example" className={`${field} mt-1.5 font-mono text-foreground`} /></label>
-                            <label className="text-xs text-muted-foreground">Icon<select value={tool.icon} onChange={(event) => patch(index, { icon: event.target.value as ServiceTool['icon'] })} className={`${field} mt-1.5 text-foreground`}>{SERVICE_TOOL_ICONS.map((icon) => <option key={icon} value={icon}>{icon}</option>)}</select></label>
+                            <label className="text-xs text-muted-foreground">Icon<IconPicker value={tool.icon} onChange={(icon) => patch(index, { icon })} /></label>
                         </div>
                         <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm">
                             <label className="flex items-center gap-2"><input type="checkbox" checked={tool.visible} onChange={(event) => patch(index, { visible: event.target.checked })} className="size-4 accent-cyan-500" /> Visible</label>

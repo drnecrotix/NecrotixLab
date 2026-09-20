@@ -3,7 +3,11 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/visual',
   fullyParallel: true,
-  retries: process.env.CI ? 1 : 0,
+  timeout: 60_000,
+  // The dev server compiles routes on demand. Keeping CI concurrency low avoids
+  // starving it while the visual suite opens image-heavy routes in parallel.
+  workers: process.env.CI ? 2 : undefined,
+  retries: process.env.CI ? 2 : 0,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
     baseURL: 'http://127.0.0.1:3000',

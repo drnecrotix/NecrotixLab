@@ -5,8 +5,9 @@ import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { Project } from '@/types';
 import { ProjectStatusBadge } from '@/components/projects/ProjectStatusBadge';
+import type { HomepageContent } from '@/lib/homepage-content';
 
-type Props = { projects: Project[]; onProjectOpen?: () => void };
+type Props = { projects: Project[]; content: HomepageContent; onProjectOpen?: () => void };
 
 function ProjectImage({ project, className = '' }: { project: Project; className?: string }) {
     return (
@@ -34,10 +35,10 @@ function ProjectMeta({ project }: { project: Project }) {
     );
 }
 
-export function HomeProjectsSection({ projects, onProjectOpen }: Props) {
+export function HomeProjectsSection({ projects, content, onProjectOpen }: Props) {
     const reduceMotion = useReducedMotion();
     const priority = { completed: 0, ongoing: 1, planned: 2, archived: 3 } as const;
-    const preferredProjects = [...projects].sort((a, b) => priority[a.status] - priority[b.status]).slice(0, 3);
+    const preferredProjects = [...projects].sort((a, b) => priority[a.status] - priority[b.status]).slice(0, Math.min(3, content.homeProjectLimit));
     const [leadProject, ...supportingProjects] = preferredProjects;
     const completedInSelection = preferredProjects.filter((project) => project.status === 'completed').length;
 
@@ -50,9 +51,9 @@ export function HomeProjectsSection({ projects, onProjectOpen }: Props) {
                     <div aria-hidden="true" className="absolute -right-24 -top-28 size-72 rounded-full border border-foreground/[0.06]" />
                     <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
                     <div>
-                        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Selected work / Case studies</p>
-                        <h2 id="projects-title" className="mt-4 max-w-[11ch] text-5xl font-semibold leading-[0.92] tracking-[-0.065em] text-foreground sm:text-6xl lg:text-7xl">Built with purpose.</h2>
-                        <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">Not a wall of thumbnails. A small evidence board showing the problem, the system and the decisions that made each project useful.</p>
+                        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{content.projectsEyebrow}</p>
+                        <h2 id="projects-title" className="mt-4 max-w-[11ch] text-5xl font-semibold leading-[0.92] tracking-[-0.065em] text-foreground sm:text-6xl lg:text-7xl">{content.projectsStatement}</h2>
+                        <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">{content.projectsDescription}</p>
                     </div>
                     <div className="flex flex-col items-start gap-5 lg:items-end"><div className="grid grid-cols-3 border-y border-foreground/10 text-left lg:min-w-[390px]">{[[String(preferredProjects.length).padStart(2, '0'), 'Selected'], [String(completedInSelection).padStart(2, '0'), 'Completed'], ['01', 'Featured']].map(([value, label]) => <div key={label} className="border-r border-foreground/10 px-4 py-4 last:border-r-0"><strong className="block font-mono text-lg font-medium tabular-nums">{value}</strong><span className="mt-1 block font-mono text-[8px] uppercase tracking-[0.16em] text-muted-foreground">{label}</span></div>)}</div><Link href="/projects" onClick={onProjectOpen} className="group inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-foreground/65 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background">Explore the complete archive <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></Link></div>
                     </div>

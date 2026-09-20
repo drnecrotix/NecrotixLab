@@ -5,12 +5,7 @@ import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, ArrowUpRight, Braces, Check, CircleDot, MessageCircleMore, Palette, ScanSearch, Sparkles } from 'lucide-react';
 import type { Project } from '@/types';
-
-const capabilities = [
-    { number: '01', title: 'Digital products', description: 'Websites, dashboards, portals and focused tools built around a real workflow.', note: 'Design / Development / Systems', icon: Braces, href: '/projects' },
-    { number: '02', title: 'Discord Community', description: 'BG-GAMER brings people, moderation, automation and community operations into one evolving ecosystem.', note: '2,800+ members / Automation / Operations', icon: MessageCircleMore, href: '/wiki/bg-gamer' },
-    { number: '03', title: 'Visual stories', description: 'Digital art, photography and editorial experiences with a distinct identity.', note: 'Art direction / Content / Interaction', icon: Palette, href: '/gallery' },
-] as const;
+import type { HomepageContent } from '@/lib/homepage-content';
 
 const workflow = [
     { number: '01', title: 'Decode', note: 'Goals, users and constraints become a useful brief.' },
@@ -29,19 +24,24 @@ function EditorialLabel({ children }: { children: ReactNode }) {
     return <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{children}</p>;
 }
 
-export function HomeCapabilitiesSection({ discordUrl }: { discordUrl?: string }) {
+export function HomeCapabilitiesSection({ discordUrl, content }: { discordUrl?: string; content: HomepageContent }) {
     const reduceMotion = useReducedMotion();
+    const capabilities = [
+        { number: '01', title: content.capabilityOneTitle, description: content.capabilityOneDescription, note: content.capabilityOneNote, icon: Braces, href: '/lab' },
+        { number: '02', title: content.capabilityTwoTitle, description: content.capabilityTwoDescription, note: content.capabilityTwoNote, icon: MessageCircleMore, href: '/wiki/bg-gamer', discord: true },
+        { number: '03', title: content.capabilityThreeTitle, description: content.capabilityThreeDescription, note: content.capabilityThreeNote, icon: Palette, href: '/gallery' },
+    ];
 
     return (
         <section aria-labelledby="capabilities-title" className="border-t border-foreground/10 bg-background px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
             <div className="mx-auto w-full max-w-[1400px]">
                 <div className="grid gap-8 border-b border-foreground/10 pb-10 lg:grid-cols-[0.78fr_1.22fr] lg:gap-16">
                     <div>
-                        <EditorialLabel>NecrotixLab / Independent digital studio</EditorialLabel>
-                        <h2 id="capabilities-title" className="mt-5 max-w-[12ch] text-4xl font-semibold leading-[0.98] tracking-[-0.055em] text-foreground sm:text-5xl lg:text-6xl">Ideas made useful, visual and real.</h2>
+                        <EditorialLabel>{content.capabilitiesEyebrow}</EditorialLabel>
+                        <h2 id="capabilities-title" className="mt-5 max-w-[12ch] text-4xl font-semibold leading-[0.98] tracking-[-0.055em] text-foreground sm:text-5xl lg:text-6xl">{content.capabilitiesTitle}</h2>
                     </div>
                     <div className="flex max-w-2xl flex-col justify-end lg:pb-1">
-                        <p className="text-lg leading-8 text-muted-foreground sm:text-xl sm:leading-9">NecrotixLab is the independent practice of Dr. Necrotix - building digital products, community systems and visual stories from Bulgaria.</p>
+                        <p className="text-lg leading-8 text-muted-foreground sm:text-xl sm:leading-9">{content.capabilitiesDescription}</p>
                         <div className="mt-7 flex flex-wrap gap-3">
                             <Link href="/contact" className="group inline-flex min-h-11 items-center gap-2 rounded-full bg-foreground px-5 text-sm font-semibold text-background transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background motion-reduce:transform-none">Start a project <ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></Link>
                             <Link href="/projects" className="inline-flex min-h-11 items-center rounded-full border border-foreground/15 px-5 text-sm font-semibold text-foreground transition-colors hover:bg-foreground/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-background">Explore the work</Link>
@@ -49,17 +49,17 @@ export function HomeCapabilitiesSection({ discordUrl }: { discordUrl?: string })
                     </div>
                 </div>
 
-                <div className="grid lg:grid-cols-3">
+                <div className="grid items-stretch lg:grid-cols-3">
                     {capabilities.map((capability, index) => {
                         const Icon = capability.icon;
-                        const href = capability.title === 'Discord Community' && discordUrl ? discordUrl : capability.href;
+                        const href = capability.discord && discordUrl ? discordUrl : capability.href;
                         const external = href.startsWith('http');
                         return (
-                            <motion.article key={capability.title} initial={reduceMotion ? false : { opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: reduceMotion ? 0 : 0.45, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }} className="group relative border-b border-foreground/10 py-8 lg:border-b-0 lg:border-r lg:px-8 lg:py-10 lg:first:pl-0 lg:last:border-r-0 lg:last:pr-0">
+                            <motion.article key={`${capability.number}-${capability.title}`} initial={reduceMotion ? false : { opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: reduceMotion ? 0 : 0.45, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }} className="group relative flex h-full min-w-0 flex-col border-b border-foreground/10 py-8 lg:border-b-0 lg:border-r lg:px-8 lg:py-10 lg:first:pl-0 lg:last:border-r-0 lg:last:pr-0">
                                 <div className="flex items-center justify-between"><span className="font-mono text-[11px] text-muted-foreground">{capability.number}</span><Icon aria-hidden="true" className="size-5 text-foreground/45 transition-colors group-hover:text-foreground" strokeWidth={1.5} /></div>
                                 <h3 className="mt-12 text-2xl font-semibold tracking-[-0.035em] text-foreground">{capability.title}</h3>
-                                <p className="mt-3 max-w-sm text-[15px] leading-7 text-muted-foreground">{capability.description}</p>
-                                <div className="mt-8 flex items-end justify-between gap-4 border-t border-foreground/10 pt-4">
+                                <p className="mt-3 max-w-sm flex-1 text-[15px] leading-7 text-muted-foreground">{capability.description}</p>
+                                <div className="mt-8 flex min-h-[68px] items-end justify-between gap-4 border-t border-foreground/10 pt-4">
                                     <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{capability.note}</span>
                                     <Link href={href} target={external ? '_blank' : undefined} rel={external ? 'noreferrer' : undefined} aria-label={`Explore ${capability.title}`} className="grid size-9 shrink-0 place-items-center rounded-full border border-foreground/15 transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><ArrowUpRight className="size-4" /></Link>
                                 </div>

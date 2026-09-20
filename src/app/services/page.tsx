@@ -1,31 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
-    Accessibility,
     ArrowRight,
     Binary,
-    Blocks,
     DraftingCompass,
-    FileCode2,
-    FileCheck2,
     FileSearch,
-    FileText,
     Globe2,
     HeartPulse,
-    ImageIcon,
     LifeBuoy,
     MonitorSmartphone,
-    Route,
-    ScanSearch,
-    SearchCode,
-    ShieldCheck,
-    ShieldAlert,
-    Video,
     Workflow,
 } from 'lucide-react';
 import { BackToLabLink } from '@/components/services/BackToLabLink';
 import { prisma } from '@/lib/prisma';
-import { normalizeServiceTools, SERVICE_TOOLS_CONFIG_SLUG, type ServiceToolIcon } from '@/modules/service-tools/settings';
+import { normalizeServiceTools, SERVICE_TOOLS_CONFIG_SLUG } from '@/modules/service-tools/settings';
+import { SupportedIcon } from '@/components/ui/SupportedIcon';
 
 export const metadata: Metadata = {
     title: 'Lab Services',
@@ -46,26 +35,6 @@ const engineeringServices = [
     { icon: FileSearch, title: 'Existing program review', description: 'Review and optimization of G-code structure, tool movement, feeds and program safety.' },
     { icon: Workflow, title: 'CAD to manufacturing', description: 'DXF or DWG preparation, operations, tooling strategy and setup documentation.' },
 ] as const;
-
-const toolIcons: Record<ServiceToolIcon, typeof HeartPulse> = {
-    'heart-pulse': HeartPulse,
-    accessibility: Accessibility,
-    'search-code': SearchCode,
-    route: Route,
-    'shield-check': ShieldCheck,
-    globe: Globe2,
-    'drafting-compass': DraftingCompass,
-    'file-code': FileCode2,
-    blocks: Blocks,
-    'scan-search': ScanSearch,
-    binary: Binary,
-    wrench: Workflow,
-    'file-text': FileText,
-    image: ImageIcon,
-    video: Video,
-    'file-check': FileCheck2,
-    'shield-alert': ShieldAlert,
-};
 
 export default async function ServicesPage() {
     const config = await prisma.page.findUnique({ where: { slug: SERVICE_TOOLS_CONFIG_SLUG }, select: { content: true } }).catch(() => null);
@@ -117,9 +86,8 @@ export default async function ServicesPage() {
                     </div>
                     <div className="grid grid-cols-2 border-l border-border/70 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                         {tools.map(({ id, href, icon, name, enabled, comingSoon }) => {
-                            const Icon = toolIcons[icon];
                             const available = enabled && Boolean(href);
-                            const content = <><span className="relative"><Icon className={`size-7 transition-transform ${available ? 'text-cyan-500 group-hover:-translate-y-1' : 'text-muted-foreground/55'}`} strokeWidth={1.5} />{comingSoon ? <span className="absolute -right-2 -top-2 size-1.5 rounded-full bg-amber-500" aria-label="Coming soon" /> : null}</span><span className={`mt-4 text-center text-xs font-semibold ${available ? 'text-foreground' : 'text-muted-foreground'}`}>{name}</span></>;
+                            const content = <><span className="relative"><SupportedIcon name={icon} className={`size-7 transition-transform ${available ? 'text-cyan-500 group-hover:-translate-y-1' : 'text-muted-foreground/55'}`} strokeWidth={1.5} />{comingSoon ? <span className="absolute -right-2 -top-2 size-1.5 rounded-full bg-amber-500" aria-label="Coming soon" /> : null}</span><span className={`mt-4 text-center text-xs font-semibold ${available ? 'text-foreground' : 'text-muted-foreground'}`}>{name}</span></>;
                             const className = 'group flex aspect-square min-h-32 flex-col items-center justify-center border-b border-r border-border/70 px-3 py-5 transition-colors';
                             return available ? <Link key={id} href={href} className={`${className} hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-500`}>{content}</Link> : <div key={id} className={`${className} cursor-default bg-foreground/[0.015]`} title={comingSoon ? 'Coming soon' : 'Temporarily unavailable'}>{content}</div>;
                         })}

@@ -1,12 +1,9 @@
 export const SERVICE_TOOLS_CONFIG_SLUG = '__service-tools-config';
 
-export const SERVICE_TOOL_ICONS = [
-    'heart-pulse', 'accessibility', 'search-code', 'route', 'shield-check', 'globe',
-    'drafting-compass', 'file-code', 'blocks', 'scan-search', 'binary', 'wrench',
-    'file-text', 'image', 'video', 'file-check', 'shield-alert',
-] as const;
+import { isSupportedIcon, SUPPORTED_ICON_NAMES, type SupportedIconName } from '@/lib/icon-library';
 
-export type ServiceToolIcon = typeof SERVICE_TOOL_ICONS[number];
+export const SERVICE_TOOL_ICONS = SUPPORTED_ICON_NAMES;
+export type ServiceToolIcon = SupportedIconName;
 
 export type ServiceTool = {
     id: string;
@@ -37,8 +34,6 @@ export const DEFAULT_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'gerber-to-gcode', name: 'Gerber to G-code', href: '/tools/gerber-to-gcode', icon: 'binary', enabled: false, visible: true, comingSoon: true },
 ];
 
-const iconSet = new Set<string>(SERVICE_TOOL_ICONS);
-
 function text(value: unknown, fallback: string, max: number) {
     const normalized = typeof value === 'string' ? value.trim() : '';
     return (normalized || fallback).slice(0, max);
@@ -60,7 +55,7 @@ export function normalizeServiceTools(value: unknown): ServiceTool[] {
             id,
             name: text(source.name, `Tool ${index + 1}`, 80),
             href,
-            icon: iconSet.has(String(source.icon)) ? source.icon as ServiceToolIcon : 'wrench',
+            icon: isSupportedIcon(source.icon) ? source.icon : 'wrench',
             enabled: source.enabled === true,
             visible: source.visible !== false,
             comingSoon: source.comingSoon === true,

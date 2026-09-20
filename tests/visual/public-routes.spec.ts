@@ -27,8 +27,7 @@ const routes = [
 const themes = ['dark', 'light'] as const;
 
 async function gotoWithTheme(page: Page, route: string, theme: (typeof themes)[number]) {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await page.evaluate((selectedTheme) => {
+  await page.addInitScript((selectedTheme) => {
     localStorage.setItem('portfolio-theme', selectedTheme);
     sessionStorage.setItem('portfolioLoaded', 'true');
   }, theme);
@@ -36,7 +35,7 @@ async function gotoWithTheme(page: Page, route: string, theme: (typeof themes)[n
   // Do not wait for networkidle here. Some public pages intentionally perform
   // background/external requests after rendering, so network activity is not a
   // reliable readiness signal and can make the smoke suite time out on CI.
-  return page.goto(route, { waitUntil: 'domcontentloaded' });
+  return page.goto(route, { waitUntil: 'domcontentloaded', timeout: 60_000 });
 }
 
 for (const theme of themes) {
