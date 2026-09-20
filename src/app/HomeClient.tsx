@@ -8,6 +8,7 @@ import { HomeBlogSection } from '@/components/home/HomeBlogSection';
 import { HomeProjectsSection } from '@/components/home/HomeProjectsSection';
 import { HomeCapabilitiesSection, HomeServicesAndLabSection } from '@/components/home/HomeEditorialSections';
 import { HomeEngineeringSection } from '@/components/home/HomeEngineeringSection';
+import { HomeCloudSection } from '@/components/home/HomeCloudSection';
 import { usePreloadState } from '@/components/ui/arc-preloader-hero';
 import type { HomepageContent } from '@/lib/homepage-content';
 import type { PublicIdentity } from '@/lib/public-identity';
@@ -154,6 +155,7 @@ export default function HomeClient({ content, identity, posts, projects }: Props
                 />
             </motion.main>
             <HomeCapabilitiesSection discordUrl={identity.discordUrl} />
+            <HomeCloudSection />
             <HomeEngineeringSection />
             {projectsFirst ? <>{projectsSection}{journalSection}</> : <>{journalSection}{projectsSection}</>}
             <HomeServicesAndLabSection projects={projects} />
