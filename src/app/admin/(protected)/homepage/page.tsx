@@ -2,75 +2,45 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { normalizeHomepageContent } from '@/lib/homepage-content';
 import { MediaPicker } from '@/components/admin/MediaPicker';
+import { HomepageAdminTabs } from '@/components/admin/HomepageAdminTabs';
 import { updateHomepage } from './actions';
 
 const input = 'mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm outline-none focus:border-white/30';
 const section = 'rounded-2xl border border-white/10 bg-white/[0.025] p-6';
+
+function Heading({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
+    return <div className="mb-6 border-b border-white/10 pb-5"><p className="font-mono text-[9px] uppercase tracking-[0.22em] text-cyan-400/70">{eyebrow}</p><h3 className="mt-2 text-xl font-semibold">{title}</h3><p className="mt-2 max-w-2xl text-xs leading-5 text-white/35">{description}</p></div>;
+}
 
 export default async function HomepageAdminPage() {
     const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
     const content = normalizeHomepageContent(settings?.homepageContent);
 
     return (
-        <div className="mx-auto max-w-5xl">
-            <div className="mb-10 flex items-end justify-between gap-4">
-                <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-white/35">Protected visual editor</p>
-                    <h2 className="mt-2 text-4xl font-semibold">Homepage</h2>
-                    <p className="mt-3 max-w-2xl text-sm text-white/45">Edit the homepage hero, profile card, Blog and Projects sections. Sharing, metadata and crawler settings are managed from SEO.</p>
-                </div>
-                <div className="flex gap-2">
-                    <Link href="/admin/seo" className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/55 hover:text-white">SEO settings</Link>
-                    <Link href="/" target="_blank" className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/70 hover:text-white">Preview</Link>
-                </div>
+        <div className="mx-auto max-w-6xl">
+            <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+                <div><p className="text-xs uppercase tracking-[0.3em] text-white/35">Protected visual editor</p><h2 className="mt-2 text-4xl font-semibold">Homepage</h2><p className="mt-3 max-w-2xl text-sm text-white/45">Edit each homepage area independently. The tabs follow the same order visitors see on the page.</p></div>
+                <div className="flex gap-2"><Link href="/admin/seo" className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/55 hover:text-white">SEO settings</Link><Link href="/" target="_blank" className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/70 hover:text-white">Preview</Link></div>
             </div>
 
-            <form action={updateHomepage} className="space-y-8">
-                <section className={`${section} grid gap-5 md:grid-cols-2`}>
-                    <label className="text-sm text-white/60 md:col-span-2">Intro<textarea name="intro" defaultValue={content.intro} rows={3} className={input} /></label>
-                    <label className="text-sm text-white/60">Hero line 1<input name="lineOne" defaultValue={content.lineOne} className={input} /></label>
-                    <div />
-                    <label className="text-sm text-white/60">Hero line 2 - before icon<input name="lineTwoPrefix" defaultValue={content.lineTwoPrefix} className={input} /></label>
-                    <label className="text-sm text-white/60">Hero line 2 - after icon<input name="lineTwoSuffix" defaultValue={content.lineTwoSuffix} className={input} /></label>
-                    <label className="text-sm text-white/60">Hero line 3 - before icon<input name="lineThreePrefix" defaultValue={content.lineThreePrefix} className={input} /></label>
-                    <label className="text-sm text-white/60">Hero line 3 - after icon<input name="lineThreeSuffix" defaultValue={content.lineThreeSuffix} className={input} /></label>
-                    <label className="text-sm text-white/60 md:col-span-2">Collaboration text<textarea name="collaboration" defaultValue={content.collaboration} rows={3} className={input} /></label>
-                </section>
-
-                <section className={`${section} grid gap-5 md:grid-cols-2`}>
-                    <label className="text-sm text-white/60">Workspace/project URL<input name="workspaceUrl" defaultValue={content.workspaceUrl} className={input} /></label>
-                    <label className="text-sm text-white/60">Workspace tooltip<input name="workspaceTooltip" defaultValue={content.workspaceTooltip} className={input} /></label>
-                    <label className="text-sm text-white/60">Assistant tooltip<input name="assistantTooltip" defaultValue={content.assistantTooltip} className={input} /></label>
-                    <label className="text-sm text-white/60">Availability tab<input name="availabilityLabel" defaultValue={content.availabilityLabel} className={input} /></label>
-                    <label className="text-sm text-white/60">Profile card name<input name="profileName" defaultValue={content.profileName} placeholder="Use site name" className={input} /><span className="mt-2 block text-xs leading-relaxed text-white/30">Independent from the site name. Leave empty to use the public site identity.</span></label>
-                    <label className="text-sm text-white/60">Profile card title<input name="profileTitle" defaultValue={content.profileTitle} className={input} /></label>
-                    <label className="text-sm text-white/60 md:col-span-2">Profile card description<textarea name="profileDescription" defaultValue={content.profileDescription} rows={4} className={input} /></label>
-                    <div className="md:col-span-2"><MediaPicker value={content.profileImage} inputName="profileImage" label="Profile card image" /></div>
-                </section>
-
-                <section className={`${section} grid gap-5 md:grid-cols-2`}>
-                    <div className="md:col-span-2">
-                        <p className="text-xs uppercase tracking-[0.25em] text-white/35">Homepage Blog</p>
-                        <label className="mt-4 flex items-center gap-3 text-sm text-white/70"><input type="checkbox" name="showBlogPosts" defaultChecked={content.showBlogPosts} className="size-4" /> Show blog posts on homepage</label>
+            <form action={updateHomepage}>
+                <HomepageAdminTabs>
+                    <div className="space-y-6">
+                        <section className={`${section} grid gap-5 md:grid-cols-2`}><div className="md:col-span-2"><Heading eyebrow="01 / Hero" title="Opening message" description="The existing first-screen design stays unchanged. These fields only control its copy and actions." /></div><label className="text-sm text-white/60 md:col-span-2">Intro<textarea name="intro" defaultValue={content.intro} rows={3} className={input} /></label><label className="text-sm text-white/60">Hero line 1<input name="lineOne" defaultValue={content.lineOne} className={input} /></label><div /><label className="text-sm text-white/60">Hero line 2 - before icon<input name="lineTwoPrefix" defaultValue={content.lineTwoPrefix} className={input} /></label><label className="text-sm text-white/60">Hero line 2 - after icon<input name="lineTwoSuffix" defaultValue={content.lineTwoSuffix} className={input} /></label><label className="text-sm text-white/60">Hero line 3 - before icon<input name="lineThreePrefix" defaultValue={content.lineThreePrefix} className={input} /></label><label className="text-sm text-white/60">Hero line 3 - after icon<input name="lineThreeSuffix" defaultValue={content.lineThreeSuffix} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Collaboration text<textarea name="collaboration" defaultValue={content.collaboration} rows={3} className={input} /></label></section>
+                        <section className={`${section} grid gap-5 md:grid-cols-2`}><div className="md:col-span-2"><Heading eyebrow="Profile" title="Actions and identity card" description="Controls the hero actions and the compact public profile." /></div><label className="text-sm text-white/60">Workspace/project URL<input name="workspaceUrl" defaultValue={content.workspaceUrl} className={input} /></label><label className="text-sm text-white/60">Workspace tooltip<input name="workspaceTooltip" defaultValue={content.workspaceTooltip} className={input} /></label><label className="text-sm text-white/60">Assistant tooltip<input name="assistantTooltip" defaultValue={content.assistantTooltip} className={input} /></label><label className="text-sm text-white/60">Availability tab<input name="availabilityLabel" defaultValue={content.availabilityLabel} className={input} /></label><label className="text-sm text-white/60">Profile card name<input name="profileName" defaultValue={content.profileName} placeholder="Use site name" className={input} /></label><label className="text-sm text-white/60">Profile card title<input name="profileTitle" defaultValue={content.profileTitle} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Profile card description<textarea name="profileDescription" defaultValue={content.profileDescription} rows={4} className={input} /></label><div className="md:col-span-2"><MediaPicker value={content.profileImage} inputName="profileImage" label="Profile card image" /></div></section>
                     </div>
-                    <label className="text-sm text-white/60">Section title<input name="homeBlogTitle" defaultValue={content.homeBlogTitle} className={input} /></label>
-                    <label className="text-sm text-white/60">Posts to show<input type="number" min={1} max={5} name="homeBlogPostLimit" defaultValue={content.homeBlogPostLimit} className={input} /></label>
-                    <label className="text-sm text-white/60 md:col-span-2">Section subtitle<textarea name="homeBlogSubtitle" defaultValue={content.homeBlogSubtitle} rows={2} className={input} /></label>
-                    <p className="text-xs leading-relaxed text-white/35 md:col-span-2">Shows up to 5 newest Journal posts on the homepage. The full publication archive remains available on the Blog page.</p>
-                </section>
 
-                <section className={`${section} grid gap-5 md:grid-cols-2`}>
-                    <div className="md:col-span-2">
-                        <p className="text-xs uppercase tracking-[0.25em] text-white/35">Homepage Projects</p>
-                        <label className="mt-4 flex items-center gap-3 text-sm text-white/70"><input type="checkbox" name="showProjects" defaultChecked={content.showProjects} className="size-4" /> Show projects on homepage</label>
-                    </div>
-                    <label className="text-sm text-white/60">Section title<input name="homeProjectsTitle" defaultValue={content.homeProjectsTitle} className={input} /></label>
-                    <label className="text-sm text-white/60">Projects to show<input type="number" min={1} max={5} name="homeProjectLimit" defaultValue={content.homeProjectLimit} className={input} /></label>
-                    <label className="text-sm text-white/60 md:col-span-2">Section subtitle<textarea name="homeProjectsSubtitle" defaultValue={content.homeProjectsSubtitle} rows={2} className={input} /></label>
-                    <p className="text-xs leading-relaxed text-white/35 md:col-span-2">Shows up to 5 newest projects on the homepage. Desktop scrolling is gently assisted at the Journal / Projects boundary while mobile and touch scrolling remain native.</p>
-                </section>
+                    <section className={`${section} grid gap-5 md:grid-cols-2`}><div className="md:col-span-2"><Heading eyebrow="02 / Ideas" title="Ideas made useful, visual and real" description="Introductory statement and the three aligned capability cards." /></div><label className="text-sm text-white/60">Eyebrow<input name="capabilitiesEyebrow" defaultValue={content.capabilitiesEyebrow} className={input} /></label><label className="text-sm text-white/60">Main heading<input name="capabilitiesTitle" defaultValue={content.capabilitiesTitle} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Introduction<textarea name="capabilitiesDescription" defaultValue={content.capabilitiesDescription} rows={3} className={input} /></label>{([1, 2, 3] as const).map((number) => { const prefix = number === 1 ? 'capabilityOne' : number === 2 ? 'capabilityTwo' : 'capabilityThree'; return <div key={prefix} className="rounded-xl border border-white/10 p-4 md:col-span-2"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/35">Card {String(number).padStart(2, '0')}</p><div className="mt-3 grid gap-4 md:grid-cols-2"><label className="text-sm text-white/60">Title<input name={`${prefix}Title`} defaultValue={content[`${prefix}Title`]} className={input} /></label><label className="text-sm text-white/60">Footer note<input name={`${prefix}Note`} defaultValue={content[`${prefix}Note`]} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Description<textarea name={`${prefix}Description`} defaultValue={content[`${prefix}Description`]} rows={2} className={input} /></label></div></div>; })}</section>
 
-                <button className="rounded-xl bg-white px-5 py-3 font-semibold text-black">Save homepage</button>
+                    <section className={`${section} grid gap-5 md:grid-cols-2`}><div className="md:col-span-2"><Heading eyebrow="03 / Journal" title="Dynamic publications" description="The newest Journal content appears immediately after Ideas, so returning visitors see fresh information early." /><label className="flex items-center gap-3 text-sm text-white/70"><input type="checkbox" name="showBlogPosts" defaultChecked={content.showBlogPosts} className="size-4" /> Show Journal on homepage</label></div><label className="text-sm text-white/60">Section title<input name="homeBlogTitle" defaultValue={content.homeBlogTitle} className={input} /></label><label className="text-sm text-white/60">Posts to show<input type="number" min={1} max={5} name="homeBlogPostLimit" defaultValue={content.homeBlogPostLimit} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Section subtitle<textarea name="homeBlogSubtitle" defaultValue={content.homeBlogSubtitle} rows={2} className={input} /></label></section>
+
+                    <section className={`${section} grid gap-5 md:grid-cols-2`}><div className="md:col-span-2"><Heading eyebrow="04 / Engineering" title="Engineering / CNC Lab" description="Copy, service list and action shown next to the animated toolpath preview." /></div><label className="text-sm text-white/60">Eyebrow<input name="engineeringEyebrow" defaultValue={content.engineeringEyebrow} className={input} /></label><label className="text-sm text-white/60">Heading<input name="engineeringTitle" defaultValue={content.engineeringTitle} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Description<textarea name="engineeringDescription" defaultValue={content.engineeringDescription} rows={3} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Services - one per line<textarea name="engineeringServices" defaultValue={content.engineeringServices} rows={7} className={`${input} font-mono`} /></label><label className="text-sm text-white/60">Button label<input name="engineeringButtonLabel" defaultValue={content.engineeringButtonLabel} className={input} /></label><label className="text-sm text-white/60">Button URL<input name="engineeringButtonUrl" defaultValue={content.engineeringButtonUrl} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Status label<input name="engineeringStatus" defaultValue={content.engineeringStatus} className={input} /></label></section>
+
+                    <section className={`${section} grid gap-5 md:grid-cols-2`}><div className="md:col-span-2"><Heading eyebrow="05 / Selected work" title="Case studies" description="Controls both the dynamic project selection and the editorial framing around it." /><label className="flex items-center gap-3 text-sm text-white/70"><input type="checkbox" name="showProjects" defaultChecked={content.showProjects} className="size-4" /> Show selected work on homepage</label></div><label className="text-sm text-white/60">Section label<input name="projectsEyebrow" defaultValue={content.projectsEyebrow} className={input} /></label><label className="text-sm text-white/60">Statement<input name="projectsStatement" defaultValue={content.projectsStatement} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Editorial description<textarea name="projectsDescription" defaultValue={content.projectsDescription} rows={3} className={input} /></label><input type="hidden" name="homeProjectsTitle" value={content.homeProjectsTitle} /><input type="hidden" name="homeProjectsSubtitle" value={content.homeProjectsSubtitle} /><label className="text-sm text-white/60">Projects to show<input type="number" min={1} max={3} name="homeProjectLimit" defaultValue={Math.min(3, content.homeProjectLimit)} className={input} /></label></section>
+
+                    <section className={`${section} grid gap-5 md:grid-cols-2`}><div className="md:col-span-2"><Heading eyebrow="06 / Cloud" title="Kreatrics Cloud" description="The final feature in the balanced dynamic/static homepage sequence." /></div><label className="text-sm text-white/60">Eyebrow<input name="cloudEyebrow" defaultValue={content.cloudEyebrow} className={input} /></label><label className="text-sm text-white/60">Heading<input name="cloudTitle" defaultValue={content.cloudTitle} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Description<textarea name="cloudDescription" defaultValue={content.cloudDescription} rows={3} className={input} /></label><label className="text-sm text-white/60 md:col-span-2">Feature labels - one per line<textarea name="cloudFeatures" defaultValue={content.cloudFeatures} rows={5} className={`${input} font-mono`} /></label><label className="text-sm text-white/60">Button label<input name="cloudButtonLabel" defaultValue={content.cloudButtonLabel} className={input} /></label><label className="text-sm text-white/60">Cloud URL<input name="cloudUrl" defaultValue={content.cloudUrl} className={input} /></label></section>
+                </HomepageAdminTabs>
+                <div className="sticky bottom-4 z-30 mt-6 flex justify-end rounded-2xl border border-white/10 bg-black/85 p-3 backdrop-blur"><button className="rounded-xl bg-white px-5 py-3 font-semibold text-black">Save homepage</button></div>
             </form>
         </div>
     );
