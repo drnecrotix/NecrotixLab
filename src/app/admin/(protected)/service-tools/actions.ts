@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { normalizeServiceTools, SERVICE_TOOLS_CONFIG_SLUG } from '@/modules/service-tools/settings';
+import { normalizeServiceToolsConfig, SERVICE_TOOLS_CONFIG_SLUG, SERVICE_TOOLS_CONFIG_VERSION } from '@/modules/service-tools/settings';
 
 export async function updateServiceTools(form: FormData) {
     let destination = '/admin/service-tools?saved=1';
@@ -12,7 +12,7 @@ export async function updateServiceTools(form: FormData) {
         const session = await auth();
         if (!session?.user || !['OWNER', 'ADMIN'].includes(session.user.role)) throw new Error('Forbidden');
         const raw = JSON.parse(String(form.get('tools') ?? '[]')) as unknown;
-        const tools = normalizeServiceTools(raw);
+        const tools = normalizeServiceToolsConfig({ version: SERVICE_TOOLS_CONFIG_VERSION, tools: raw });
         await prisma.page.upsert({
             where: { slug: SERVICE_TOOLS_CONFIG_SLUG },
             create: { slug: SERVICE_TOOLS_CONFIG_SLUG, title: 'Service tools configuration', status: 'DRAFT', content: tools },

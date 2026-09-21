@@ -15,7 +15,9 @@ export type ServiceTool = {
     comingSoon: boolean;
 };
 
-export const DEFAULT_SERVICE_TOOLS: ServiceTool[] = [
+export const SERVICE_TOOLS_CONFIG_VERSION = 2;
+
+const CORE_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'website-inspector', name: 'Website Inspector', href: '/services/website-inspector', icon: 'heart-pulse', enabled: true, visible: true, comingSoon: false },
     { id: 'accessibility', name: 'Accessibility', href: '/accessibility-check', icon: 'accessibility', enabled: true, visible: true, comingSoon: false },
     { id: 'seo-intelligence', name: 'SEO Intelligence', href: '/seo-intelligence', icon: 'search-code', enabled: true, visible: true, comingSoon: false },
@@ -34,15 +36,37 @@ export const DEFAULT_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'gerber-to-gcode', name: 'Gerber to G-code', href: '/tools/gerber-to-gcode', icon: 'binary', enabled: false, visible: true, comingSoon: true },
 ];
 
-function text(value: unknown, fallback: string, max: number) {
-    const normalized = typeof value === 'string' ? value.trim() : '';
-    return (normalized || fallback).slice(0, max);
-}
+export const DOCUMENT_AND_BINARY_TOOLS: ServiceTool[] = [
+    { id: 'merge-pdf', name: 'Merge PDF', href: '/tools/merge-pdf', icon: 'combine', enabled: false, visible: true, comingSoon: true },
+    { id: 'split-pdf', name: 'Split PDF', href: '/tools/split-pdf', icon: 'scissors', enabled: false, visible: true, comingSoon: true },
+    { id: 'organize-pdf', name: 'Organize PDF', href: '/tools/organize-pdf', icon: 'list-ordered', enabled: false, visible: true, comingSoon: true },
+    { id: 'compress-pdf', name: 'Compress PDF', href: '/tools/compress-pdf', icon: 'shrink', enabled: false, visible: true, comingSoon: true },
+    { id: 'images-to-pdf', name: 'Images to PDF', href: '/tools/images-to-pdf', icon: 'image-plus', enabled: false, visible: true, comingSoon: true },
+    { id: 'pdf-to-images', name: 'PDF to Images', href: '/tools/pdf-to-images', icon: 'file-image', enabled: false, visible: true, comingSoon: true },
+    { id: 'sign-pdf', name: 'Sign PDF', href: '/tools/sign-pdf', icon: 'pen-line', enabled: false, visible: true, comingSoon: true },
+    { id: 'watermark-pdf', name: 'PDF Watermark', href: '/tools/watermark-pdf', icon: 'stamp', enabled: false, visible: true, comingSoon: true },
+    { id: 'document-inspector', name: 'Document Inspector & Privacy Cleaner', href: '/tools/document-inspector', icon: 'file-scan', enabled: true, visible: true, comingSoon: false },
+    { id: 'compare-documents', name: 'Compare Documents', href: '/tools/compare-documents', icon: 'file-diff', enabled: false, visible: true, comingSoon: true },
+    { id: 'binary-converter', name: 'Binary Converter', href: '/tools/binary-converter', icon: 'binary', enabled: true, visible: true, comingSoon: false },
+    { id: 'base64-codec', name: 'Base64 Encode / Decode', href: '/tools/base64', icon: 'braces', enabled: true, visible: true, comingSoon: false },
+    { id: 'file-hash', name: 'File Hash', href: '/tools/file-hash', icon: 'fingerprint', enabled: true, visible: true, comingSoon: false },
+    { id: 'hex-viewer', name: 'Hex Viewer', href: '/tools/hex-viewer', icon: 'file-json', enabled: true, visible: true, comingSoon: false },
+];
 
-export function normalizeServiceTools(value: unknown): ServiceTool[] {
-    if (!Array.isArray(value)) return DEFAULT_SERVICE_TOOLS.map((tool) => ({ ...tool }));
+export const DEFAULT_SERVICE_TOOLS: ServiceTool[] = [
+    ...CORE_SERVICE_TOOLS,
+    ...DOCUMENT_AND_BINARY_TOOLS,
+];
+
+type ServiceToolsConfig = {
+    version: number;
+    tools: ServiceTool[];
+};
+
+function normalizeEntries(value: unknown): ServiceTool[] {
+    if (!Array.isArray(value)) return [];
     const seen = new Set<string>();
-    return value.slice(0, 48).flatMap((entry, index) => {
+    return value.slice(0, 64).flatMap((entry, index) => {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
         const source = entry as Partial<ServiceTool>;
         let id = text(source.id, `tool-${index + 1}`, 64).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
@@ -51,14 +75,29 @@ export function normalizeServiceTools(value: unknown): ServiceTool[] {
         seen.add(id);
         const rawHref = text(source.href, '', 240);
         const href = rawHref.startsWith('/') && !rawHref.startsWith('//') ? rawHref : '';
-        return [{
-            id,
-            name: text(source.name, `Tool ${index + 1}`, 80),
-            href,
-            icon: isSupportedIcon(source.icon) ? source.icon : 'wrench',
-            enabled: source.enabled === true,
-            visible: source.visible !== false,
-            comingSoon: source.comingSoon === true,
-        }];
+        return [{ id, name: text(source.name, `Tool ${index + 1}`, 80), href, icon: isSupportedIcon(source.icon) ? source.icon : 'wrench', enabled: source.enabled === true, visible: source.visible !== false, comingSoon: source.comingSoon === true }];
     });
+}
+
+export function normalizeServiceToolsConfig(value: unknown): ServiceToolsConfig {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value as { version?: unknown; tools?: unknown } : null;
+    const version = typeof source?.version === 'number' ? source.version : Array.isArray(value) ? 1 : 0;
+    const configured = normalizeEntries(source?.tools ?? value);
+    if (!configured.length && version === 0) return { version: SERVICE_TOOLS_CONFIG_VERSION, tools: DEFAULT_SERVICE_TOOLS.map((tool) => ({ ...tool })) };
+
+    const tools = [...configured];
+    if (version < SERVICE_TOOLS_CONFIG_VERSION) {
+        const existing = new Set(tools.map((tool) => tool.id));
+        for (const tool of DOCUMENT_AND_BINARY_TOOLS) if (!existing.has(tool.id)) tools.push({ ...tool });
+    }
+    return { version: SERVICE_TOOLS_CONFIG_VERSION, tools };
+}
+
+function text(value: unknown, fallback: string, max: number) {
+    const normalized = typeof value === 'string' ? value.trim() : '';
+    return (normalized || fallback).slice(0, max);
+}
+
+export function normalizeServiceTools(value: unknown): ServiceTool[] {
+    return normalizeServiceToolsConfig(value).tools;
 }
