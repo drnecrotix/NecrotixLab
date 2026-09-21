@@ -36,6 +36,7 @@ export async function savePwaSettings(form: FormData): Promise<PwaSaveResult> {
         await requireAdministrator();
 
         const settings = normalizePwaSettings({
+            iconRevision: Date.now().toString(36),
             name: form.get('name'),
             shortName: form.get('shortName'),
             description: form.get('description'),
@@ -114,7 +115,7 @@ export async function savePwaSettings(form: FormData): Promise<PwaSaveResult> {
 
         return {
             ok: true,
-            message: 'PWA settings saved. Installed apps pick this up on the next launch.',
+            message: 'PWA settings saved. Icon URLs refreshed. Installed icon updates depend on the browser; iOS may require reinstalling the home-screen shortcut.',
             savedAt: saved.updatedAt.toISOString(),
             settings,
         };
