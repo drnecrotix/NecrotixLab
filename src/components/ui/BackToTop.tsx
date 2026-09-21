@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp } from 'lucide-react';
 
 export function BackToTop() {
@@ -10,73 +10,15 @@ export function BackToTop() {
     const onBlog = pathname === '/blog' || pathname.startsWith('/blog/');
     const onWiki = pathname === '/wiki' || pathname.startsWith('/wiki/');
     const [isVisible, setIsVisible] = useState(false);
-    // Use refs for values that change rapidly to avoid re-renders
-    const isVisibleRef = useRef(false);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Magnetic Logic
-    const ref = useRef<HTMLDivElement>(null);
-    const x = useMotionValue(0);
-    const y = useMotionValue(0);
-
-    const mouseX = useSpring(x, { stiffness: 120, damping: 14, mass: 0.1 });
-    const mouseY = useSpring(y, { stiffness: 120, damping: 14, mass: 0.1 });
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        const { clientX, clientY } = e;
-        const rect = ref.current?.getBoundingClientRect();
-        if (rect) {
-            const { height, width, left, top } = rect;
-            const middleX = clientX - (left + width / 2);
-            const middleY = clientY - (top + height / 2);
-
-            // Standard sensitivity
-            x.set(middleX);
-            y.set(middleY);
-        }
-    };
-
-    const handleMouseLeave = () => {
-        x.set(0);
-        y.set(0);
-    };
-
-    // Optimized Scroll Logic
     useEffect(() => {
-        const handleScroll = () => {
-            // 1. Clear any existing timeout (the "stop" detector)
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-            }
-
-            // 2. If currently visible, hide it immediately (state change only if needed)
-            if (isVisibleRef.current) {
-                setIsVisible(false);
-                isVisibleRef.current = false;
-            }
-
-            // 3. Set new timeout to detect scroll stop
-            timeoutRef.current = setTimeout(() => {
-                const scrolledEnough = window.scrollY > 100;
-
-                if (scrolledEnough && !isVisibleRef.current) {
-                    setIsVisible(true);
-                    isVisibleRef.current = true;
-                } else if (!scrolledEnough && isVisibleRef.current) {
-                    setIsVisible(false);
-                    isVisibleRef.current = false;
-                }
-            }, 100); // 100ms debounce
-        };
-
-        // Passive listener for performance
-        window.addEventListener('scroll', handleScroll, { passive: true });
-
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        };
-    }, []);
+        const footer = document.querySelector<HTMLElement>('[data-site-footer]');
+        if (!footer) return;
+        const observer = new IntersectionObserver(([entry]) => setIsVisible(Boolean(entry?.isIntersecting)), {
+            threshold: 0.08,
+        });
+        observer.observe(footer);
+        return () => observer.disconnect();
+    }, [pathname]);
 
     const scrollToTop = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -87,27 +29,21 @@ export function BackToTop() {
     return (
         <AnimatePresence>
             {isVisible && (
-                // Wrapper: Large touch target for magnetic pull
                 <div
-                    ref={ref}
                     data-back-to-top=""
-                    onMouseMove={handleMouseMove}
-                    onMouseLeave={handleMouseLeave}
-                    className="fixed bottom-6 right-6 z-[100] w-32 h-32 flex items-center justify-center pointer-events-auto hide-on-modal transition-all duration-300"
+                    className="pointer-events-none fixed bottom-5 right-5 z-[100] flex items-center justify-center hide-on-modal sm:bottom-8 sm:right-8"
                 >
                     <motion.button
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.5 }}
-                        transition={{ duration: 0.2 }}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 12 }}
+                        transition={{ duration: 0.22 }}
                         onClick={scrollToTop}
-                        style={{ x: mouseX, y: mouseY }}
-                        className="relative h-14 w-14 rounded-full bg-foreground text-background shadow-2xl flex items-center justify-center border border-background/20 backdrop-blur-md cursor-pointer group"
+                        aria-label="Return to page start"
+                        className="group pointer-events-auto inline-flex min-h-12 items-center gap-2 rounded-full border border-foreground/15 bg-background/90 px-4 text-xs font-bold text-foreground shadow-lg backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-foreground/35"
                     >
-                        <ArrowUp className="w-6 h-6 transition-transform duration-300 group-hover:-translate-y-1 group-hover:scale-110" />
-
-                        {/* Glow Effect */}
-                        <div className="absolute inset-0 rounded-full bg-foreground/10 blur-xl -z-10 group-hover:blur-2xl transition-all" />
+                        <span className="hidden sm:inline">Page start</span>
+                        <span className="grid size-7 place-items-center rounded-full bg-foreground text-background"><ArrowUp className="size-4 transition-transform group-hover:-translate-y-0.5" /></span>
                     </motion.button>
                 </div>
             )}

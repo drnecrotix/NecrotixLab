@@ -15,7 +15,7 @@ export type ServiceTool = {
     comingSoon: boolean;
 };
 
-export const SERVICE_TOOLS_CONFIG_VERSION = 3;
+export const SERVICE_TOOLS_CONFIG_VERSION = 4;
 
 const CORE_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'website-inspector', name: 'Website Inspector', href: '/services/website-inspector', icon: 'heart-pulse', enabled: true, visible: true, comingSoon: false },
@@ -67,10 +67,15 @@ export const WEB_UTILITY_TOOLS: ServiceTool[] = [
     { id: 'subtitle-converter', name: 'VTT / SRT Converter', href: '/tools/subtitle-converter', icon: 'subtitles', enabled: true, visible: true, comingSoon: false },
 ];
 
+export const ENGINEERING_TOOLS: ServiceTool[] = [
+    { id: 'gcode-editor', name: 'G-Code Editor', href: '/tools/gcode-editor', icon: 'file-pen-line', enabled: true, visible: true, comingSoon: false },
+];
+
 export const DEFAULT_SERVICE_TOOLS: ServiceTool[] = [
     ...CORE_SERVICE_TOOLS,
     ...DOCUMENT_AND_BINARY_TOOLS,
     ...WEB_UTILITY_TOOLS,
+    ...ENGINEERING_TOOLS,
 ];
 
 type ServiceToolsConfig = {
@@ -103,7 +108,11 @@ export function normalizeServiceToolsConfig(value: unknown): ServiceToolsConfig 
     const tools = [...configured];
     if (version < SERVICE_TOOLS_CONFIG_VERSION) {
         const existing = new Set(tools.map((tool) => tool.id));
-        const additions = version < 2 ? [...DOCUMENT_AND_BINARY_TOOLS, ...WEB_UTILITY_TOOLS] : WEB_UTILITY_TOOLS;
+        const additions = version < 2
+            ? [...DOCUMENT_AND_BINARY_TOOLS, ...WEB_UTILITY_TOOLS, ...ENGINEERING_TOOLS]
+            : version < 3
+                ? [...WEB_UTILITY_TOOLS, ...ENGINEERING_TOOLS]
+                : ENGINEERING_TOOLS;
         for (const tool of additions) if (!existing.has(tool.id)) tools.push({ ...tool });
     }
     return { version: SERVICE_TOOLS_CONFIG_VERSION, tools };

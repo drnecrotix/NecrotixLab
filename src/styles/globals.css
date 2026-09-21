@@ -81,6 +81,22 @@
     overflow-x: hidden;
   }
 
+  /* Keep native select popups legible in both themes. Chromium otherwise
+     paints a light option sheet while retaining dark-theme option text. */
+  select {
+    color-scheme: light;
+  }
+
+  .dark select {
+    color-scheme: dark;
+  }
+
+  select option,
+  select optgroup {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
   ::selection {
     @apply bg-primary/20 text-foreground;
   }

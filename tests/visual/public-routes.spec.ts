@@ -34,6 +34,7 @@ const routes = [
   '/tools/password-generator',
   '/tools/color-converter',
   '/tools/subtitle-converter',
+  '/tools/gcode-editor',
   '/seo-intelligence',
   '/legal',
   '/privacy',
