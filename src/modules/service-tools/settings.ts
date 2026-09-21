@@ -15,7 +15,7 @@ export type ServiceTool = {
     comingSoon: boolean;
 };
 
-export const SERVICE_TOOLS_CONFIG_VERSION = 2;
+export const SERVICE_TOOLS_CONFIG_VERSION = 3;
 
 const CORE_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'website-inspector', name: 'Website Inspector', href: '/services/website-inspector', icon: 'heart-pulse', enabled: true, visible: true, comingSoon: false },
@@ -53,9 +53,24 @@ export const DOCUMENT_AND_BINARY_TOOLS: ServiceTool[] = [
     { id: 'hex-viewer', name: 'Hex Viewer', href: '/tools/hex-viewer', icon: 'file-json', enabled: true, visible: true, comingSoon: false },
 ];
 
+export const WEB_UTILITY_TOOLS: ServiceTool[] = [
+    { id: 'text-toolkit', name: 'Text Toolkit', href: '/tools/text-toolkit', icon: 'text-cursor-input', enabled: true, visible: true, comingSoon: false },
+    { id: 'image-toolkit', name: 'Image Toolkit', href: '/tools/image-toolkit', icon: 'image-plus', enabled: true, visible: true, comingSoon: false },
+    { id: 'calculator-toolkit', name: 'Quick Calculators', href: '/tools/calculators', icon: 'calculator', enabled: true, visible: true, comingSoon: false },
+    { id: 'unit-converter', name: 'Unit Converter', href: '/tools/unit-converter', icon: 'ruler', enabled: true, visible: true, comingSoon: false },
+    { id: 'web-encoder', name: 'URL & HTML Encoder', href: '/tools/web-encoder', icon: 'code-2', enabled: true, visible: true, comingSoon: false },
+    { id: 'json-toolkit', name: 'JSON Toolkit', href: '/tools/json-toolkit', icon: 'braces', enabled: true, visible: true, comingSoon: false },
+    { id: 'url-toolkit', name: 'URL Parser & UTM', href: '/tools/url-toolkit', icon: 'link', enabled: true, visible: true, comingSoon: false },
+    { id: 'uuid-generator', name: 'UUID Generator', href: '/tools/uuid-generator', icon: 'hash', enabled: true, visible: true, comingSoon: false },
+    { id: 'password-generator', name: 'Password Generator', href: '/tools/password-generator', icon: 'key-round', enabled: true, visible: true, comingSoon: false },
+    { id: 'color-converter', name: 'Color Converter', href: '/tools/color-converter', icon: 'palette', enabled: true, visible: true, comingSoon: false },
+    { id: 'subtitle-converter', name: 'VTT / SRT Converter', href: '/tools/subtitle-converter', icon: 'subtitles', enabled: true, visible: true, comingSoon: false },
+];
+
 export const DEFAULT_SERVICE_TOOLS: ServiceTool[] = [
     ...CORE_SERVICE_TOOLS,
     ...DOCUMENT_AND_BINARY_TOOLS,
+    ...WEB_UTILITY_TOOLS,
 ];
 
 type ServiceToolsConfig = {
@@ -88,7 +103,8 @@ export function normalizeServiceToolsConfig(value: unknown): ServiceToolsConfig 
     const tools = [...configured];
     if (version < SERVICE_TOOLS_CONFIG_VERSION) {
         const existing = new Set(tools.map((tool) => tool.id));
-        for (const tool of DOCUMENT_AND_BINARY_TOOLS) if (!existing.has(tool.id)) tools.push({ ...tool });
+        const additions = version < 2 ? [...DOCUMENT_AND_BINARY_TOOLS, ...WEB_UTILITY_TOOLS] : WEB_UTILITY_TOOLS;
+        for (const tool of additions) if (!existing.has(tool.id)) tools.push({ ...tool });
     }
     return { version: SERVICE_TOOLS_CONFIG_VERSION, tools };
 }

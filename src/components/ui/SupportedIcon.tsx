@@ -2,11 +2,13 @@
 
 import { lazy, Suspense, type ComponentProps, type ComponentType } from 'react';
 import {
-    Accessibility, Binary, Blocks, Braces, Combine, DraftingCompass, Eraser,
+    Accessibility, Binary, Blocks, Braces, Calculator, Code2, Combine,
+    DraftingCompass, Eraser,
     FileCheck2, FileCode2, FileDiff, FileImage, FileJson, FileScan, FileText,
-    Fingerprint, Globe2, HeartPulse, ImageIcon, ImagePlus, ListOrdered, PenLine,
-    Route, ScanSearch, Scissors, SearchCode, ShieldAlert, ShieldCheck, Shrink,
-    Stamp, Video, Workflow,
+    Fingerprint, Globe2, Hash, HeartPulse, ImageIcon, ImagePlus, KeyRound,
+    LinkIcon, ListOrdered, Palette, PenLine, Route, Ruler, ScanSearch, Scissors,
+    SearchCode, ShieldAlert, ShieldCheck, Shrink, Stamp, Subtitles, TextCursorInput, Video,
+    Workflow,
     type LucideProps,
 } from 'lucide-react';
 
@@ -15,6 +17,8 @@ const commonIcons: Record<string, ComponentType<LucideProps>> = {
     binary: Binary,
     blocks: Blocks,
     braces: Braces,
+    calculator: Calculator,
+    'code-2': Code2,
     combine: Combine,
     'drafting-compass': DraftingCompass,
     eraser: Eraser,
@@ -30,9 +34,13 @@ const commonIcons: Record<string, ComponentType<LucideProps>> = {
     'heart-pulse': HeartPulse,
     image: ImageIcon,
     'image-plus': ImagePlus,
+    'key-round': KeyRound,
+    link: LinkIcon,
     'list-ordered': ListOrdered,
     'pen-line': PenLine,
+    palette: Palette,
     route: Route,
+    ruler: Ruler,
     'scan-search': ScanSearch,
     scissors: Scissors,
     'search-code': SearchCode,
@@ -40,6 +48,9 @@ const commonIcons: Record<string, ComponentType<LucideProps>> = {
     'shield-check': ShieldCheck,
     shrink: Shrink,
     stamp: Stamp,
+    subtitles: Subtitles,
+    hash: Hash,
+    'text-cursor-input': TextCursorInput,
     video: Video,
     wrench: Workflow,
 };

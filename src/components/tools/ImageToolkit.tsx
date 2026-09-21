@@ -1,0 +1,23 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { Download } from 'lucide-react';
+
+export function ImageToolkit() {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [source, setSource] = useState<ImageBitmap | null>(null);
+    const [name, setName] = useState('image');
+    const [width, setWidth] = useState(0);
+    const [height, setHeight] = useState(0);
+    const [rotation, setRotation] = useState(0);
+    const [flipX, setFlipX] = useState(false);
+    const [format, setFormat] = useState('image/webp');
+    const [quality, setQuality] = useState(.9);
+
+    useEffect(() => { if (!source) return; const canvas = canvasRef.current; if (!canvas) return; const rotated = rotation % 180 !== 0; canvas.width = rotated ? height : width; canvas.height = rotated ? width : height; const context = canvas.getContext('2d'); if (!context) return; context.clearRect(0, 0, canvas.width, canvas.height); context.save(); context.translate(canvas.width / 2, canvas.height / 2); context.rotate(rotation * Math.PI / 180); context.scale(flipX ? -1 : 1, 1); context.drawImage(source, -width / 2, -height / 2, width, height); context.restore(); }, [source, width, height, rotation, flipX]);
+    const open = async (file: File | null) => { if (!file) return; source?.close(); const image = await createImageBitmap(file); setSource(image); setName(file.name.replace(/\.[^.]+$/, '')); setWidth(image.width); setHeight(image.height); };
+    const resizeWidth = (value: number) => { if (!source || value < 1) return; setWidth(value); setHeight(Math.max(1, Math.round(value * source.height / source.width))); };
+    const save = () => canvasRef.current?.toBlob((blob) => { if (!blob) return; const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${name}.${format.split('/')[1]}`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }, format, quality);
+    const control = 'mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500';
+    return <div className="grid gap-6 lg:grid-cols-[.72fr_1.28fr]"><div className="rounded-2xl border border-border p-5"><label className="grid min-h-32 cursor-pointer place-items-center rounded-xl border border-dashed border-border text-center"><input type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" className="sr-only" onChange={(e) => void open(e.target.files?.[0] ?? null)} /><span className="text-xs font-bold">Choose PNG, JPEG, WebP, GIF or BMP</span></label>{source ? <div className="mt-5 grid grid-cols-2 gap-4"><label className="text-xs font-bold">Width<input type="number" min="1" max="12000" value={width} onChange={(e) => resizeWidth(Number(e.target.value))} className={control} /></label><label className="text-xs font-bold">Height<input type="number" min="1" max="12000" value={height} onChange={(e) => setHeight(Number(e.target.value))} className={control} /></label><label className="text-xs font-bold">Format<select value={format} onChange={(e) => setFormat(e.target.value)} className={control}><option value="image/webp">WebP</option><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option></select></label><label className="text-xs font-bold">Quality: {Math.round(quality * 100)}%<input type="range" min=".2" max="1" step=".05" value={quality} onChange={(e) => setQuality(Number(e.target.value))} className="mt-4 w-full accent-cyan-500" /></label><div className="col-span-2 flex flex-wrap gap-2"><button type="button" onClick={() => setRotation((value) => (value + 90) % 360)} className="min-h-10 rounded-lg border border-border px-3 text-xs font-bold">Rotate 90°</button><button type="button" onClick={() => setFlipX((value) => !value)} className="min-h-10 rounded-lg border border-border px-3 text-xs font-bold">Flip horizontal</button><button type="button" onClick={save} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-foreground px-3 text-xs font-bold text-background"><Download className="size-4" /> Download</button></div></div> : null}</div><div className="grid min-h-96 place-items-center overflow-auto rounded-2xl border border-border bg-[linear-gradient(45deg,rgba(127,127,127,.08)_25%,transparent_25%),linear-gradient(-45deg,rgba(127,127,127,.08)_25%,transparent_25%),linear-gradient(45deg,transparent_75%,rgba(127,127,127,.08)_75%),linear-gradient(-45deg,transparent_75%,rgba(127,127,127,.08)_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] p-5"><canvas ref={canvasRef} className="max-h-[36rem] max-w-full object-contain" /></div></div>;
+}
