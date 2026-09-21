@@ -13,7 +13,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ siz
     return new NextResponse(new Uint8Array(body), {
         headers: {
             'Content-Type': 'image/png',
-            'Cache-Control': 'public, max-age=0, must-revalidate',
+            'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
         },
     });
 }

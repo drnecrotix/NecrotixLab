@@ -22,7 +22,7 @@ type Asset = {
 };
 
 const field = 'mt-1.5 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm outline-none focus:border-white/30';
-const MEDIA_UPLOAD_ACCEPT = 'image/svg+xml,.svg,image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm,video/ogg,video/quicktime,video/x-m4v,application/zip,application/x-zip-compressed,.jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.webm,.ogg,.ogv,.mov,.m4v,.zip';
+const MEDIA_UPLOAD_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm,video/ogg,video/quicktime,video/x-m4v,application/zip,application/x-zip-compressed,.jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.webm,.ogg,.ogv,.mov,.m4v,.zip';
 
 function bytes(size: number) {
   if (!size) return '—';

@@ -27,7 +27,7 @@ type Props = {
     onAssetSelect?: (asset: MediaAssetSelection) => void;
 };
 
-const IMAGE_ACCEPT = 'image/svg+xml,.svg,image/jpeg,image/png,image/webp,image/gif,image/avif,.jpg,.jpeg,.png,.webp,.gif,.avif';
+const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,image/avif,.jpg,.jpeg,.png,.webp,.gif,.avif';
 const VIDEO_ACCEPT = 'video/mp4,video/webm,video/ogg,video/quicktime,video/x-m4v,.mp4,.webm,.ogg,.ogv,.mov,.m4v';
 const ZIP_ACCEPT = 'application/zip,application/x-zip-compressed,.zip';
 const PDF_ACCEPT = 'application/pdf,.pdf';

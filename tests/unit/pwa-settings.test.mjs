@@ -161,13 +161,3 @@ test('apple splash specs are unique device triples with bounded sizes', () => {
     assert.equal(parseSplashSize('9999x9999'), null);
     assert.equal(parseSplashSize('javascript:alert(1)'), null);
 });
-
-test('saved icon revisions refresh all generated manifest and Apple icon URLs without changing app identity', () => {
-    const a = normalizePwaSettings({ iconRevision: 'first' });
-    const b = normalizePwaSettings({ iconRevision: 'second' });
-    assert.notEqual(resolvedPwaIconUrls(a).icon180, resolvedPwaIconUrls(b).icon180);
-    const manifest = pwaSettingsToManifest(b);
-    assert.equal(manifest.id, pwaSettingsToManifest(a).id);
-    assert.match(manifest.icons[0].src, /\?v=second$/);
-    assert.match(manifest.shortcuts[0].icons[0].src, /\?v=second$/);
-});

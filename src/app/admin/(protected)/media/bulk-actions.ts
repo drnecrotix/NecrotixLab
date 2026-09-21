@@ -8,12 +8,12 @@ import { deleteMediaFile, isManagedMediaKey, uploadMediaFile } from '@/lib/media
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([
-  'svg', 'jpg','jpeg','png','webp','gif','avif',
+  'jpg','jpeg','png','webp','gif','avif',
   'mp4','webm','ogg','ogv','mov','m4v',
   'zip',
 ]);
 const ALLOWED_TYPES = new Set([
-  'image/svg+xml', 'image/jpeg','image/png','image/webp','image/gif','image/avif',
+  'image/jpeg','image/png','image/webp','image/gif','image/avif',
   'video/mp4','video/webm','video/ogg','video/quicktime','video/x-m4v',
   'application/zip','application/x-zip-compressed',
 ]);
@@ -50,7 +50,7 @@ export async function uploadMediaAssets(formData: FormData) {
       const requestedKey = `media/${new Date().toISOString().slice(0, 10)}/${Date.now()}-${Math.random().toString(36).slice(2,7)}-${fileName}`;
       const stored = await uploadMediaFile(file, requestedKey);
       try {
-        await prisma.mediaAsset.create({ data: { key: stored.key, fileName, mimeType: file.name.toLowerCase().endsWith('.svg') ? 'image/svg+xml' : (file.type || 'application/octet-stream'), size: file.size, url: stored.url } });
+        await prisma.mediaAsset.create({ data: { key: stored.key, fileName, mimeType: file.type || 'application/octet-stream', size: file.size, url: stored.url } });
       } catch (error) {
         try { await deleteMediaFile(stored.key); } catch { /* best effort */ }
         throw error;

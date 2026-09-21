@@ -21,17 +21,16 @@ self.addEventListener('install', (event) => {
     event.waitUntil((async () => {
         const cache = await caches.open(VERSION);
         if (enableOffline) {
-            // The offline fallback is essential; one unavailable page must not discard it.
-            await cache.add(OFFLINE_URL);
-            await Promise.allSettled(PRECACHE.filter((url) => url !== OFFLINE_URL).map((url) => cache.add(url)));
+            await cache.addAll(PRECACHE).catch(() => undefined);
         }
     })());
 });
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith('necrotix-pwa-') && key !== VERSION).map((key) => caches.delete(key)))).then(() => self.clients.claim()),
+        caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== VERSION).map((key) => caches.delete(key)))),
     );
+    self.clients.claim();
 });
 
 self.addEventListener('message', (event) => {
@@ -39,7 +38,7 @@ self.addEventListener('message', (event) => {
 });
 
 function isPrivatePath(pathname) {
-    return pathname.startsWith('/admin') || pathname.startsWith('/api') || pathname === '/pwa-sw.js' || pathname === '/manifest.webmanifest' || pathname.startsWith('/pwa/icon/') || pathname.startsWith('/pwa/apple-splash/');
+    return pathname.startsWith('/admin') || pathname.startsWith('/api') || pathname === '/pwa-sw.js';
 }
 
 function isStaticAsset(pathname) {
@@ -47,18 +46,6 @@ function isStaticAsset(pathname) {
         || pathname.startsWith('/pwa/')
         || pathname.startsWith('/uploads/')
         || /\.(?:png|jpe?g|webp|gif|svg|ico|woff2?|css)$/i.test(pathname);
-}
-
-async function storeResponse(cache, request, response) {
-    if (!response.ok || response.redirected || /no-store|private/i.test(response.headers.get('cache-control') || '')) return;
-    try {
-        await cache.put(request, response.clone());
-        const keys = await cache.keys();
-        const removable = keys.filter((key) => new URL(key.url).pathname !== OFFLINE_URL);
-        for (const key of removable.slice(0, Math.max(0, keys.length - 120))) await cache.delete(key);
-    } catch {
-        // Storage exhaustion must not break an otherwise successful network response.
-    }
 }
 
 self.addEventListener('fetch', (event) => {
@@ -74,7 +61,7 @@ self.addEventListener('fetch', (event) => {
             const cache = await caches.open(VERSION);
             try {
                 const fresh = await fetch(request);
-                await storeResponse(cache, request, fresh);
+                if (fresh.ok) await cache.put(request, fresh.clone());
                 return fresh;
             } catch {
                 const cached = await cache.match(request);
@@ -89,11 +76,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith((async () => {
         const cache = await caches.open(VERSION);
         const cached = await cache.match(request);
-        const network = fetch(request).then(async (fresh) => {
-            await storeResponse(cache, request, fresh);
+        const network = fetch(request).then((fresh) => {
+            if (fresh.ok) void cache.put(request, fresh.clone());
             return fresh;
         }).catch(() => undefined);
-        event.waitUntil(network);
         return cached || (await network) || Response.error();
     })());
 });

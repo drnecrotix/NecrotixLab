@@ -8,7 +8,7 @@ import { deleteMediaFile, isManagedMediaKey, uploadMediaFile } from '@/lib/media
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_UPLOAD_TYPES = new Set([
-    'image/svg+xml', 'image/jpeg',
+    'image/jpeg',
     'image/png',
     'image/webp',
     'image/gif',
@@ -23,7 +23,7 @@ const ALLOWED_UPLOAD_TYPES = new Set([
 ]);
 
 const ALLOWED_UPLOAD_EXTENSIONS = new Set([
-    'svg', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif',
+    'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif',
     'mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v',
     'zip',
 ]);
@@ -98,7 +98,7 @@ export async function uploadMediaAsset(formData: FormData) {
                 data: {
                     key: stored.key,
                     fileName,
-                    mimeType: file.name.toLowerCase().endsWith('.svg') ? 'image/svg+xml' : (file.type || 'application/octet-stream'),
+                    mimeType: file.type || 'application/octet-stream',
                     size: file.size,
                     altText: shortText(formData.get('altText'), 500),
                     caption: shortText(formData.get('caption'), 2000),

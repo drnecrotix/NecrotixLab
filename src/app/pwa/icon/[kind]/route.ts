@@ -15,7 +15,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ kin
     return new NextResponse(new Uint8Array(body), {
         headers: {
             'Content-Type': 'image/png',
-            'Cache-Control': 'public, max-age=0, must-revalidate',
+            'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
         },
     });
 }

@@ -76,7 +76,6 @@ export type PwaResolvedIcons = {
 };
 
 export type PwaSettings = {
-    iconRevision: string;
     name: string;
     shortName: string;
     description: string;
@@ -127,7 +126,6 @@ export type PwaSettings = {
 };
 
 export const defaultPwaSettings: PwaSettings = {
-    iconRevision: '',
     name: 'NecrotixLab',
     shortName: 'NecrotixLab',
     description: 'Journal, projects and tools by dr.necrotix.',
@@ -214,7 +212,7 @@ export function applyGeneratedIconPack(settings: PwaSettings): PwaSettings {
     };
 }
 
-function unversionedPwaIconUrls(settings: PwaSettings): PwaResolvedIcons {
+export function resolvedPwaIconUrls(settings: PwaSettings): PwaResolvedIcons {
     if (settings.iconAutoPack) {
         return {
             icon96: PWA_GENERATED_PACK.icon96,
@@ -233,14 +231,6 @@ function unversionedPwaIconUrls(settings: PwaSettings): PwaResolvedIcons {
         maskable: settings.maskableIconUrl || PWA_GENERATED_PACK.maskable,
         monochrome: settings.monochromeIconUrl || PWA_GENERATED_PACK.monochrome,
     };
-}
-
-export function resolvedPwaIconUrls(settings: PwaSettings): PwaResolvedIcons {
-    const pack = unversionedPwaIconUrls(settings);
-    return Object.fromEntries(Object.entries(pack).map(([key, url]) => [key,
-        isGeneratedIconPath(url) && settings.iconRevision
-            ? `${url.split('?')[0]}?v=${encodeURIComponent(settings.iconRevision)}` : url,
-    ])) as PwaResolvedIcons;
 }
 
 function object(value: unknown): Record<string, unknown> {
@@ -366,7 +356,6 @@ export function normalizePwaSettings(value: unknown): PwaSettings {
     const lang = text(source.lang, defaultPwaSettings.lang, 8).toLowerCase();
 
     return {
-        iconRevision: typeof source.iconRevision === 'string' ? source.iconRevision.slice(0, 40) : '',
         name: text(source.name, defaultPwaSettings.name, 60),
         shortName: text(source.shortName, defaultPwaSettings.shortName, 20),
         description: text(source.description, defaultPwaSettings.description, 180),
@@ -489,7 +478,7 @@ export function pwaSettingsToManifest(settings: PwaSettings = defaultPwaSettings
         screenshots,
         shortcuts: settings.shortcuts.map((item) => {
             const icon = settings.iconAutoPack
-                ? pack.icon96
+                ? PWA_GENERATED_PACK.icon96
                 : (item.iconUrl || PWA_GENERATED_PACK.icon96);
             return {
                 name: item.name,

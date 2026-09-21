@@ -298,7 +298,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                         <option value="landscape">Landscape</option>
                                     </select>
                                 </label>
-                                <div className="md:col-span-2"><MediaPicker label="Source logo (SVG or image)" value={settings.iconUrl} onChange={(url) => setSettings((current) => applyGeneratedIconPack({ ...current, iconUrl: url }))} initialKind="image" lockKind /></div>
+                                <div className="md:col-span-2"><MediaPicker label="Source logo" value={settings.iconUrl} onChange={(url) => setSettings((current) => applyGeneratedIconPack({ ...current, iconUrl: url }))} initialKind="image" lockKind /></div>
                                 <div className="md:col-span-2 rounded-xl border border-foreground/10 bg-background/40 p-4">
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div>
@@ -336,7 +336,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                             [PWA_GENERATED_PACK.monochrome, 'mono'],
                                         ].map(([src, label]) => (
                                             <div key={label} className="text-center">
-                                                <img src={src} alt="" className="mx-auto size-12 rounded-xl border border-foreground/10 bg-black object-cover" />
+                                                <img src={`${src}?v=${encodeURIComponent(settings.iconUrl)}`} alt="" className="mx-auto size-12 rounded-xl border border-foreground/10 bg-black object-cover" />
                                                 <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
                                             </div>
                                         ))}
