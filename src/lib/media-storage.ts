@@ -1,3 +1,4 @@
+import { sanitizeSvg } from '@/lib/sanitize-svg';
 import 'server-only';
 
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
@@ -81,7 +82,8 @@ async function ensureLocalUploadsProtection(targetFile: string) {
 }
 
 export async function uploadMediaFile(file: File, key: string) {
-    const body = Buffer.from(await file.arrayBuffer());
+    const svg = file.name.toLowerCase().endsWith('.svg') || file.type === 'image/svg+xml';
+    const body = svg ? Buffer.from(sanitizeSvg(await file.text())) : Buffer.from(await file.arrayBuffer());
     const config = await getRuntimeR2Config();
 
     if (configured(config)) {
@@ -91,7 +93,7 @@ export async function uploadMediaFile(file: File, key: string) {
                 Bucket: required(config.bucket, 'R2_BUCKET'),
                 Key: key,
                 Body: body,
-                ContentType: file.type || 'application/octet-stream',
+                ContentType: svg ? 'image/svg+xml' : (file.type || 'application/octet-stream'),
                 CacheControl: 'public, max-age=31536000, immutable',
             }));
         } finally {

@@ -6,13 +6,13 @@ import { deleteMediaFile, uploadMediaFile } from '@/lib/media-storage';
 const allowedRoles = new Set(['OWNER', 'ADMIN', 'EDITOR']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_UPLOAD_TYPES = new Set([
-    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif',
+    'image/svg+xml', 'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif',
     'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-m4v',
     'application/pdf',
     'application/zip', 'application/x-zip-compressed',
 ]);
 const ALLOWED_UPLOAD_EXTENSIONS = new Set([
-    'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif',
+    'svg', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif',
     'mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v',
     'pdf', 'zip',
 ]);
@@ -41,6 +41,7 @@ function typeAllowed(file: File) {
 }
 
 function normalizedMimeType(file: File) {
+    if (extension(file.name) === 'svg') return 'image/svg+xml';
     if (extension(file.name) === 'pdf') return 'application/pdf';
     return file.type || 'application/octet-stream';
 }
