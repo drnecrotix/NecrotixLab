@@ -39,10 +39,10 @@ export function BackToTop() {
                         exit={{ opacity: 0, y: 12 }}
                         transition={{ duration: 0.22 }}
                         onClick={scrollToTop}
-                        aria-label="Back to top"
+                        aria-label="Return to page start"
                         className="group pointer-events-auto inline-flex min-h-12 items-center gap-2 rounded-full border border-foreground/15 bg-background/90 px-4 text-xs font-bold text-foreground shadow-lg backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-foreground/35"
                     >
-                        <span className="hidden sm:inline">Back to top</span>
+                        <span className="hidden sm:inline">Page start</span>
                         <span className="grid size-7 place-items-center rounded-full bg-foreground text-background"><ArrowUp className="size-4 transition-transform group-hover:-translate-y-0.5" /></span>
                     </motion.button>
                 </div>
