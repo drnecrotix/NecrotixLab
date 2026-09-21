@@ -461,6 +461,11 @@ model ServiceRequest {
   currency          String               @default("EUR")
   customerMessage   String?              @db.Text
   internalNotes     String?              @db.Text
+  workspaceProjectId  String?              @unique
+  workspaceProjectKey String?
+  workspacePortalUrl  String?              @db.Text
+  workspaceSyncedAt   DateTime?
+  workspaceLastError  String?              @db.Text
   status            ServiceRequestStatus @default(NEW)
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt

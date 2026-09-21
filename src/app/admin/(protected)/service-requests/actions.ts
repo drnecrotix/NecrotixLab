@@ -11,6 +11,7 @@ import { inspectWebsite } from '@/modules/website-inspector/inspect';
 import { inspectEmailDomain } from '@/modules/web-health/email-domain';
 import { crawlSite } from '@/modules/web-health/site-crawl';
 import { inspectAccessibility } from '@/modules/web-health/accessibility';
+import { sendRequestToWorkspace } from '@/modules/service-requests/workspace';
 
 const statuses = new Set(['NEW', 'REVIEWING', 'QUOTE_SENT', 'ACCEPTED', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'COMPLETED', 'REJECTED']);
 
@@ -47,6 +48,37 @@ export async function updateServiceRequest(id: string, formData: FormData) {
         },
     });
     revalidatePath('/admin/service-requests');
+}
+
+export async function createWorkspaceProject(id: string) {
+    await requireAdmin();
+    const request = await prisma.serviceRequest.findUnique({ where: { id } });
+    if (!request) throw new Error('Service request not found.');
+    if (!['ACCEPTED', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'COMPLETED'].includes(request.status)) {
+        throw new Error('The customer must accept the quote before a workspace project can be created.');
+    }
+    if (request.workspaceProjectId) return;
+
+    try {
+        const workspace = await sendRequestToWorkspace(request);
+        await prisma.serviceRequest.update({
+            where: { id },
+            data: {
+                workspaceProjectId: workspace.projectId,
+                workspaceProjectKey: workspace.projectKey,
+                workspacePortalUrl: workspace.clientPortalUrl,
+                workspaceSyncedAt: new Date(),
+                workspaceLastError: null,
+                status: request.status === 'ACCEPTED' ? 'IN_PROGRESS' : request.status,
+            },
+        });
+    } catch (error) {
+        await prisma.serviceRequest.update({ where: { id }, data: { workspaceLastError: error instanceof Error ? error.message.slice(0, 1000) : 'Unknown Workspace error' } });
+        throw error;
+    } finally {
+        revalidatePath('/admin/service-requests');
+        revalidatePath(`/service/${request.reference}`);
+    }
 }
 
 export async function sendServiceQuote(id: string, formData: FormData) {
