@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { serviceStatusUrl } from '@/modules/service-requests/status-access';
-import { captureAfterAudit, sendServiceQuote, updateServiceRequest } from './actions';
+import { captureAfterAudit, createWorkspaceProject, sendServiceQuote, updateServiceRequest } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,6 +113,23 @@ export default async function ServiceRequestsAdminPage() {
                                                 <label className="mt-3 block text-xs text-white/45">Customer note<textarea name="quoteNote" rows={4} maxLength={1500} className="mt-2 w-full border border-white/10 bg-black/20 p-3 text-sm text-white outline-none focus:border-white/30" placeholder="Scope, assumptions, next steps..." /></label>
                                                 <button className="mt-4 border border-sky-300/40 px-4 py-2.5 text-xs font-bold text-sky-200 hover:border-sky-200">Send final quote</button>
                                             </form>
+
+                                            <div className="border-t border-white/10 pt-5">
+                                                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-lime-300">Necrotix Workspace</p>
+                                                {request.workspaceProjectId ? (
+                                                    <div className="mt-3 text-xs leading-5 text-white/50">
+                                                        <p>Project <span className="font-mono text-white/75">{request.workspaceProjectKey}</span> is connected.</p>
+                                                        {request.workspacePortalUrl ? <a href={request.workspacePortalUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex border border-lime-300/35 px-4 py-2.5 font-bold text-lime-200 hover:border-lime-200">Open client workspace</a> : null}
+                                                        {request.workspaceSyncedAt ? <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.1em] text-white/25">Created {request.workspaceSyncedAt.toLocaleString('en-GB')}</p> : null}
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <p className="mt-3 text-xs leading-5 text-white/40">Creates a separate client project with the accepted scope and selected services. Available after quote acceptance.</p>
+                                                        <form action={createWorkspaceProject.bind(null, request.id)} className="mt-3"><button disabled={!['ACCEPTED', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'COMPLETED'].includes(request.status)} className="border border-lime-300/35 px-4 py-2.5 text-xs font-bold text-lime-200 enabled:hover:border-lime-200 disabled:cursor-not-allowed disabled:opacity-35">Create Workspace project</button></form>
+                                                        {request.workspaceLastError ? <p className="mt-3 text-xs leading-5 text-rose-300">{request.workspaceLastError}</p> : null}
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

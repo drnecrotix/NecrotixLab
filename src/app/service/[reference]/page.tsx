@@ -114,6 +114,15 @@ export default async function ServiceRequestStatusPage({ params, searchParams }:
                     </section>
                 ) : null}
 
+                {request.workspacePortalUrl && ['IN_PROGRESS', 'WAITING_CUSTOMER', 'COMPLETED'].includes(request.status) ? (
+                    <section className="border-b border-border/80 py-6">
+                        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-lime-500">Necrotix Workspace</p>
+                        <h2 className="mt-2 text-xl font-black">Your project workspace is ready</h2>
+                        <p className="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground">Continue to the private project area to follow tasks, milestones and delivery progress. This access link is personal and may expire.</p>
+                        <a href={request.workspacePortalUrl} className="mt-4 inline-flex border border-foreground bg-foreground px-5 py-3 text-sm font-bold text-background transition hover:bg-transparent hover:text-foreground">Open project workspace</a>
+                    </section>
+                ) : null}
+
                 {request.status === 'COMPLETED' ? (
                     <section className="border-b border-border/80 py-6">
                         <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-sky-500">Website care</p>
