@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LoadingScreen } from '@/components/layout';
 import { HeroVisual } from '@/components/sections/HeroVisual';
@@ -44,7 +44,6 @@ export default function HomeClient({ content, identity, posts, projects }: Props
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoadingExit, setIsInitialLoadingExit] = useState(false);
     const [skipAnimation, setSkipAnimation] = useState(false);
-    const autoScrollInProgress = useRef(false);
 
     useEffect(() => {
         const hasLoaded = readPortfolioLoaded();
@@ -61,8 +60,6 @@ export default function HomeClient({ content, identity, posts, projects }: Props
     const isReadyToAnimate = isLoading ? isInitialLoadingExit : phase === 'reveal' || phase === 'done';
     const showBlog = content.showBlogPosts && posts.length > 0;
     const showProjects = content.showProjects && projects.length > 0;
-    const bothSectionsVisible = showBlog && showProjects;
-    const projectsFirst = false;
     const loaderDuration = 2000;
 
     const handleLoadingComplete = () => {
@@ -70,70 +67,6 @@ export default function HomeClient({ content, identity, posts, projects }: Props
         window.scrollTo({ top: 0, behavior: 'instant' });
         writePortfolioLoaded();
     };
-
-
-    useEffect(() => {
-        if (isLoading || !bothSectionsVisible) return;
-
-        const desktopPointer = window.matchMedia('(min-width: 1024px) and (pointer: fine)');
-        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-        let unlockTimer: number | null = null;
-
-        const smoothTo = (section: HTMLElement, block: ScrollLogicalPosition) => {
-            if (autoScrollInProgress.current) return;
-            autoScrollInProgress.current = true;
-            section.scrollIntoView({ behavior: 'smooth', block });
-            if (unlockTimer !== null) window.clearTimeout(unlockTimer);
-            unlockTimer = window.setTimeout(() => { autoScrollInProgress.current = false; }, 680);
-        };
-
-        const handleWheel = (event: WheelEvent) => {
-            if (
-                !desktopPointer.matches
-                || reducedMotion.matches
-                || event.defaultPrevented
-                || event.ctrlKey
-                || autoScrollInProgress.current
-                || Math.abs(event.deltaY) < 18
-            ) return;
-
-            const firstSection = document.getElementById(projectsFirst ? 'home-projects' : 'home-blog');
-            const secondSection = document.getElementById(projectsFirst ? 'home-blog' : 'home-projects');
-            if (!firstSection || !secondSection) return;
-
-            const firstRect = firstSection.getBoundingClientRect();
-            const secondRect = secondSection.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-
-            if (
-                event.deltaY > 0
-                && secondRect.top > viewportHeight * 0.14
-                && secondRect.top < viewportHeight * 0.72
-                && firstRect.bottom < viewportHeight * 0.82
-            ) {
-                event.preventDefault();
-                smoothTo(secondSection, 'start');
-                return;
-            }
-
-            if (
-                event.deltaY < 0
-                && firstRect.bottom > viewportHeight * 0.28
-                && firstRect.bottom < viewportHeight * 0.86
-                && secondRect.top > viewportHeight * 0.18
-            ) {
-                event.preventDefault();
-                smoothTo(firstSection, 'end');
-            }
-        };
-
-        window.addEventListener('wheel', handleWheel, { passive: false });
-        return () => {
-            if (unlockTimer !== null) window.clearTimeout(unlockTimer);
-            autoScrollInProgress.current = false;
-            window.removeEventListener('wheel', handleWheel);
-        };
-    }, [isLoading, bothSectionsVisible, projectsFirst]);
 
     const journalSection = showBlog ? <HomeBlogSection posts={posts} content={content} /> : null;
     const projectsSection = showProjects ? <HomeProjectsSection projects={projects} content={content} /> : null;
