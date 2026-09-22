@@ -168,3 +168,29 @@ html[data-pwa-standalone='1'][data-pwa-vision='on'] main.min-h-screen .prose {
 html[data-pwa-standalone='1'][data-pwa-vision='on'] main.min-h-screen article {
     max-width: 36rem;
 }
+
+/* Keep rich-text details legible independently of the site's prose-invert class. */
+html[data-pwa-standalone='1'][data-pwa-reader] main.min-h-screen .prose {
+    --tw-prose-body: var(--reader-fg);
+    --tw-prose-headings: var(--reader-fg);
+    --tw-prose-bold: var(--reader-fg);
+    --tw-prose-links: var(--reader-fg);
+    --tw-prose-quotes: var(--reader-fg);
+    --tw-prose-captions: var(--reader-muted);
+    --tw-prose-counters: var(--reader-muted);
+    --tw-prose-bullets: var(--reader-muted);
+    --tw-prose-code: var(--reader-fg);
+}
+
+html[data-pwa-standalone='1'][data-pwa-reader] main.min-h-screen .prose :is(a, strong, b, em, blockquote, h4, h5, h6, code):not(pre *) {
+    color: var(--reader-fg) !important;
+}
+
+html[data-pwa-standalone='1'][data-pwa-reader] main.min-h-screen .prose a {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+html[data-pwa-standalone='1'][data-pwa-reader] main.min-h-screen .prose :is(blockquote, th, td, hr) {
+    border-color: color-mix(in srgb, var(--reader-fg) 25%, transparent);
+}

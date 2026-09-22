@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
 import { BookOpen, Eye, Minus, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { PwaReaderTheme, PwaSettings } from '@/lib/pwa-settings';
 import { isPwaReaderPath } from '@/lib/pwa-settings';
 
-const THEMES: Array<{ id: Exclude<PwaReaderTheme, 'system'>; label: string }> = [
+const THEMES: Array<{ id: PwaReaderTheme; label: string }> = [
+    { id: 'system', label: 'Site theme' },
     { id: 'paper', label: 'Paper' },
     { id: 'sepia', label: 'Sepia' },
     { id: 'night', label: 'Night' },
@@ -14,9 +16,9 @@ const THEMES: Array<{ id: Exclude<PwaReaderTheme, 'system'>; label: string }> = 
 
 const SIZES = [0.92, 1, 1.12, 1.26, 1.5, 1.78] as const;
 const LOW_VISION_MIN_INDEX = 4;
-const STORAGE_KEY = 'pwa-reader';
+const STORAGE_KEY = 'pwa-reader-preferences-v2';
 
-function isReaderTheme(value: PwaReaderTheme): value is Exclude<PwaReaderTheme, 'system'> {
+function isReaderTheme(value: unknown): value is PwaReaderTheme {
     return THEMES.some((item) => item.id === value);
 }
 
@@ -36,35 +38,35 @@ export function PwaReaderMode({
 }) {
     const allowed = settings.readerModeEnabled && standalone && isPwaReaderPath(pathname);
     const [open, setOpen] = useState(false);
-    const initialTheme = settings.readerTheme === 'system' ? 'paper' : settings.readerTheme;
-    const [theme, setTheme] = useState<Exclude<PwaReaderTheme, 'system'>>(initialTheme);
+    const { resolvedTheme } = useTheme();
+    // Older installations defaulted to paper, even on a dark website.
+    const initialTheme = settings.readerTheme === 'paper' ? 'system' : settings.readerTheme;
+    const [theme, setTheme] = useState<PwaReaderTheme>(initialTheme);
+    const readerTheme = theme === 'system' ? (resolvedTheme === 'dark' ? 'night' : 'paper') : theme;
     const [sizeIndex, setSizeIndex] = useState(1);
     const [vision, setVision] = useState(false);
     const [panel, setPanel] = useState(false);
 
     useEffect(() => {
-        if (!allowed) {
-            setOpen(false);
-            setPanel(false);
-        }
-    }, [allowed]);
+        setOpen(false);
+        setPanel(false);
+    }, [allowed, pathname]);
 
     useEffect(() => {
         try {
             const raw = window.localStorage.getItem(STORAGE_KEY);
             if (!raw) return;
-            const parsed = JSON.parse(raw) as { open?: boolean; theme?: PwaReaderTheme; size?: number; vision?: boolean };
+            const parsed = JSON.parse(raw) as { theme?: PwaReaderTheme; size?: number; vision?: boolean };
             if (parsed.theme && isReaderTheme(parsed.theme)) setTheme(parsed.theme);
             if (typeof parsed.size === 'number') {
                 const next = SIZES.findIndex((item) => item === parsed.size);
                 setSizeIndex(next >= 0 ? next : 1);
             }
             if (typeof parsed.vision === 'boolean') setVision(parsed.vision);
-            if (parsed.open && allowed) setOpen(true);
         } catch {
             // Ignore stale localStorage.
         }
-    }, [allowed]);
+    }, []);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -74,12 +76,12 @@ export function PwaReaderMode({
             root.style.removeProperty('--reader-scale');
             return;
         }
-        root.dataset.pwaReader = theme;
+        root.dataset.pwaReader = readerTheme;
         if (vision) root.dataset.pwaVision = 'on';
         else delete root.dataset.pwaVision;
         root.style.setProperty('--reader-scale', String(SIZES[sizeIndex]));
         try {
-            window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ open, theme, size: SIZES[sizeIndex], vision }));
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ theme, size: SIZES[sizeIndex], vision }));
         } catch {
             // Private mode.
         }
@@ -88,7 +90,7 @@ export function PwaReaderMode({
             delete root.dataset.pwaVision;
             root.style.removeProperty('--reader-scale');
         };
-    }, [allowed, open, theme, sizeIndex, vision]);
+    }, [allowed, open, theme, readerTheme, sizeIndex, vision]);
 
     useEffect(() => {
         if (!panel) return;
@@ -123,7 +125,7 @@ export function PwaReaderMode({
                     }
                     setPanel((value) => !value);
                 }}
-                className="fixed right-3 z-[142] grid size-11 place-items-center rounded-full border border-white/10 bg-black/75 text-white shadow-2xl backdrop-blur-xl"
+                className="fixed right-3 z-[142] grid size-11 place-items-center rounded-full border border-foreground/15 bg-background/95 text-foreground shadow-2xl backdrop-blur-xl"
                 style={{ bottom: dock(standalone, 5.4) }}
                 aria-pressed={open}
                 aria-expanded={panel}
@@ -143,7 +145,7 @@ export function PwaReaderMode({
                     <div
                         role="dialog"
                         aria-label="Reader options"
-                        className="fixed inset-x-3 z-[143] rounded-2xl border border-white/10 bg-black/88 px-2.5 py-2 text-white shadow-2xl backdrop-blur-xl sm:left-auto sm:right-3 sm:w-[22rem]"
+                        className="fixed inset-x-3 z-[143] rounded-2xl border border-foreground/15 bg-background/95 px-2.5 py-2 text-foreground shadow-2xl backdrop-blur-xl sm:left-auto sm:right-3 sm:w-[22rem]"
                         style={{ bottom: dock(standalone, 8.55) }}
                     >
                         <div className="flex items-center gap-1">
@@ -153,16 +155,17 @@ export function PwaReaderMode({
                                         key={item.id}
                                         type="button"
                                         onClick={() => setTheme(item.id)}
+                                        aria-pressed={theme === item.id}
                                         className={cn(
                                             'h-8 rounded-full border px-2.5 text-[10px]',
-                                            theme === item.id ? 'border-white/40 bg-white/15' : 'border-white/10 text-white/60',
+                                            theme === item.id ? 'border-foreground/40 bg-foreground/10' : 'border-foreground/15 text-muted-foreground',
                                         )}
                                     >
                                         {item.label}
                                     </button>
                                 ))}
                             </div>
-                            <button type="button" onClick={closePanel} className="grid size-8 shrink-0 place-items-center rounded-full text-white/70" aria-label="Close reader options">
+                            <button type="button" onClick={closePanel} className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground" aria-label="Close reader options">
                                 <X className="size-3.5" />
                             </button>
                         </div>
@@ -170,7 +173,7 @@ export function PwaReaderMode({
                             <button type="button" onClick={() => setSizeIndex((value) => Math.max(0, value - 1))} className="grid size-8 place-items-center rounded-full" aria-label="Smaller type">
                                 <Minus className="size-3.5" />
                             </button>
-                            <span className="min-w-[3.5rem] text-center text-[10px] text-white/55">Type</span>
+                            <span className="min-w-[3.5rem] text-center text-[10px] text-muted-foreground">Type</span>
                             <button type="button" onClick={() => setSizeIndex((value) => Math.min(SIZES.length - 1, value + 1))} className="grid size-8 place-items-center rounded-full" aria-label="Larger type">
                                 <Plus className="size-3.5" />
                             </button>
@@ -180,7 +183,7 @@ export function PwaReaderMode({
                                 aria-pressed={vision}
                                 className={cn(
                                     'ml-1 inline-flex h-8 items-center gap-1 rounded-full border px-2.5 text-[10px]',
-                                    vision ? 'border-white/40 bg-white/15' : 'border-white/10 text-white/60',
+                                    vision ? 'border-foreground/40 bg-foreground/10' : 'border-foreground/15 text-muted-foreground',
                                 )}
                             >
                                 <Eye className="size-3.5" />
@@ -192,7 +195,7 @@ export function PwaReaderMode({
                                     setOpen(false);
                                     setPanel(false);
                                 }}
-                                className="ml-auto h-8 px-2 text-[10px] text-white/45 hover:text-white/80"
+                                className="ml-auto h-8 px-2 text-[10px] text-muted-foreground hover:text-foreground"
                             >
                                 Off
                             </button>
