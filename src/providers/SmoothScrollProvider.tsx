@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { ReactLenis, useLenis } from 'lenis/react';
 
@@ -37,15 +37,25 @@ function RouteScrollReset() {
 }
 
 export function SmoothScrollProvider({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+    const isHomepage = pathname === '/';
+    const options = useMemo(() => isHomepage ? {
+        duration: 1.2,
+        easing: (time: number) => Math.min(1, 1.001 - Math.pow(2, -10 * time)),
+        smoothWheel: true,
+        wheelMultiplier: 0.9,
+        touchMultiplier: 1.15,
+        syncTouch: false,
+        anchors: true,
+    } : {
+        lerp: 0.1,
+        duration: 1.5,
+        smoothWheel: true,
+        smoothTouch: false,
+    }, [isHomepage]);
+
     return (
-        <ReactLenis root options={{
-            lerp: 0.1,
-            duration: 1.5,
-            smoothWheel: true,
-            // smoothTouch is not present in this Lenis version's published option types.
-            // @ts-expect-error - supported at runtime by the currently installed Lenis build.
-            smoothTouch: false
-        }}>
+        <ReactLenis key={isHomepage ? 'homepage' : 'default'} root options={options}>
             <RouteScrollReset />
             {children}
         </ReactLenis>
