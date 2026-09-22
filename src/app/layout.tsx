@@ -115,7 +115,7 @@ export async function generateMetadata(): Promise<Metadata> {
         robots,
         verification: seo.googleVerification ? { google: seo.googleVerification } : undefined,
         icons: {
-            icon: [{ url: favicon }, { url: pack.icon192, sizes: '192x192', type: 'image/png' }],
+            icon: [{ url: favicon }],
             shortcut: [{ url: favicon }],
             apple: [{ url: pack.icon180, sizes: '180x180' }],
         },

@@ -171,3 +171,13 @@ test('saved icon revisions refresh all generated manifest and Apple icon URLs wi
     assert.match(manifest.icons[0].src, /\?v=second$/);
     assert.match(manifest.shortcuts[0].icons[0].src, /\?v=second$/);
 });
+
+test('automatic icon pack does not advertise an unversioned source logo', () => {
+    const settings = normalizePwaSettings({ iconAutoPack: true, iconUrl: '/uploads/new-logo.svg', iconRevision: 'saved-logo' });
+    const manifest = pwaSettingsToManifest(settings);
+    assert.equal(manifest.icons.length, 4);
+    for (const icon of manifest.icons) {
+        assert.match(icon.src, /\?v=saved-logo$/);
+        assert.notEqual(icon.src, settings.iconUrl);
+    }
+});

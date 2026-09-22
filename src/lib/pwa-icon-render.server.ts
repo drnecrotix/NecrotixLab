@@ -38,7 +38,7 @@ async function fetchHttps(url: string) {
     try {
         const parsed = new URL(url);
         if (parsed.protocol !== 'https:' || hostBlocked(parsed.hostname)) return null;
-        const response = await fetch(parsed, { signal: AbortSignal.timeout(8000), redirect: 'error' });
+        const response = await fetch(parsed, { signal: AbortSignal.timeout(8000), redirect: 'error', cache: 'no-store' });
         if (!response.ok) return null;
         const type = response.headers.get('content-type') || '';
         if (!type.startsWith('image/')) return null;
