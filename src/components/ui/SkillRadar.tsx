@@ -15,14 +15,18 @@ interface SkillRadarProps {
 }
 
 export const SkillRadar = ({ skills, size = 400, className }: SkillRadarProps) => {
-    const padding = 60;
-    const center = size / 2;
-    const radius = center - padding;
-    const angleStep = (Math.PI * 2) / skills.length;
+    const safeSize = Number.isFinite(size) && size >= 160 ? size : 400;
+    const safeSkills = skills.filter((skill) => skill && typeof skill.name === 'string' && skill.name.trim().length > 0);
+    if (safeSkills.length < 3) return null;
+
+    const padding = Math.min(60, safeSize * 0.15);
+    const center = safeSize / 2;
+    const radius = Math.max(1, center - padding);
+    const angleStep = (Math.PI * 2) / safeSkills.length;
 
     // Convert level (advanced, expert, etc.) to 0-1 value
     const getLevelValue = (level: string | number) => {
-        if (typeof level === 'number') return level / 100;
+        if (typeof level === 'number') return Number.isFinite(level) ? Math.min(1, Math.max(0, level / 100)) : 0.5;
         const map: Record<string, number> = {
             'beginner': 0.3,
             'intermediate': 0.5,
@@ -32,7 +36,7 @@ export const SkillRadar = ({ skills, size = 400, className }: SkillRadarProps) =
         return map[level.toLowerCase()] || 0.5;
     };
 
-    const points = skills.map((skill, i) => {
+    const points = safeSkills.map((skill, i) => {
         const val = getLevelValue(skill.level);
         const angle = i * angleStep - Math.PI / 2;
         return {
@@ -48,7 +52,7 @@ export const SkillRadar = ({ skills, size = 400, className }: SkillRadarProps) =
 
     return (
         <div className={className}>
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <svg width={safeSize} height={safeSize} viewBox={`0 0 ${safeSize} ${safeSize}`}>
                 {/* Background Circles */}
                 {[0.2, 0.4, 0.6, 0.8, 1].map((step, i) => (
                     <circle
@@ -64,7 +68,7 @@ export const SkillRadar = ({ skills, size = 400, className }: SkillRadarProps) =
                 ))}
 
                 {/* Axis Lines */}
-                {skills.map((_, i) => {
+                {safeSkills.map((_, i) => {
                     const angle = i * angleStep - Math.PI / 2;
                     return (
                         <line
@@ -96,24 +100,18 @@ export const SkillRadar = ({ skills, size = 400, className }: SkillRadarProps) =
                 {/* Pulse Nodes */}
                 {points.map((p, i) => (
                     <g key={i}>
-                        <motion.circle
+                        <circle
                             cx={p.x}
                             cy={p.y}
-                            r="0"
+                            r={4}
                             fill="hsl(var(--primary))"
-                            initial={{ r: 0 }}
-                            animate={{ r: 4 }}
-                            transition={{ delay: i * 0.1 }}
                         />
-                        <motion.circle
+                        <circle
                             cx={p.x}
                             cy={p.y}
-                            r="10"
+                            r={10}
                             fill="hsl(var(--primary))"
-                            className="opacity-20"
-                            initial={{ r: 10 }}
-                            animate={{ r: [10, 15, 10] }}
-                            transition={{ duration: 2, repeat: Infinity }}
+                            className="origin-center opacity-20 motion-safe:animate-pulse"
                         />
                         <text
                             x={p.labelX}
@@ -122,7 +120,7 @@ export const SkillRadar = ({ skills, size = 400, className }: SkillRadarProps) =
                             dominantBaseline="middle"
                             className="text-[10px] font-black uppercase tracking-tighter fill-muted-foreground/60"
                         >
-                            {skills[i].name}
+                            {safeSkills[i].name}
                         </text>
                     </g>
                 ))}
