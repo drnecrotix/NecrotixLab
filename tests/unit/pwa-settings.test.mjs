@@ -52,7 +52,7 @@ test('unknown values and javascript urls are rejected', () => {
     assert.equal(settings.handleLinks, 'preferred');
     assert.equal(settings.launchHandler, 'navigate-existing');
     assert.equal(settings.splashStyle, 'logo-name');
-    assert.equal(settings.readerTheme, 'paper');
+    assert.equal(settings.readerTheme, 'system');
     assert.deepEqual(settings.categories, ['portfolio']);
     assert.equal(settings.tabs[0].icon, 'home');
     assert.equal(settings.tabs[0].href, '/lab');

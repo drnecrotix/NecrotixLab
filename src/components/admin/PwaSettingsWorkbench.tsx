@@ -526,7 +526,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                     Preview splash
                                 </button>
                                 <div className="border-t border-foreground/10 pt-4">
-                                    <Toggle checked={settings.readerModeEnabled} onChange={(value) => setTop('readerModeEnabled', value)} label="Journal & Wiki reader" hint="A book button on journal articles and Wiki publications in the browser and the installed app. Compact options, low-vision type, paper / sepia / night." />
+                                    <Toggle checked={settings.readerModeEnabled} onChange={(value) => setTop('readerModeEnabled', value)} label="Journal & Wiki reader" hint="Optional book button in the installed app. Reader starts off on every page. Site theme follows light/dark mode; readers can choose paper, sepia or night." />
                                     <label className="mt-3 block text-xs text-muted-foreground">Default reader theme
                                         <select value={settings.readerTheme} onChange={(event) => setTop('readerTheme', event.target.value as PwaReaderTheme)} className={field}>
                                             {PWA_READER_THEMES.map((theme) => <option key={theme} value={theme}>{theme}</option>)}

@@ -166,7 +166,7 @@ export const defaultPwaSettings: PwaSettings = {
     splashTagline: '',
     splashDurationMs: 900,
     readerModeEnabled: true,
-    readerTheme: 'paper',
+    readerTheme: 'system',
     serviceWorkerEnabled: false,
     offlineFallbackEnabled: false,
     pullToRefresh: true,
