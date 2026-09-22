@@ -438,7 +438,7 @@ export function pwaSettingsToManifest(settings: PwaSettings = defaultPwaSettings
         { src: pack.maskable, sizes: '512x512', type: iconType(pack.maskable), purpose: 'maskable' },
         { src: pack.monochrome, sizes: '512x512', type: iconType(pack.monochrome), purpose: 'monochrome' },
     ];
-    if (settings.iconUrl && settings.iconUrl !== pack.icon192 && settings.iconUrl !== pack.icon512 && !isGeneratedIconPath(settings.iconUrl)) {
+    if (!settings.iconAutoPack && settings.iconUrl && settings.iconUrl !== pack.icon192 && settings.iconUrl !== pack.icon512 && !isGeneratedIconPath(settings.iconUrl)) {
         icons.push({
             src: settings.iconUrl,
             sizes: 'any',

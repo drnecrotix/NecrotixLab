@@ -304,7 +304,7 @@ export function PwaSettingsWorkbench({ initial, updatedAt }: { initial: PwaSetti
                                         <div>
                                             <p className="text-xs font-semibold">Generated icon pack</p>
                                             <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
-                                                One logo becomes 96 / 180 / 192 / 512, a padded maskable Android icon, a monochrome themed icon, and iOS splash screens. JPG, PNG or SVG all work — including files from the media library.
+                                                One logo becomes 96 / 180 / 192 / 512, a padded maskable Android icon, a monochrome themed icon, and iOS splash screens. JPG, PNG or SVG work, including files from the media library. Save settings to regenerate these previews. Website favicon is configured separately in Settings.
                                             </p>
                                         </div>
                                         <button
