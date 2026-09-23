@@ -15,7 +15,12 @@ export async function GET() {
     const cutoff = new Date(Date.now() - SITE_HEALTH_LOG_RETENTION_DAYS * 86_400_000);
     await prisma.siteHealthLog.deleteMany({ where: { createdAt: { lt: cutoff } } });
     const items = await prisma.siteHealthLog.findMany({ where: { createdAt: { gte: cutoff } }, orderBy: { lastSeenAt: 'desc' }, take: 500 });
-    return NextResponse.json({ items, retentionDays: SITE_HEALTH_LOG_RETENTION_DAYS }, { headers: { 'Cache-Control': 'private, no-store, max-age=0' } });
+    const actionable = items.filter((item) => {
+        if (item.source !== 'browser' || item.checkId !== 'request') return true;
+        const detail = item.details && typeof item.details === 'object' && !Array.isArray(item.details) ? item.details as Record<string, unknown> : {};
+        return detail.code !== 'NetworkError' || (typeof detail.resource === 'string' && detail.resource.startsWith('/api/'));
+    });
+    return NextResponse.json({ items: actionable, retentionDays: SITE_HEALTH_LOG_RETENTION_DAYS }, { headers: { 'Cache-Control': 'private, no-store, max-age=0' } });
 }
 
 export async function DELETE() {

@@ -23,7 +23,10 @@ export function RuntimeErrorReporter() {
                 if (track && response.status >= 400) reportRuntimeError('request', { resource: url.pathname, status: response.status, code: 'HttpError' });
                 return response;
             } catch (reason) {
-                if (track && !(reason instanceof Error && reason.name === 'AbortError')) reportRuntimeError('request', { resource: url.pathname, code: 'NetworkError' });
+                // Next.js route prefetches and RSC navigations can be cancelled by
+                // another navigation. A rejected page fetch is not evidence that
+                // the destination route failed. Keep API request diagnostics.
+                if (track && url.pathname.startsWith('/api/') && !(reason instanceof Error && reason.name === 'AbortError')) reportRuntimeError('request', { resource: url.pathname, code: 'NetworkError' });
                 throw reason;
             }
         };
