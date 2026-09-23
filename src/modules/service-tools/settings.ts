@@ -15,7 +15,7 @@ export type ServiceTool = {
     comingSoon: boolean;
 };
 
-export const SERVICE_TOOLS_CONFIG_VERSION = 4;
+export const SERVICE_TOOLS_CONFIG_VERSION = 5;
 
 const CORE_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'website-inspector', name: 'Website Inspector', href: '/services/website-inspector', icon: 'heart-pulse', enabled: true, visible: true, comingSoon: false },
@@ -23,16 +23,16 @@ const CORE_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'seo-intelligence', name: 'SEO Intelligence', href: '/seo-intelligence', icon: 'search-code', enabled: true, visible: true, comingSoon: false },
     { id: 'broken-links', name: 'Broken Links', href: '/site-crawl', icon: 'route', enabled: true, visible: true, comingSoon: false },
     { id: 'email-security', name: 'Email Security', href: '/email-domain-security', icon: 'shield-check', enabled: true, visible: true, comingSoon: false },
-    { id: 'whois', name: 'WHOIS Lookup', href: '/tools/whois', icon: 'globe', enabled: false, visible: true, comingSoon: true },
+    { id: 'whois', name: 'WHOIS Lookup', href: '/tools/whois', icon: 'globe', enabled: true, visible: true, comingSoon: false },
     { id: 'document-converter', name: 'Document Formats', href: '/tools/document-converter', icon: 'file-text', enabled: false, visible: true, comingSoon: true },
     { id: 'image-converter', name: 'Image Formats', href: '/tools/image-converter', icon: 'image', enabled: false, visible: true, comingSoon: true },
     { id: 'social-video', name: 'Social Video Download', href: '/tools/social-video', icon: 'video', enabled: false, visible: true, comingSoon: true },
     { id: 'pdf-file-check', name: 'PDF File Check', href: '/tools/pdf-file-check', icon: 'file-check', enabled: false, visible: true, comingSoon: true },
     { id: 'url-scam-check', name: 'URL Scam Check', href: '/tools/url-scam-check', icon: 'shield-alert', enabled: false, visible: true, comingSoon: true },
-    { id: 'dxf-inspector', name: 'DXF Inspector', href: '/tools/dxf-inspector', icon: 'drafting-compass', enabled: false, visible: true, comingSoon: true },
+    { id: 'dxf-inspector', name: 'DXF Inspector', href: '/tools/dxf-inspector', icon: 'drafting-compass', enabled: true, visible: true, comingSoon: false },
     { id: 'gcode-viewer', name: 'G-code Viewer', href: '/tools/gcode-viewer', icon: 'file-code', enabled: false, visible: true, comingSoon: true },
     { id: 'dxf-to-gcode', name: 'DXF to G-code', href: '/tools/dxf-to-gcode', icon: 'blocks', enabled: false, visible: true, comingSoon: true },
-    { id: 'svg-to-gcode', name: 'SVG to G-code', href: '/tools/svg-to-gcode', icon: 'scan-search', enabled: false, visible: true, comingSoon: true },
+    { id: 'svg-to-gcode', name: 'SVG to G-code', href: '/tools/svg-to-gcode', icon: 'scan-search', enabled: true, visible: true, comingSoon: false },
     { id: 'gerber-to-gcode', name: 'Gerber to G-code', href: '/tools/gerber-to-gcode', icon: 'binary', enabled: false, visible: true, comingSoon: true },
 ];
 
@@ -114,6 +114,12 @@ export function normalizeServiceToolsConfig(value: unknown): ServiceToolsConfig 
                 ? [...WEB_UTILITY_TOOLS, ...ENGINEERING_TOOLS]
                 : ENGINEERING_TOOLS;
         for (const tool of additions) if (!existing.has(tool.id)) tools.push({ ...tool });
+        // Preserve administrator visibility choices while activating newly implemented routes.
+        for (const id of ['whois', 'dxf-inspector', 'svg-to-gcode']) {
+            const tool = tools.find((item) => item.id === id);
+            if (tool && tool.comingSoon) { tool.comingSoon = false; tool.enabled = true; }
+            if (!tool) { const definition = CORE_SERVICE_TOOLS.find((item) => item.id === id); if (definition) tools.push({ ...definition }); }
+        }
     }
     return { version: SERVICE_TOOLS_CONFIG_VERSION, tools };
 }
