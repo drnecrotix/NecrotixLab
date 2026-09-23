@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-const hosts: Record<string, string> = { 'x.com': 'X', 'twitter.com': 'X' };
+const hosts: Record<string, string> = { 'x.com': 'X', 'twitter.com': 'X', 'threads.com': 'Threads', 'threads.net': 'Threads', 'youtube.com': 'YouTube', 'youtu.be': 'YouTube' };
 export function parseSocialVideoUrl(value: string) {
     if (value.length > 2048) throw new Error('URL is too long.');
     let url: URL;
@@ -8,8 +8,10 @@ export function parseSocialVideoUrl(value: string) {
     if (url.protocol !== 'https:' || url.username || url.password || url.port) throw new Error('Use a public HTTPS video URL.');
     const hostname = url.hostname.toLowerCase().replace(/^www\.|^m\.|^mobile\./, '');
     const platform = hosts[hostname];
-    if (!platform) throw new Error('Only X.com post links are supported.');
-    if (!/^\/(?:[a-zA-Z0-9_]{1,15}|i\/web)\/status\/\d{1,20}\/?$/.test(url.pathname)) throw new Error('Link directly to a public X post.');
+    if (!platform) throw new Error('Only X, Threads and YouTube links are supported.');
+    if (platform === 'X' && !/^\/(?:[a-zA-Z0-9_]{1,15}|i\/web)\/status\/\d{1,20}\/?$/.test(url.pathname)) throw new Error('Link directly to a public X post.');
+    if (platform === 'Threads' && !/^\/@[a-zA-Z0-9._]{1,30}\/post\/[a-zA-Z0-9_-]{5,30}\/?$/.test(url.pathname)) throw new Error('Link directly to a public Threads post.');
+    if (platform === 'YouTube' && !(hostname === 'youtu.be' ? /^\/[a-zA-Z0-9_-]{11}\/?$/.test(url.pathname) : (url.pathname === '/watch' && /^[a-zA-Z0-9_-]{11}$/.test(url.searchParams.get('v') || '')) || /^\/shorts\/[a-zA-Z0-9_-]{11}\/?$/.test(url.pathname))) throw new Error('Link directly to a public YouTube video.');
     url.hash = '';
     return { url: url.toString(), platform };
 }
