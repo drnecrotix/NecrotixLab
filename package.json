@@ -1,6 +1,6 @@
 {
     "name": "necrotixlab",
-    "version": "1.3.59",
+    "version": "1.3.60",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -11,7 +11,7 @@
         "typecheck": "tsc --noEmit",
         "test:unit": "node --experimental-strip-types --test tests/unit/*.test.mjs",
         "test:visual": "playwright test",
-        "postinstall": "prisma generate && node scripts/provision-video-backend.mjs",
+        "postinstall": "prisma generate",
         "production:preflight": "node scripts/check-production-env.mjs",
         "security:client-boundaries": "node scripts/audit-client-boundaries.mjs",
         "security:client-bundle": "node scripts/audit-client-bundle.mjs",
@@ -96,7 +96,6 @@
         "three": "^0.170.0",
         "three-globe": "^2.45.0",
         "tsparticles": "^3.9.1",
-        "youtube-dl-exec": "^3.1.15",
         "zod": "^4.1.8"
     },
     "devDependencies": {
