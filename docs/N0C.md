@@ -183,3 +183,15 @@ If Passenger reports a startup failure:
 10. temporarily use N0C Development mode only while diagnosing an error, then return to Production.
 
 After a successful deployment, remove temporary diagnostic startup logging or one-off Prisma probes added during troubleshooting.
+
+## Optional Video Download backend
+
+The public `/tools/video-download` page uses the maintained open-source `yt-dlp` executable from `github.com/yt-dlp/yt-dlp`. The page reports unavailable until the executable is present. On N0C, install `yt-dlp` in an account-owned Python environment if the host allows subprocess execution:
+
+```bash
+python3 -m venv /home/<account>/video-tools
+/home/<account>/video-tools/bin/python -m pip install --upgrade yt-dlp
+/home/<account>/video-tools/bin/yt-dlp --version
+```
+
+Set `YTDLP_BIN=/home/<account>/video-tools/bin/yt-dlp` in the app environment, confirm `AUTH_SECRET` is set, and restart Passenger. Open `/api/tools/video-download` and verify `available: true`. Keep yt-dlp current as source sites change. If the shared host disallows Python or child processes, move this endpoint to a controlled VPS; the UI will show that the backend is unavailable until then. The endpoint accepts only public Facebook, Instagram and X posts, no cookies or accounts, and streams direct MP4 formats up to 250 MB.
