@@ -15,7 +15,7 @@ export type ServiceTool = {
     comingSoon: boolean;
 };
 
-export const SERVICE_TOOLS_CONFIG_VERSION = 6;
+export const SERVICE_TOOLS_CONFIG_VERSION = 7;
 
 const CORE_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'website-inspector', name: 'Website Inspector', href: '/services/website-inspector', icon: 'heart-pulse', enabled: true, visible: true, comingSoon: false },
@@ -24,6 +24,7 @@ const CORE_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'broken-links', name: 'Broken Links', href: '/site-crawl', icon: 'route', enabled: true, visible: true, comingSoon: false },
     { id: 'email-security', name: 'Email Security', href: '/email-domain-security', icon: 'shield-check', enabled: true, visible: true, comingSoon: false },
     { id: 'whois', name: 'WHOIS Lookup', href: '/tools/whois', icon: 'globe', enabled: true, visible: true, comingSoon: false },
+    { id: 'discord-lookup', name: 'Discord Lookup', href: '/tools/discord-lookup', icon: 'message-circle', enabled: true, visible: true, comingSoon: false },
     { id: 'document-converter', name: 'Document Formats', href: '/tools/document-converter', icon: 'file-text', enabled: false, visible: true, comingSoon: true },
     { id: 'image-converter', name: 'Image Formats', href: '/tools/image-converter', icon: 'image', enabled: false, visible: true, comingSoon: true },
     { id: 'social-video', name: 'Video Download', href: '/tools/video-download', icon: 'video', enabled: true, visible: true, comingSoon: false },
@@ -46,6 +47,7 @@ export const DOCUMENT_AND_BINARY_TOOLS: ServiceTool[] = [
     { id: 'sign-pdf', name: 'Sign PDF', href: '/tools/sign-pdf', icon: 'pen-line', enabled: false, visible: true, comingSoon: true },
     { id: 'watermark-pdf', name: 'PDF Watermark', href: '/tools/watermark-pdf', icon: 'stamp', enabled: false, visible: true, comingSoon: true },
     { id: 'document-inspector', name: 'Document Inspector & Privacy Cleaner', href: '/tools/document-inspector', icon: 'file-scan', enabled: true, visible: true, comingSoon: false },
+    { id: 'exif-tool', name: 'EXIF Tool', href: '/tools/exif-tool', icon: 'camera', enabled: true, visible: true, comingSoon: false },
     { id: 'compare-documents', name: 'Compare Documents', href: '/tools/compare-documents', icon: 'file-diff', enabled: false, visible: true, comingSoon: true },
     { id: 'binary-converter', name: 'Binary Converter', href: '/tools/binary-converter', icon: 'binary', enabled: true, visible: true, comingSoon: false },
     { id: 'base64-codec', name: 'Base64 Encode / Decode', href: '/tools/base64', icon: 'braces', enabled: true, visible: true, comingSoon: false },
@@ -114,6 +116,11 @@ export function normalizeServiceToolsConfig(value: unknown): ServiceToolsConfig 
                 ? [...WEB_UTILITY_TOOLS, ...ENGINEERING_TOOLS]
                 : ENGINEERING_TOOLS;
         for (const tool of additions) if (!existing.has(tool.id)) tools.push({ ...tool });
+        if (version < 7) for (const id of ['discord-lookup', 'exif-tool']) {
+            if (existing.has(id)) continue;
+            const definition = [...CORE_SERVICE_TOOLS, ...DOCUMENT_AND_BINARY_TOOLS].find((item) => item.id === id);
+            if (definition) tools.push({ ...definition });
+        }
         // Preserve administrator visibility choices while activating newly implemented routes.
         for (const id of ['whois', 'dxf-inspector', 'svg-to-gcode', 'social-video']) {
             const tool = tools.find((item) => item.id === id);
