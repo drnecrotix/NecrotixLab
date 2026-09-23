@@ -8,7 +8,7 @@ const tabs = [
     { id: 'ideas', label: 'Ideas', hint: 'Capability grid', icon: Boxes },
     { id: 'journal', label: 'Journal', hint: 'Dynamic posts', icon: BookOpen },
     { id: 'engineering', label: 'Engineering', hint: 'CNC lab', icon: Cpu },
-    { id: 'projects', label: 'Case studies', hint: 'Selected work', icon: FolderKanban },
+    { id: 'projects', label: 'Selected work / Case studies', hint: 'Homepage project section', icon: FolderKanban },
     { id: 'cloud', label: 'Cloud', hint: 'Kreatrics workspace', icon: Cloud },
 ] as const;
 
