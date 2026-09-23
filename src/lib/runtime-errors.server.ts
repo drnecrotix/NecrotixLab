@@ -10,6 +10,7 @@ export async function recordRuntimeError(event: { source: 'browser' | 'server' |
         const path = diagnosticPath(event.path);
         const code = diagnosticCode(event.code);
         const resource = event.resource ? diagnosticPath(event.resource) : '';
+        if (event.source === 'browser' && event.kind === 'request' && code === 'NetworkError' && !resource.startsWith('/api/')) return;
         const fingerprint = createHash('sha256').update(`${event.source}:${event.kind}:${path}:${resource}:${event.status || 0}:${code}`).digest('hex');
         const id = `runtime_${createHash('sha256').update(`${fingerprint}:${Math.floor(now / 900000)}`).digest('hex').slice(0, 40)}`;
         const title = event.source === 'media' ? 'Image processing failed' : event.source === 'server' ? 'Server request failed' : `${event.kind[0]?.toUpperCase()}${event.kind.slice(1)} failure reported by browser`;
