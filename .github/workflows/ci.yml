@@ -171,8 +171,12 @@ jobs:
         run: npm run security:client-bundle
 
   visual-smoke:
-    name: Frontend visual smoke
+    name: Frontend visual smoke (${{ matrix.project }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, mobile-chromium, mobile-small-chromium]
     services:
       postgres:
         image: postgres:16
@@ -206,12 +210,12 @@ jobs:
       - name: Install Chromium
         run: npx playwright install chromium
       - name: Run visual smoke tests
-        run: npm run test:visual
+        run: npx playwright test --project="${{ matrix.project }}"
       - name: Upload visual evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: visual-smoke-${{ github.sha }}
+          name: visual-smoke-${{ matrix.project }}-${{ github.sha }}
           path: |
             test-results/
             playwright-report/
