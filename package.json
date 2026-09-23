@@ -1,6 +1,6 @@
 {
     "name": "necrotixlab",
-    "version": "1.3.57",
+    "version": "1.3.58",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -11,7 +11,7 @@
         "typecheck": "tsc --noEmit",
         "test:unit": "node --experimental-strip-types --test tests/unit/*.test.mjs",
         "test:visual": "playwright test",
-        "postinstall": "prisma generate",
+        "postinstall": "prisma generate && node scripts/provision-video-backend.mjs",
         "production:preflight": "node scripts/check-production-env.mjs",
         "security:client-boundaries": "node scripts/audit-client-boundaries.mjs",
         "security:client-bundle": "node scripts/audit-client-bundle.mjs",
