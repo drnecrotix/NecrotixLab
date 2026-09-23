@@ -54,7 +54,7 @@ function CheckCard({ check }: { check: OperationalCheck }) {
 const quickLinks = [
     { label: 'Service monitoring', href: '/admin/service-monitoring', icon: Activity },
     { label: 'Site mode', href: '/admin/site-mode', icon: Gauge },
-    { label: 'API integrations', href: '/admin/api-integrations', icon: KeyRound },
+    { label: 'API & Tokens', href: '/admin/api-integrations', icon: KeyRound },
     { label: 'Media storage', href: '/admin/media', icon: Database },
 ];
 

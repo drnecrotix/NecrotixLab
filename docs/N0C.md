@@ -58,7 +58,7 @@ OWNER_PASSWORD="replace-with-a-strong-password-at-least-12-characters"
 
 Keep `.env` outside the public document root and restrict its permissions, for example `chmod 600 .env`. Configure SMTP, R2, GitHub, WakaTime, Groq and Gemini only when those features are enabled. Never commit real credentials.
 
-Discord Lookup user profiles require a bot token. Add `DISCORD_BOT_TOKEN="..."` to the application `.env` using a bot you control, then restart Passenger. The token stays on the server and is sent only to Discord's official API. Without it, lookup by arbitrary User ID can show only the ID-derived creation date. Public invite links and enabled server widgets do not need a bot token.
+Discord Lookup user profiles require a bot token. Save the bot token under Admin → Tools → API & Tokens → Discord bot, or add `DISCORD_BOT_TOKEN="..."` to the application `.env` and restart Passenger. The CMS token takes priority. The token stays on the server and is sent only to Discord's official API. Without it, lookup by arbitrary User ID can show only the ID-derived creation date. Public invite links and enabled server widgets do not need a bot token.
 
 If a database password contains URL-significant characters, URL-encode the password when constructing `DATABASE_URL`.
 

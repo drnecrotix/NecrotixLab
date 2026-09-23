@@ -21,7 +21,7 @@ import {
     type IntegrationTestRecord,
 } from '@/lib/integration-credentials';
 
-export type ApiIntegrationId = 'github' | 'wakatime' | 'openai' | 'groq' | 'gemini' | 'openrouter' | 'r2' | 'lemonsqueezy' | 'creem' | 'smtp';
+export type ApiIntegrationId = 'github' | 'wakatime' | 'openai' | 'groq' | 'gemini' | 'openrouter' | 'r2' | 'lemonsqueezy' | 'creem' | 'smtp' | 'discord';
 export type ApiActionResult = { ok: boolean; message: string; testedAt?: string; latencyMs?: number };
 
 const allowedFields: Record<ApiIntegrationId, readonly string[]> = {
@@ -35,6 +35,7 @@ const allowedFields: Record<ApiIntegrationId, readonly string[]> = {
     lemonsqueezy: ['lemonsqueezy.apiKey', 'lemonsqueezy.storeId', 'lemonsqueezy.webhookSecret'],
     creem: ['creem.apiKey', 'creem.webhookSecret'],
     smtp: ['smtp.user', 'smtp.password', 'smtp.host', 'smtp.port', 'smtp.secure'],
+    discord: ['discord.botToken'],
 };
 
 const envNames: Record<string, string> = {
@@ -61,6 +62,7 @@ const envNames: Record<string, string> = {
     'smtp.host': 'SMTP_HOST',
     'smtp.port': 'SMTP_PORT',
     'smtp.secure': 'SMTP_SECURE',
+    'discord.botToken': 'DISCORD_BOT_TOKEN',
 };
 
 const aiProviders = new Set<ApiIntegrationId>(['openai', 'groq', 'gemini', 'openrouter']);
@@ -331,6 +333,17 @@ async function runIntegrationTest(id: ApiIntegrationId, values: Record<string, s
         if (!apiKey) throw new Error('No OpenRouter API key is configured.');
         await fetchChecked('https://openrouter.ai/api/v1/auth/key', { headers: { Authorization: `Bearer ${apiKey}` } });
         return 'OpenRouter API key is valid.';
+    }
+
+    if (id === 'discord') {
+        const token = values['discord.botToken'];
+        if (!token) throw new Error('No Discord bot token is configured.');
+        const response = await fetchChecked('https://discord.com/api/v10/users/@me', {
+            headers: { Authorization: `Bot ${token}`, Accept: 'application/json' },
+        });
+        const bot = await response.json();
+        if (bot?.bot !== true) throw new Error('Discord token did not identify a bot account.');
+        return `Discord bot connected as ${String(bot.username || 'bot').slice(0, 100)}. User ID lookup can now show available profile fields.`;
     }
 
     if (id === 'creem') {
