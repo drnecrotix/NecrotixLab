@@ -10,8 +10,9 @@ export function safeXMediaUrl(value: unknown): string | null {
 }
 export function parseXVideo(data: unknown) {
     const tweet = object(data);
-    const media = Array.isArray(tweet.mediaDetails) ? tweet.mediaDetails : [];
-    const sources = [tweet.video, ...media.map((entry) => object(entry).video_info), ...media.map((entry) => object(entry).video)];
+    const quoted = object(tweet.quoted_tweet);
+    const media = [tweet, quoted].flatMap((post) => Array.isArray(post.mediaDetails) ? post.mediaDetails : []);
+    const sources = [tweet.video, quoted.video, ...media.map((entry) => object(entry).video_info), ...media.map((entry) => object(entry).video)];
     const variants: VideoVariant[] = [];
     for (const source of sources) {
         const info = object(source);
@@ -25,15 +26,16 @@ export function parseXVideo(data: unknown) {
     variants.sort((a, b) => b.height - a.height);
     // IDs are assigned after sorting so signed links select a stable quality on a fresh lookup.
     const formats = variants.slice(0, 8).map((item, index) => ({ ...item, id: `v${index}` }));
-    if (!formats.length) throw new Error('No public MP4 was found. The post may be private, removed, or contain only images.');
+    if (!formats.length) throw new Error('The public X response contains no MP4. The post may be private, removed, or its video may not be exposed by the embed feed.');
     const user = object(tweet.user);
     return { title: String(tweet.text || 'X video').slice(0, 180), uploader: typeof user.screen_name === 'string' ? user.screen_name.slice(0, 100) : null, duration: null, thumbnail: null, formats };
 }
 export async function inspectXPost(input: string) {
     const id = new URL(input).pathname.match(/\/status\/(\d+)/)?.[1];
     if (!id) throw new Error('Invalid X post ID.');
-    const endpoint = `https://cdn.syndication.twimg.com/tweet-result?id=${id}&lang=en`;
-    const response = await fetch(endpoint, { signal: AbortSignal.timeout(12000), redirect: 'error', headers: { accept: 'application/json' }, cache: 'no-store' });
+    const token = ((Number(id) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, '');
+    const endpoint = `https://cdn.syndication.twimg.com/tweet-result?id=${id}&token=${token}`;
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(12000), redirect: 'error', headers: { accept: 'application/json', 'user-agent': 'Googlebot' }, cache: 'no-store' });
     if (!response.ok) throw new Error('X public embed is unavailable for this post.');
     if (Number(response.headers.get('content-length')) > 2_000_000) throw new Error('X response is too large.');
     const body = await response.text();
