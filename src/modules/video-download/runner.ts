@@ -1,8 +1,14 @@
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const binary = () => process.env.YTDLP_BIN?.trim() || (existsSync(path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp_linux')) ? path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp_linux') : existsSync(path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp')) ? path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp') : 'yt-dlp');
+function provisioningReason() {
+    try {
+        const status = JSON.parse(readFileSync(path.join(process.cwd(), 'tmp/video-backend-status.json'), 'utf8')) as { state?: string; reason?: string };
+        return status.state === 'unavailable' && typeof status.reason === 'string' ? status.reason.replaceAll(process.cwd(), '[app]').slice(0, 400) : '';
+    } catch { return ''; }
+}
 let active = 0;
 export async function videoBackendAvailable() {
     return (await videoBackendStatus()).available;
@@ -14,7 +20,7 @@ export async function videoBackendStatus(): Promise<{ available: boolean; reason
         const finish = (result: { available: boolean; reason?: string }) => { if (done) return; done = true; clearTimeout(timeout); resolve(result); };
         const timeout = setTimeout(() => { child.kill(); finish({ available: false, reason: 'Extractor startup timed out.' }); }, 5000);
         child.stderr.on('data', (chunk: Buffer) => { stderr = (stderr + chunk.toString()).slice(-500); });
-        child.once('error', (error: NodeJS.ErrnoException) => finish({ available: false, reason: error.code === 'ENOENT' ? 'Extractor executable is missing. Run the application updater.' : error.code === 'EACCES' ? 'Server denied permission to run the extractor.' : 'Extractor could not start.' }));
+        child.once('error', (error: NodeJS.ErrnoException) => finish({ available: false, reason: provisioningReason() || (error.code === 'ENOENT' ? 'Extractor executable is missing. Run the application updater.' : error.code === 'EACCES' ? 'Server denied permission to run the extractor.' : 'Extractor could not start.') }));
         child.once('close', (code) => finish(code === 0 ? { available: true } : { available: false, reason: /python|no such file/i.test(stderr) ? 'Python is unavailable. Run the updater to install the standalone Linux extractor.' : 'Extractor exited unexpectedly. Check server logs.' }));
     });
 }
