@@ -10,7 +10,7 @@ export function parseSocialVideoUrl(value: string) {
     const platform = hosts[hostname];
     if (!platform) throw new Error('Only X, Threads and YouTube links are supported.');
     if (platform === 'X' && !/^\/(?:[a-zA-Z0-9_]{1,15}|i\/web)\/status\/\d{1,20}\/?$/.test(url.pathname)) throw new Error('Link directly to a public X post.');
-    if (platform === 'Threads' && !/^\/@[a-zA-Z0-9._]{1,30}\/post\/[a-zA-Z0-9_-]{5,30}\/?$/.test(url.pathname)) throw new Error('Link directly to a public Threads post.');
+    if (platform === 'Threads' && !(/^\/@[a-zA-Z0-9._]{1,30}\/post\/[a-zA-Z0-9_-]{5,30}\/?$/.test(url.pathname) || /^\/t\/[a-zA-Z0-9_-]{5,30}\/?$/.test(url.pathname))) throw new Error('Link directly to a public Threads post.');
     if (platform === 'YouTube' && !(hostname === 'youtu.be' ? /^\/[a-zA-Z0-9_-]{11}\/?$/.test(url.pathname) : (url.pathname === '/watch' && /^[a-zA-Z0-9_-]{11}$/.test(url.searchParams.get('v') || '')) || /^\/shorts\/[a-zA-Z0-9_-]{11}\/?$/.test(url.pathname))) throw new Error('Link directly to a public YouTube video.');
     url.hash = '';
     return { url: url.toString(), platform };

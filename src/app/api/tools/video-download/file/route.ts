@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
         const selected = video.formats.find((format) => format.id === data.formatId);
         if (!selected) throw new Error('Video quality is no longer available. Inspect the post again.');
         const stream = platform === 'X' ? await fetchXMedia(selected.url) : platform === 'Threads' ? await fetchThreadsMedia(selected.url) : await fetchYouTubeMedia(selected.url);
-        return new Response(stream, { headers: { 'Content-Type': 'video/mp4', 'Content-Disposition': `attachment; filename="${safeFilename(data.title)}"`, 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' } });
+        const audioOnly = 'mediaKind' in selected && selected.mediaKind === 'audio-only';
+        const videoOnly = 'mediaKind' in selected && selected.mediaKind === 'video-only';
+        const filename = safeFilename(data.title).replace(/\.mp4$/, `${videoOnly ? '-video-only' : ''}.${audioOnly ? 'm4a' : 'mp4'}`);
+        return new Response(stream, { headers: { 'Content-Type': audioOnly ? 'audio/mp4' : 'video/mp4', 'Content-Disposition': `attachment; filename="${filename}"`, 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' } });
     } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Download unavailable.' }, { status: 400 }); }
 }
