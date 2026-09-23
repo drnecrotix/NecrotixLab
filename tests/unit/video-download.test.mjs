@@ -2,10 +2,41 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseSocialVideoUrl, signDownloadToken, verifyDownloadToken, summarizeVideoInfo, safeFilename } from '../../src/modules/video-download/core.ts';
 import { parseXVideo, safeXMediaUrl } from '../../src/modules/video-download/x-public.ts';
+import { parseThreadsVideo, safeThreadsMediaUrl } from '../../src/modules/video-download/threads-public.ts';
+import { parseYouTubeVideo, safeYouTubeMediaUrl, inspectYouTubeVideo } from '../../src/modules/video-download/youtube-public.ts';
 
 test('accepts only direct HTTPS X post links', () => {
     assert.equal(parseSocialVideoUrl('https://x.com/person/status/123').platform, 'X');
     for (const url of ['http://x.com/person/status/1', 'https://evil.example/video', 'https://x.com.evil.example/status/1', 'https://127.0.0.1/video', 'https://facebook.com/watch?v=123', 'https://x.com/person/likes']) assert.throws(() => parseSocialVideoUrl(url));
+});
+
+test('accepts canonical public Threads and YouTube URLs and rejects lookalike hosts', () => {
+    assert.equal(parseSocialVideoUrl('https://www.threads.com/@user/post/DaGcWDwj8tW').platform, 'Threads');
+    assert.equal(parseSocialVideoUrl('https://youtu.be/abcdefghijk').platform, 'YouTube');
+    assert.equal(parseSocialVideoUrl('https://youtube.com/shorts/abcdefghijk').platform, 'YouTube');
+    for (const url of ['https://threads.com.evil.test/@u/post/DaGcWDwj8tW', 'https://youtube.com.evil.test/watch?v=abcdefghijk', 'https://threads.com/share/abcdef', 'https://youtube.com/playlist?list=abc']) assert.throws(() => parseSocialVideoUrl(url));
+});
+
+test('Threads selects only the requested post and approved CDN MP4', () => {
+    const html = `<script type="application/json">${JSON.stringify({ items: [
+        { code: 'other', video_versions: [{ url: 'https://scontent.cdninstagram.com/other.mp4' }] },
+        { code: 'DaGcWDwj8tW', caption: { text: 'My video' }, user: { username: 'test' }, video_versions: [{ url: 'https://scontent.cdninstagram.com/a.mp4', width: 640, height: 360 }, { url: 'https://cdninstagram.com.evil.test/b.mp4' }] },
+    ] })}</script>`;
+    const parsed = parseThreadsVideo(html, 'DaGcWDwj8tW');
+    assert.equal(parsed.formats.length, 1);
+    assert.equal(parsed.title, 'My video');
+    assert.equal(safeThreadsMediaUrl('https://cdninstagram.com.evil.test/b.mp4'), null);
+    assert.throws(() => parseThreadsVideo(html, 'missing'));
+});
+
+test('YouTube chooses only progressive MP4 on Googlevideo and parses player page', async () => {
+    const player = { videoDetails: { title: 'Example', author: 'Creator' }, streamingData: { formats: [{ mimeType: 'video/mp4; codecs="avc1, mp4a"', url: 'https://r1---sn.googlevideo.com/videoplayback?x=1', height: 360 }, { mimeType: 'video/mp4', url: 'https://googlevideo.com.evil.test/videoplayback', height: 720 }] } };
+    assert.equal(parseYouTubeVideo(player).formats.length, 1);
+    assert.equal(safeYouTubeMediaUrl('https://googlevideo.com.evil.test/videoplayback'), null);
+    const original = globalThis.fetch;
+    globalThis.fetch = async () => new Response(`<script>var ytInitialPlayerResponse = ${JSON.stringify(player)};</script>`);
+    try { assert.equal((await inspectYouTubeVideo('https://youtu.be/abcdefghijk')).title, 'Example'); }
+    finally { globalThis.fetch = original; }
 });
 
 test('download tokens are signed, expire and cannot change format', () => {

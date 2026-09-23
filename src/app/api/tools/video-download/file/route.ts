@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { safeFilename, verifyDownloadToken } from '@/modules/video-download/core';
+import { parseSocialVideoUrl, safeFilename, verifyDownloadToken } from '@/modules/video-download/core';
 import { fetchXMedia, inspectXPost } from '@/modules/video-download/x-public';
+import { fetchThreadsMedia, inspectThreadsPost } from '@/modules/video-download/threads-public';
+import { fetchYouTubeMedia, inspectYouTubeVideo } from '@/modules/video-download/youtube-public';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 const downloads = new Map<string, { count: number; expires: number }>();
@@ -15,10 +17,11 @@ export async function GET(request: NextRequest) {
         const record = downloads.get(ip);
         if (record && record.expires > now) { if (++record.count > 4) return NextResponse.json({ error: 'Download limit reached. Try again shortly.' }, { status: 429 }); }
         else downloads.set(ip, { count: 1, expires: now + 60_000 });
-        const video = await inspectXPost(data.url);
+        const { platform } = parseSocialVideoUrl(data.url);
+        const video = platform === 'X' ? await inspectXPost(data.url) : platform === 'Threads' ? await inspectThreadsPost(data.url) : await inspectYouTubeVideo(data.url);
         const selected = video.formats.find((format) => format.id === data.formatId);
         if (!selected) throw new Error('Video quality is no longer available. Inspect the post again.');
-        const stream = await fetchXMedia(selected.url);
+        const stream = platform === 'X' ? await fetchXMedia(selected.url) : platform === 'Threads' ? await fetchThreadsMedia(selected.url) : await fetchYouTubeMedia(selected.url);
         return new Response(stream, { headers: { 'Content-Type': 'video/mp4', 'Content-Disposition': `attachment; filename="${safeFilename(data.title)}"`, 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' } });
     } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Download unavailable.' }, { status: 400 }); }
 }
