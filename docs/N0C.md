@@ -186,10 +186,11 @@ After a successful deployment, remove temporary diagnostic startup logging or on
 
 ## Video Download backend
 
-`npm install` now installs `yt-dlp` through the `youtube-dl-exec` package. Python 3.9+ and permission to execute child processes are required on the N0C host. After each deployment, verify:
+`npm install` installs `yt-dlp` through the `youtube-dl-exec` package. The Admin updater uses `--ignore-scripts`, then runs `scripts/provision-video-backend.mjs` explicitly. It tries the standalone Linux executable when Python is unavailable. Permission to execute child processes remains required on the N0C host. After each deployment, verify:
 
 ```bash
-node_modules/youtube-dl-exec/bin/yt-dlp --version
+node scripts/provision-video-backend.mjs
+node_modules/youtube-dl-exec/bin/yt-dlp --version  # or yt-dlp_linux
 ```
 
-Restart Passenger and check `/api/tools/video-download` for `available: true`. If `npm install` was run with `--ignore-scripts`, rerun it with lifecycle scripts enabled. `YTDLP_BIN` remains an optional override for a separately managed executable. If the host blocks Python, subprocesses, or the package download during install, deploy this endpoint on a VPS with those capabilities. The service accepts public Facebook, Instagram and X posts and streams direct MP4 formats up to 250 MB.
+Restart Passenger and check `/api/tools/video-download` for `available: true`. If dependencies were installed with `--ignore-scripts`, run `node scripts/provision-video-backend.mjs` manually. `YTDLP_BIN` remains an optional override for a separately managed executable. If the host blocks Python, subprocesses, or the package download during install, deploy this endpoint on a VPS with those capabilities. The service accepts public Facebook, Instagram and X posts and streams direct MP4 formats up to 250 MB.

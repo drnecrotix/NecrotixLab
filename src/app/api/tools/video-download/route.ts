@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseSocialVideoUrl, signDownloadToken, summarizeVideoInfo } from '@/modules/video-download/core';
-import { inspectVideo, videoBackendAvailable } from '@/modules/video-download/runner';
+import { inspectVideo, videoBackendAvailable, videoBackendStatus } from '@/modules/video-download/runner';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 const attempts = new Map<string, { count: number; expires: number }>();
@@ -12,7 +12,8 @@ function limited(request: NextRequest) {
     attempts.set(ip, { count: 1, expires: now + 60_000 }); return false;
 }
 export async function GET() {
-    return NextResponse.json({ available: Boolean(process.env.AUTH_SECRET) && await videoBackendAvailable(), engine: 'yt-dlp', maxMb: 250 }, { headers: { 'Cache-Control': 'no-store' } });
+    const status = await videoBackendStatus();
+    return NextResponse.json({ available: Boolean(process.env.AUTH_SECRET) && status.available, reason: !process.env.AUTH_SECRET ? 'Server signing secret is missing.' : status.reason, engine: 'yt-dlp', maxMb: 250 }, { headers: { 'Cache-Control': 'no-store' } });
 }
 export async function POST(request: NextRequest) {
     if (!process.env.AUTH_SECRET || !await videoBackendAvailable()) return NextResponse.json({ error: 'Video backend is unavailable. Check that npm install completed and Python 3 is available on the server.' }, { status: 503 });

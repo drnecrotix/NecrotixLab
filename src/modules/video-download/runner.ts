@@ -2,10 +2,21 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-const binary = () => process.env.YTDLP_BIN?.trim() || (existsSync(path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp')) ? path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp') : 'yt-dlp');
+const binary = () => process.env.YTDLP_BIN?.trim() || (existsSync(path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp_linux')) ? path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp_linux') : existsSync(path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp')) ? path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp') : 'yt-dlp');
 let active = 0;
 export async function videoBackendAvailable() {
-    return await new Promise<boolean>((resolve) => { const process = spawn(binary(), ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] }); const timeout = setTimeout(() => { process.kill(); resolve(false); }, 3000); process.once('error', () => { clearTimeout(timeout); resolve(false); }); process.once('close', (code) => { clearTimeout(timeout); resolve(code === 0); }); });
+    return (await videoBackendStatus()).available;
+}
+export async function videoBackendStatus(): Promise<{ available: boolean; reason?: string }> {
+    return await new Promise((resolve) => {
+        const child = spawn(binary(), ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] });
+        let stderr = '', done = false;
+        const finish = (result: { available: boolean; reason?: string }) => { if (done) return; done = true; clearTimeout(timeout); resolve(result); };
+        const timeout = setTimeout(() => { child.kill(); finish({ available: false, reason: 'Extractor startup timed out.' }); }, 5000);
+        child.stderr.on('data', (chunk: Buffer) => { stderr = (stderr + chunk.toString()).slice(-500); });
+        child.once('error', (error: NodeJS.ErrnoException) => finish({ available: false, reason: error.code === 'ENOENT' ? 'Extractor executable is missing. Run the application updater.' : error.code === 'EACCES' ? 'Server denied permission to run the extractor.' : 'Extractor could not start.' }));
+        child.once('close', (code) => finish(code === 0 ? { available: true } : { available: false, reason: /python|no such file/i.test(stderr) ? 'Python is unavailable. Run the updater to install the standalone Linux extractor.' : 'Extractor exited unexpectedly. Check server logs.' }));
+    });
 }
 const common = ['--ignore-config', '--no-playlist', '--no-warnings', '--ies', 'facebook,facebook:reel,FacebookPluginsVideo,FacebookRedirectURL,Instagram,twitter,twitter:card,twitter:amplify'];
 export async function inspectVideo(url: string) {

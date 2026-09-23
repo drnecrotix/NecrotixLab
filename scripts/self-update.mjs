@@ -151,6 +151,11 @@ try {
     status('running', 'Dependencies unchanged; using the installed N0C modules…', { targetVersion });
   }
 
+  // npm is intentionally run with --ignore-scripts above. Provision the video
+  // extractor explicitly, including on updates where dependencies are reused.
+  status('running', 'Preparing Video Download backend…', { targetVersion });
+  run(process.execPath, [join(appRoot, 'scripts/provision-video-backend.mjs')]);
+
   const prismaCli = resolvePackageFile('prisma/build/index.js');
   if (!prismaCli) {
     throw new Error('Prisma CLI is not installed in the active N0C Node environment. Restore/install dev dependencies before retrying.');
