@@ -16,6 +16,7 @@ dist
 
 # Private runtime storage
 storage/store-private/
+/tmp/
 
 # Misc
 .DS_Store
