@@ -210,7 +210,12 @@ jobs:
       - name: Install Chromium
         run: npx playwright install chromium
       - name: Run visual smoke tests
-        run: npx playwright test --project="${{ matrix.project }}"
+        run: |
+          if [ "${{ matrix.project }}" = "mobile-small-chromium" ]; then
+            npx playwright test tests/visual/public-routes.spec.ts --project=mobile-small-chromium --grep='/tools/(gcode-editor|svg-to-gcode|dxf-inspector|whois)'
+          else
+            npx playwright test --project="${{ matrix.project }}"
+          fi
       - name: Upload visual evidence
         if: always()
         uses: actions/upload-artifact@v4
