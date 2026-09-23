@@ -15,7 +15,7 @@ export type ServiceTool = {
     comingSoon: boolean;
 };
 
-export const SERVICE_TOOLS_CONFIG_VERSION = 5;
+export const SERVICE_TOOLS_CONFIG_VERSION = 6;
 
 const CORE_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'website-inspector', name: 'Website Inspector', href: '/services/website-inspector', icon: 'heart-pulse', enabled: true, visible: true, comingSoon: false },
@@ -26,7 +26,7 @@ const CORE_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'whois', name: 'WHOIS Lookup', href: '/tools/whois', icon: 'globe', enabled: true, visible: true, comingSoon: false },
     { id: 'document-converter', name: 'Document Formats', href: '/tools/document-converter', icon: 'file-text', enabled: false, visible: true, comingSoon: true },
     { id: 'image-converter', name: 'Image Formats', href: '/tools/image-converter', icon: 'image', enabled: false, visible: true, comingSoon: true },
-    { id: 'social-video', name: 'Social Video Download', href: '/tools/social-video', icon: 'video', enabled: false, visible: true, comingSoon: true },
+    { id: 'social-video', name: 'Video Download', href: '/tools/video-download', icon: 'video', enabled: true, visible: true, comingSoon: false },
     { id: 'pdf-file-check', name: 'PDF File Check', href: '/tools/pdf-file-check', icon: 'file-check', enabled: false, visible: true, comingSoon: true },
     { id: 'url-scam-check', name: 'URL Scam Check', href: '/tools/url-scam-check', icon: 'shield-alert', enabled: false, visible: true, comingSoon: true },
     { id: 'dxf-inspector', name: 'DXF Inspector', href: '/tools/dxf-inspector', icon: 'drafting-compass', enabled: true, visible: true, comingSoon: false },
@@ -115,9 +115,10 @@ export function normalizeServiceToolsConfig(value: unknown): ServiceToolsConfig 
                 : ENGINEERING_TOOLS;
         for (const tool of additions) if (!existing.has(tool.id)) tools.push({ ...tool });
         // Preserve administrator visibility choices while activating newly implemented routes.
-        for (const id of ['whois', 'dxf-inspector', 'svg-to-gcode']) {
+        for (const id of ['whois', 'dxf-inspector', 'svg-to-gcode', 'social-video']) {
             const tool = tools.find((item) => item.id === id);
             if (tool && tool.comingSoon) { tool.comingSoon = false; tool.enabled = true; }
+            if (tool && id === 'social-video') { tool.name = 'Video Download'; tool.href = '/tools/video-download'; }
             if (!tool) { const definition = CORE_SERVICE_TOOLS.find((item) => item.id === id); if (definition) tools.push({ ...definition }); }
         }
     }

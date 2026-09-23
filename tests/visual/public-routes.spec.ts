@@ -35,6 +35,7 @@ const routes = [
   '/tools/color-converter',
   '/tools/subtitle-converter',
   '/tools/gcode-editor',
+  '/tools/video-download',
   '/tools/svg-to-gcode',
   '/tools/dxf-inspector',
   '/tools/whois',

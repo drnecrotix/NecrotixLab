@@ -212,7 +212,7 @@ jobs:
       - name: Run visual smoke tests
         run: |
           if [ "${{ matrix.project }}" = "mobile-small-chromium" ]; then
-            npx playwright test tests/visual/public-routes.spec.ts --project=mobile-small-chromium --grep='/tools/(gcode-editor|svg-to-gcode|dxf-inspector|whois)'
+            npx playwright test tests/visual/public-routes.spec.ts --project=mobile-small-chromium --grep='/tools/(gcode-editor|svg-to-gcode|dxf-inspector|whois|video-download)'
           else
             npx playwright test --project="${{ matrix.project }}"
           fi

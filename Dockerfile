@@ -11,6 +11,11 @@ RUN npm run db:generate && npm run build
 
 FROM node:22-bookworm-slim AS runtime
 
+ARG YTDLP_VERSION=2026.8.19
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip && \
+    python3 -m pip install --break-system-packages --no-cache-dir "yt-dlp==${YTDLP_VERSION}" && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
