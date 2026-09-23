@@ -25,6 +25,21 @@ test('X embed selects only direct MP4 from the expected media host', () => {
     ] } });
     assert.deepEqual(parsed.formats.map((f) => f.height), [720, 360]);
     assert.equal(safeXMediaUrl('https://video.twimg.com.evil.example/a.mp4'), null);
+    const quoted = parseXVideo({ text: 'Quoted video', quoted_tweet: { mediaDetails: [{ video_info: { variants: [{ url: 'https://video.twimg.com/ext_tw_video/123/vid/640x360/c.mp4' }] } }] } });
+    assert.equal(quoted.formats[0].height, 360);
+});
+
+test('X syndication request includes a token and extracts returned media', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (url, options) => {
+        assert.match(String(url), /id=2102754001267958263&token=[a-z0-9]+$/);
+        assert.equal(options.headers['user-agent'], 'Googlebot');
+        return new Response(JSON.stringify({ mediaDetails: [{ video_info: { variants: [{ url: 'https://video.twimg.com/ext_tw_video/123/vid/640x360/a.mp4' }] } }] }), { headers: { 'content-type': 'application/json' } });
+    };
+    try {
+        const { inspectXPost } = await import('../../src/modules/video-download/x-public.ts');
+        assert.equal((await inspectXPost('https://x.com/bunnypjq/status/2102754001267958263?s=20')).formats[0].height, 360);
+    } finally { globalThis.fetch = originalFetch; }
 });
 
 test('selects direct MP4 with audio and sanitizes filename', () => {

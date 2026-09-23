@@ -35,7 +35,7 @@ function contentSecurityPolicy() {
         "font-src 'self' data: https:",
         "media-src 'self' data: blob: https:",
         "connect-src 'self' https: wss:",
-        "frame-src 'self' https://www.youtube.com https://player.vimeo.com https://www.tiktok.com https://www.instagram.com https://www.facebook.com https://platform.twitter.com https://assets.pinterest.com https://www.dailymotion.com https://iframe.x-downloader.com",
+        "frame-src 'self' https://www.youtube.com https://player.vimeo.com https://www.tiktok.com https://www.instagram.com https://www.facebook.com https://platform.twitter.com https://assets.pinterest.com https://www.dailymotion.com",
         'upgrade-insecure-requests',
     ].join('; ');
 }
