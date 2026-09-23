@@ -15,7 +15,7 @@ export async function GET() {
     return NextResponse.json({ available: Boolean(process.env.AUTH_SECRET) && await videoBackendAvailable(), engine: 'yt-dlp', maxMb: 250 }, { headers: { 'Cache-Control': 'no-store' } });
 }
 export async function POST(request: NextRequest) {
-    if (!process.env.AUTH_SECRET || !await videoBackendAvailable()) return NextResponse.json({ error: 'Video backend is not configured. Install yt-dlp and set YTDLP_BIN on the server.' }, { status: 503 });
+    if (!process.env.AUTH_SECRET || !await videoBackendAvailable()) return NextResponse.json({ error: 'Video backend is unavailable. Check that npm install completed and Python 3 is available on the server.' }, { status: 503 });
     if (limited(request)) return NextResponse.json({ error: 'Too many requests. Try again in one minute.' }, { status: 429 });
     try {
         if (Number(request.headers.get('content-length') || 0) > 4096) return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });

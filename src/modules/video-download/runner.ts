@@ -1,11 +1,10 @@
 import { spawn } from 'node:child_process';
-import { access, constants } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 
-const binary = () => process.env.YTDLP_BIN?.trim() || 'yt-dlp';
+const binary = () => process.env.YTDLP_BIN?.trim() || (existsSync(path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp')) ? path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp') : 'yt-dlp');
 let active = 0;
 export async function videoBackendAvailable() {
-    const configured = process.env.YTDLP_BIN?.trim();
-    if (configured?.includes('/')) { try { await access(configured, constants.X_OK); return true; } catch { return false; } }
     return await new Promise<boolean>((resolve) => { const process = spawn(binary(), ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] }); const timeout = setTimeout(() => { process.kill(); resolve(false); }, 3000); process.once('error', () => { clearTimeout(timeout); resolve(false); }); process.once('close', (code) => { clearTimeout(timeout); resolve(code === 0); }); });
 }
 const common = ['--ignore-config', '--no-playlist', '--no-warnings', '--ies', 'facebook,facebook:reel,FacebookPluginsVideo,FacebookRedirectURL,Instagram,twitter,twitter:card,twitter:amplify'];
