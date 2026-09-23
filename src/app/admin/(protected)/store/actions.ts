@@ -290,7 +290,7 @@ export async function provisionPrivateStoreBucket(): Promise<StoreStorageSetupRe
         await requireApiAdmin();
         const runtime = await getRuntimeR2Config();
         if (!runtime.accountId || !runtime.accessKeyId || !runtime.secretAccessKey) {
-            return { ok: false, error: 'Configure the Cloudflare R2 Account ID, Access Key ID and Secret Access Key in Admin > API Integrations first.' };
+            return { ok: false, error: 'Configure the Cloudflare R2 Account ID, Access Key ID and Secret Access Key in Admin > API & Tokens first.' };
         }
 
         const bucket = runtime.storeBucket || suggestedStoreBucket(runtime.bucket, runtime.accountId);

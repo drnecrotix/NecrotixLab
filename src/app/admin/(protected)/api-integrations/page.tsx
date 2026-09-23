@@ -63,6 +63,16 @@ export default async function ApiIntegrationsPage() {
 
     const cards: ApiIntegrationCard[] = [
         {
+            id: 'discord',
+            name: 'Discord bot',
+            category: 'Community & social',
+            description: 'Enables Discord Lookup to show available user profile details, avatars and banners by User ID.',
+            usedBy: ['Discord Lookup - user profiles'],
+            docsHint: 'Copy the bot token from Discord Developer Portal > Application > Bot. It is encrypted in the CMS, never returned to the browser, and overrides DISCORD_BOT_TOKEN from the environment.',
+            fields: [field('discord.botToken', 'Bot token', 'DISCORD_BOT_TOKEN', true)],
+            lastTest: tests.discord ?? null,
+        },
+        {
             id: 'smtp',
             name: 'SMTP email delivery',
             category: 'Email & verification',
@@ -188,7 +198,7 @@ export default async function ApiIntegrationsPage() {
         <div className="mx-auto max-w-7xl space-y-7">
             <header>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Tools</p>
-                <h1 className="mt-2 text-3xl font-bold tracking-tight">API Integrations</h1>
+                <h1 className="mt-2 text-3xl font-bold tracking-tight">API &amp; Tokens</h1>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
                     Configure, document and test the external APIs used by the portfolio. Secrets saved here are encrypted before they are stored in PostgreSQL and override environment variables at runtime.
                 </p>
