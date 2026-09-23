@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseSocialVideoUrl, signDownloadToken, verifyDownloadToken, summarizeVideoInfo, safeFilename } from '../../src/modules/video-download/core.ts';
 import { parseXVideo, safeXMediaUrl } from '../../src/modules/video-download/x-public.ts';
-import { parseThreadsVideo, safeThreadsMediaUrl } from '../../src/modules/video-download/threads-public.ts';
+import { inspectThreadsPost, parseThreadsVideo, safeThreadsMediaUrl } from '../../src/modules/video-download/threads-public.ts';
 import { parseYouTubeVideo, safeYouTubeMediaUrl, inspectYouTubeVideo } from '../../src/modules/video-download/youtube-public.ts';
 
 test('accepts only direct HTTPS X post links', () => {
@@ -12,6 +12,7 @@ test('accepts only direct HTTPS X post links', () => {
 
 test('accepts canonical public Threads and YouTube URLs and rejects lookalike hosts', () => {
     assert.equal(parseSocialVideoUrl('https://www.threads.com/@user/post/DaGcWDwj8tW').platform, 'Threads');
+    assert.equal(parseSocialVideoUrl('https://www.threads.com/t/DaGcWDwj8tW').platform, 'Threads');
     assert.equal(parseSocialVideoUrl('https://youtu.be/abcdefghijk').platform, 'YouTube');
     assert.equal(parseSocialVideoUrl('https://youtube.com/shorts/abcdefghijk').platform, 'YouTube');
     for (const url of ['https://threads.com.evil.test/@u/post/DaGcWDwj8tW', 'https://youtube.com.evil.test/watch?v=abcdefghijk', 'https://threads.com/share/abcdef', 'https://youtube.com/playlist?list=abc']) assert.throws(() => parseSocialVideoUrl(url));
@@ -29,9 +30,26 @@ test('Threads selects only the requested post and approved CDN MP4', () => {
     assert.throws(() => parseThreadsVideo(html, 'missing'));
 });
 
+test('Threads short links resolve only a matching canonical post and carousel clips retain their labels', async () => {
+    const html = `<meta property="og:url" content="https://www.threads.com/@user/post/DaGcWDwj8tW"><script type="application/json">${JSON.stringify({ code: 'DaGcWDwj8tW', carousel_media: [
+        { video_versions: [{ url: 'https://scontent.cdninstagram.com/a-low.mp4', height: 360 }, { url: 'https://scontent.cdninstagram.com/a-hd.mp4', height: 720 }] },
+        { video_versions: [{ url: 'https://scontent.cdninstagram.com/b.mp4', height: 1080 }] },
+    ] })}</script>`;
+    const original = globalThis.fetch;
+    globalThis.fetch = async () => new Response(html);
+    try {
+        const result = await inspectThreadsPost('https://www.threads.com/t/DaGcWDwj8tW');
+        assert.deepEqual(result.formats.map((f) => [f.part, f.height]), [[1, 720], [1, 360], [2, 1080]]);
+    } finally { globalThis.fetch = original; }
+});
+
 test('YouTube chooses only progressive MP4 on Googlevideo and parses player page', async () => {
-    const player = { videoDetails: { title: 'Example', author: 'Creator' }, streamingData: { formats: [{ mimeType: 'video/mp4; codecs="avc1, mp4a"', url: 'https://r1---sn.googlevideo.com/videoplayback?x=1', height: 360 }, { mimeType: 'video/mp4', url: 'https://googlevideo.com.evil.test/videoplayback', height: 720 }] } };
-    assert.equal(parseYouTubeVideo(player).formats.length, 1);
+    const player = { videoDetails: { title: 'Example', author: 'Creator' }, streamingData: { formats: [{ mimeType: 'video/mp4; codecs="avc1, mp4a"', url: 'https://r1---sn.googlevideo.com/videoplayback?x=1', height: 360 }, { mimeType: 'video/mp4', url: 'https://googlevideo.com.evil.test/videoplayback', height: 720 }], adaptiveFormats: [
+        { mimeType: 'video/mp4', url: 'https://r1---sn.googlevideo.com/videoplayback?video=1', height: 1080, width: 1920 },
+        { mimeType: 'audio/mp4', url: 'https://r1---sn.googlevideo.com/videoplayback?audio=1', bitrate: 128000 },
+        { mimeType: 'video/mp4', url: 'https://evil.example/videoplayback', height: 2160 },
+    ] } };
+    assert.deepEqual(parseYouTubeVideo(player).formats.map((f) => [f.height, f.mediaKind]), [[1080, 'video-only'], [360, 'muxed'], [0, 'audio-only']]);
     assert.equal(safeYouTubeMediaUrl('https://googlevideo.com.evil.test/videoplayback'), null);
     const original = globalThis.fetch;
     globalThis.fetch = async () => new Response(`<script>var ytInitialPlayerResponse = ${JSON.stringify(player)};</script>`);

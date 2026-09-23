@@ -1,4 +1,4 @@
-type Variant = { id: string; url: string; width: number; height: number; size: null };
+type Variant = { id: string; url: string; width: number; height: number; size: null; mediaKind: 'muxed'; part: number };
 type RecordValue = Record<string, unknown>;
 const object = (value: unknown): RecordValue => value && typeof value === 'object' && !Array.isArray(value) ? value as RecordValue : {};
 
@@ -25,26 +25,38 @@ export function parseThreadsVideo(html: string, code: string) {
     }
     const post = posts[0];
     if (!post) throw new Error('This Threads post is private, unavailable, or its public video data could not be found.');
-    const media = [post, ...(Array.isArray(post.carousel_media) ? post.carousel_media.map(object) : [])];
+    const carousel = Array.isArray(post.carousel_media) ? post.carousel_media.map(object) : [];
+    const media = carousel.length ? carousel : [post];
     const formats: Variant[] = [];
-    for (const item of media) for (const version of Array.isArray(item.video_versions) ? item.video_versions : []) {
+    for (const [part, item] of media.entries()) for (const version of Array.isArray(item.video_versions) ? item.video_versions : []) {
         const video = object(version), url = safeThreadsMediaUrl(video.url);
         if (!url || formats.some((entry) => new URL(entry.url).pathname === new URL(url).pathname)) continue;
-        formats.push({ id: `v${formats.length}`, url, width: Number(video.width || item.original_width || 0), height: Number(video.height || item.original_height || 0), size: null });
+        formats.push({ id: '', url, width: Number(video.width || item.original_width || 0), height: Number(video.height || item.original_height || 0), size: null, mediaKind: 'muxed', part: part + 1 });
     }
     if (!formats.length) throw new Error('This Threads post has no public MP4 video.');
     const caption = object(post.caption), user = object(post.user);
-    return { title: String(caption.text || `Threads video ${code}`).slice(0, 180), uploader: typeof user.username === 'string' ? user.username.slice(0, 100) : null, duration: null, thumbnail: null, formats: formats.slice(0, 8) };
+    formats.sort((a, b) => a.part - b.part || b.height - a.height);
+    return { title: String(caption.text || `Threads video ${code}`).slice(0, 180), uploader: typeof user.username === 'string' ? user.username.slice(0, 100) : null, duration: null, thumbnail: null, formats: formats.slice(0, 8).map((format, index) => ({ ...format, id: `v${index}` })) };
 }
 
 export async function inspectThreadsPost(input: string) {
-    const code = new URL(input).pathname.match(/\/post\/([a-zA-Z0-9_-]+)/)?.[1];
-    if (!code) throw new Error('Invalid Threads post.');
+    let code = new URL(input).pathname.match(/\/post\/([a-zA-Z0-9_-]+)/)?.[1];
     const response = await fetch(input, { signal: AbortSignal.timeout(12000), redirect: 'error', cache: 'no-store', headers: { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', accept: 'text/html' } });
     if (!response.ok) throw new Error('Threads public page is unavailable.');
     if (Number(response.headers.get('content-length')) > 3_000_000) throw new Error('Threads response is too large.');
     const html = await response.text();
     if (html.length > 3_000_000) throw new Error('Threads response is too large.');
+    if (!code) {
+        const tag = [...html.matchAll(/<meta\b[^>]*>/gi)].map((match) => match[0]).find((value) => /\bproperty=["']og:url["']/i.test(value));
+        const canonical = tag?.match(/\bcontent=["']([^"']+)["']/i)?.[1];
+        if (canonical) {
+            try {
+                const target = new URL(canonical);
+                if (['threads.com', 'www.threads.com', 'threads.net', 'www.threads.net'].includes(target.hostname)) code = target.pathname.match(/^\/@[a-zA-Z0-9._]{1,30}\/post\/([a-zA-Z0-9_-]{5,30})\/?$/)?.[1];
+            } catch { /* Invalid canonical link. */ }
+        }
+    }
+    if (!code) throw new Error('Could not identify the Threads post. Use its @user/post link.');
     return parseThreadsVideo(html, code);
 }
 

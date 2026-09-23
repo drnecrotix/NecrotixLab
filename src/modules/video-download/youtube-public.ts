@@ -11,11 +11,21 @@ export function safeYouTubeMediaUrl(value: unknown): string | null {
 
 export function parseYouTubeVideo(input: unknown) {
     const player = object(input), details = object(player.videoDetails), streaming = object(player.streamingData);
-    const formats = (Array.isArray(streaming.formats) ? streaming.formats : []).map(object)
+    const muxed = (Array.isArray(streaming.formats) ? streaming.formats : []).map(object)
         .filter((format) => typeof format.mimeType === 'string' && format.mimeType.startsWith('video/mp4') && safeYouTubeMediaUrl(format.url))
         .sort((a, b) => Number(b.height || 0) - Number(a.height || 0))
-        .slice(0, 8).map((format, index) => ({ id: `v${index}`, url: String(format.url), width: Number(format.width || 0), height: Number(format.height || 0), size: Number(format.contentLength || 0) || null }));
-    if (!formats.length) throw new Error('No public MP4 with audio is available for this YouTube video. It may require sign-in or a player signature.');
+        .map((format) => ({ url: String(format.url), width: Number(format.width || 0), height: Number(format.height || 0), size: Number(format.contentLength || 0) || null, mediaKind: 'muxed' as const }));
+    const adaptive = (Array.isArray(streaming.adaptiveFormats) ? streaming.adaptiveFormats : []).map(object)
+        .filter((format) => typeof format.mimeType === 'string' && /^(video|audio)\/mp4/.test(format.mimeType) && safeYouTubeMediaUrl(format.url));
+    const video = adaptive.filter((format) => String(format.mimeType).startsWith('video/'))
+        .sort((a, b) => Number(b.height || 0) - Number(a.height || 0) || Number(b.bitrate || 0) - Number(a.bitrate || 0))
+        .filter((format, index, all) => all.findIndex((entry) => Number(entry.height) === Number(format.height)) === index)
+        .slice(0, 8).map((format) => ({ url: String(format.url), width: Number(format.width || 0), height: Number(format.height || 0), size: Number(format.contentLength || 0) || null, mediaKind: 'video-only' as const }));
+    const audio = adaptive.filter((format) => String(format.mimeType).startsWith('audio/'))
+        .sort((a, b) => Number(b.bitrate || 0) - Number(a.bitrate || 0)).slice(0, 1)
+        .map((format) => ({ url: String(format.url), width: 0, height: 0, size: Number(format.contentLength || 0) || null, mediaKind: 'audio-only' as const }));
+    const formats = [...muxed, ...video, ...audio].sort((a, b) => b.height - a.height || (a.mediaKind === 'muxed' ? -1 : 1)).map((format, index) => ({ ...format, id: `v${index}` }));
+    if (!formats.some((format) => format.mediaKind !== 'audio-only')) throw new Error('No public MP4 video stream is available. It may require sign-in or a player signature.');
     return { title: String(details.title || 'YouTube video').slice(0, 180), uploader: typeof details.author === 'string' ? details.author.slice(0, 100) : null, duration: Number(details.lengthSeconds || 0) || null, thumbnail: null, formats };
 }
 
@@ -44,7 +54,11 @@ export async function inspectYouTubeVideo(input: string) {
     const html = await response.text();
     if (html.length > 5_000_000) throw new Error('YouTube response is too large.');
     const player = playerJson(html);
-    try { return parseYouTubeVideo(player); } catch {
+    try {
+        const result = parseYouTubeVideo(player);
+        if (result.formats.some((format) => format.mediaKind === 'video-only')) return result;
+    } catch { /* Try the public Android player when the page has no direct streams. */ }
+    {
         // The public Android player may expose a progressive stream when the web
         // player requires a JavaScript signature. Never accept a media URL outside Googlevideo.
         const key = html.match(/"INNERTUBE_API_KEY":"([a-zA-Z0-9_-]+)"/)?.[1];
@@ -54,14 +68,18 @@ export async function inspectYouTubeVideo(input: string) {
         if (Number(fallback.headers.get('content-length')) > 3_000_000) throw new Error('YouTube response is too large.');
         const body = await fallback.text();
         if (body.length > 3_000_000) throw new Error('YouTube response is too large.');
-        return parseYouTubeVideo(JSON.parse(body));
+        const android = parseYouTubeVideo(JSON.parse(body));
+        try {
+            const web = parseYouTubeVideo(player);
+            return { ...android, formats: [...web.formats, ...android.formats.filter((format) => !web.formats.some((item) => item.url === format.url))].sort((a, b) => b.height - a.height || (a.mediaKind === 'muxed' ? -1 : 1)).map((format, index) => ({ ...format, id: `v${index}` })) };
+        } catch { return android; }
     }
 }
 
 export async function fetchYouTubeMedia(url: string) {
     if (!safeYouTubeMediaUrl(url)) throw new Error('Invalid YouTube media address.');
     const response = await fetch(url, { signal: AbortSignal.timeout(120000), redirect: 'error', cache: 'no-store' });
-    if (!response.ok || !response.body || !response.headers.get('content-type')?.toLowerCase().includes('video/')) throw new Error('YouTube media is unavailable.');
+    if (!response.ok || !response.body || !/^(video|audio)\//.test(response.headers.get('content-type')?.toLowerCase() || '')) throw new Error('YouTube media is unavailable.');
     if (Number(response.headers.get('content-length')) > 250_000_000) { await response.body.cancel(); throw new Error('Video exceeds 250 MB.'); }
     let bytes = 0;
     return response.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({ transform(chunk, controller) { bytes += chunk.byteLength; if (bytes > 250_000_000) throw new Error('Video exceeds 250 MB.'); controller.enqueue(chunk); } }));
