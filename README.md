@@ -24,41 +24,41 @@ It is the system behind [necrotixlab.com](https://necrotixlab.com): journal and 
 The project is experimental and in active development. Read the [release notes](docs/releases/) and deployment requirements before you upgrade a production install.
 
 ## Overview
-
-Admin, operations and the public tools surface — the product as it runs today.
+<div align="center">
+Admin, operations, and the public tools surface — the product as it runs today.
 
 <p align="center"><strong>Analytics dashboard</strong> — live visitors, pages in view, traffic and audience location.</p>
 
-<img src="docs/assets/overview/analytics.webp" alt="NecrotixLab admin traffic overview with live visitors, daily visits chart and audience locations" width="100%" />
+<img src="docs/assets/1.png" alt="NecrotixLab CMS - experimental open-source CMS built with TypeScript, Next.js and PostgreSQL" width="80%" />
 
 <p align="center"><strong>Audience &amp; traffic</strong> — session list, world map and device breakdown from the same operations desk.</p>
 
-<img src="docs/assets/overview/audience.webp" alt="NecrotixLab audience and traffic workspace with live sessions and world map" width="100%" />
+<img src="docs/assets/6.png" alt="NecrotixLab CMS - experimental open-source CMS built with TypeScript, Next.js and PostgreSQL" width="80%" />
 
 <p align="center"><strong>Wiki</strong> — biography, FAQ and connected articles from one compact index.</p>
 
-<img src="docs/assets/overview/wiki.webp" alt="NecrotixLab Wiki admin with main biography, FAQ and published articles" width="100%" />
+<img src="docs/assets/2.png" alt="NecrotixLab CMS - experimental open-source CMS built with TypeScript, Next.js and PostgreSQL" width="80%" />
 
 <p align="center"><strong>Projects</strong> — portfolio items with type, status and revision history that drive the public archive.</p>
 
-<img src="docs/assets/overview/projects.webp" alt="NecrotixLab Projects admin listing apps and web projects with status badges" width="100%" />
+<img src="docs/assets/4.png" alt="NecrotixLab CMS - experimental open-source CMS built with TypeScript, Next.js and PostgreSQL" width="80%" />
 
 <p align="center"><strong>Site mode</strong> — Normal, Maintenance, Coming Soon, Private or Archive, each with a dedicated holding template.</p>
 
-<img src="docs/assets/overview/site-mode.webp" alt="NecrotixLab Site Mode controls with Normal, Maintenance, Coming Soon, Private and Archive plus templates" width="100%" />
+<img src="docs/assets/3.png" alt="NecrotixLab CMS - experimental open-source CMS built with TypeScript, Next.js and PostgreSQL" width="80%" />
 
 <p align="center"><strong>Progressive Web App</strong> — name, icons, splash, start URL and standalone chrome without changing the public site.</p>
 
-<img src="docs/assets/overview/pwa.webp" alt="NecrotixLab Progressive Web App identity settings with installed-app preview" width="100%" />
+<img src="docs/assets/5.png" alt="NecrotixLab CMS - experimental open-source CMS built with TypeScript, Next.js and PostgreSQL" width="80%" />
 
 <p align="center"><strong>GitHub updater</strong> — pull from <code>main</code>, sync files, migrate, build and activate with a visible pipeline.</p>
 
-<img src="docs/assets/overview/updater.webp" alt="NecrotixLab GitHub updater showing deployment progress and update pipeline stages" width="100%" />
+<img src="docs/assets/8.png" alt="NecrotixLab CMS - experimental open-source CMS built with TypeScript, Next.js and PostgreSQL" width="80%" />
 
-<p align="center"><strong>Tools &amp; addons</strong> — public utilities and service catalogue, managed as an installable addon rather than hardcoded pages.</p>
+<p align="center"><strong>Tools &amp; Addons</strong> — public utilities and service catalogue, managed as an installable addon rather than hardcoded pages.</p>
 
-<img src="docs/assets/overview/tools.webp" alt="NecrotixLab public Tools catalogue and related lab services" width="100%" />
-
+<img src="docs/assets/7.png" alt="NecrotixLab CMS - experimental open-source CMS built with TypeScript, Next.js and PostgreSQL" width="80%" />
+</div>
 ## Why this CMS
 
 - **One product, two surfaces.** Public site and protected admin share the same Next.js application, design system and data model.
