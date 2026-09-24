@@ -1,9 +1,9 @@
-import sanitizeHtml from 'sanitize-html';
-
 /** A deterministic share summary, used only when no editorial override exists. */
 export function socialDescription(source?: string | null, maxLength = 180): string {
     if (!source) return '';
-    const plain = sanitizeHtml(source.replace(/<\/(?:p|div|h[1-6]|li|blockquote|pre|section)>/gi, '$& '), { allowedTags: [], allowedAttributes: {}, parser: { decodeEntities: true } })
+    const plain = source.replace(/<(?:script|style)\b[^>]*>[\s\S]*?<\/(?:script|style)>/gi, ' ')
+        .replace(/<\/(?:p|div|h[1-6]|li|blockquote|pre|section)>/gi, ' ')
+        .replace(/<[^>]*>/g, ' ')
         .replace(/\[\[\/?(?:mission|features|chronicles|installation)\]\]/gi, ' ')
         .replace(/&(#(?:x[0-9a-f]+|[0-9]+)|amp|lt|gt|quot|apos|nbsp|hellip);/gi, (entity, value: string) => {
             const named: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', hellip: '…' };
