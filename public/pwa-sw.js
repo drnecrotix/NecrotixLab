@@ -1,7 +1,7 @@
 /* Opt-in NecrotixLab service worker. Registered only from NativePwaLayer
    when Admin → PWA App enables it. Never caches /admin or /api.
    APP_VERSION must match package.json so a release always produces a new worker. */
-const APP_VERSION = '1.3.73';
+const APP_VERSION = '1.3.74';
 const VERSION = `necrotix-pwa-v${APP_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 const enableOffline = new URL(self.location.href).searchParams.get('offline') === '1';
