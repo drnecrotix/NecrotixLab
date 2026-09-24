@@ -110,18 +110,15 @@ function listItems(html: string) {
 
 export function featuresFromHtml(html?: string): FeatureGroup[] {
     if (!html?.trim()) return [];
-    const headed = [...html.matchAll(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>\s*<(ul|ol)\b[^>]*>([\s\S]*?)<\/\2>/gi)]
-        .map((match) => ({ title: stripHtml(match[1]) || 'Highlights', items: listItems(match[3]) }))
+    const groupPattern = /<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>\s*<(ul|ol)\b[^>]*>([\s\S]*?)<\/\2>/gi;
+    const matches = [...html.matchAll(groupPattern)];
+    // Mixed prose and feature lists must remain visible as authored, not be
+    // silently swallowed by the generated card layout.
+    if (stripHtml(html.replace(groupPattern, '')).trim()) return [];
+    return matches
+        .map((match) => ({ title: stripHtml(match[1]), items: listItems(match[3]) }))
+        .filter((group) => group.title)
         .filter((group) => group.items.length > 0);
-    if (headed.length) return headed;
-
-    const items = [...html.matchAll(/<(ul|ol)\b[^>]*>([\s\S]*?)<\/\1>/gi)].flatMap((match) => listItems(match[2]));
-    if (items.length) return [{ title: 'Highlights', items }];
-
-    const paragraphs = [...html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)]
-        .map((match) => stripHtml(match[1]).replace(/^[•\-*]\s+/, ''))
-        .filter(Boolean);
-    return paragraphs.length ? [{ title: 'Highlights', items: paragraphs }] : [];
 }
 
 export function chroniclesFromHtml(html?: string): ChronicleEntry[] {
