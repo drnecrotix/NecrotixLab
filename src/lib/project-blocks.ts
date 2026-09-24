@@ -3,7 +3,8 @@ import type { ProjectContentBlock } from '@/types';
 export const PROJECT_BLOCKS: ProjectContentBlock[] = ['mission', 'features', 'chronicles', 'installation'];
 export const BLOCK_TOKEN = /^\[\[(mission|features|chronicles|installation)\]\]$/i;
 export const BLOCK_PATTERN = /\[\[(mission|features|chronicles|installation)\]\]/gi;
-export const BLOCK_SPLIT = /(\[\[(?:mission|features|chronicles|installation)\]\])/gi;
+export const BLOCK_SPLIT = /(\[\[(?:\/)?(?:mission|features|chronicles|installation)\]\])/gi;
+export const BLOCK_END_TOKEN = /^\[\[\/(mission|features|chronicles|installation)\]\]$/i;
 
 export type FeatureGroup = { title: string; items: string[] };
 export type ChronicleEntry = { problem: string; solution: string };
@@ -46,14 +47,15 @@ export function hoistProjectBlockNodes(html: string) {
     while ((match = opener.exec(html))) {
         const tag = match[1];
         const kind = match[3].toLowerCase() as ProjectContentBlock;
+        const isEnd = /\bdata-project-block-end(?:=|\s|$)/i.test(match[2]);
         output += html.slice(last, match.index);
         if (/\/\s*$/.test(match[2])) {
-            output += `[[${kind}]]`;
+            output += `[[${isEnd ? '/' : ''}${kind}]]`;
             last = opener.lastIndex;
             continue;
         }
         const closeAt = findMatchingClose(html, opener.lastIndex, tag);
-        output += `[[${kind}]]`;
+        output += `[[${isEnd ? '/' : ''}${kind}]]`;
         last = closeAt;
         opener.lastIndex = closeAt;
     }
@@ -64,13 +66,13 @@ export function hoistProjectBlockNodes(html: string) {
 export function normalizeProjectBlockMarkers(value?: string | null) {
     if (!value) return undefined;
     return hoistProjectBlockNodes(value)
-        .replace(/&lbrack;&lbrack;(mission|features|chronicles|installation)&rbrack;&rbrack;/gi, '[[$1]]')
+        .replace(/&lbrack;&lbrack;(\/?(?:mission|features|chronicles|installation))&rbrack;&rbrack;/gi, '[[$1]]')
         .replace(
-            /<p[^>]*>\s*(?:<(?:strong|em|s)[^>]*>\s*)*\[\[(mission|features|chronicles|installation)\]\](?:\s*<\/(?:strong|em|s)>)*\s*<\/p>/gi,
+            /<p[^>]*>\s*(?:<(?:strong|em|s)[^>]*>\s*)*\[\[(\/?(?:mission|features|chronicles|installation))\]\](?:\s*<\/(?:strong|em|s)>)*\s*<\/p>/gi,
             '[[$1]]',
         )
-        .replace(/<p[^>]*>\s*\[\[(mission|features|chronicles|installation)\]\]/gi, '[[$1]]')
-        .replace(/\[\[(mission|features|chronicles|installation)\]\]\s*<\/p>/gi, '[[$1]]');
+        .replace(/<p[^>]*>\s*\[\[(\/?(?:mission|features|chronicles|installation))\]\]/gi, '[[$1]]')
+        .replace(/\[\[(\/?(?:mission|features|chronicles|installation))\]\]\s*<\/p>/gi, '[[$1]]');
 }
 
 export function extractProjectBlocks(value?: string | null): ProjectContentBlock[] {
@@ -161,12 +163,25 @@ export function composeProjectLayout(layout: string): LayoutSegment[] {
     const parts = splitLayoutParts(layout);
     const segments: LayoutSegment[] = [];
 
-    for (const part of parts) {
-        const block = matchProjectBlock(part);
-        // A marker inserts its own section. Content typed after it is a
-        // separate document segment, regardless of the block kind.
-        segments.push(block ? { type: 'block', block } : { type: 'html', html: part });
-    }
+    for (let index = 0; index < parts.length; index += 1) {
+        const block = matchProjectBlock(parts[index]);
+        if (!block) {
+            // Orphan closing tokens are ignored rather than displayed as copy.
+            if (!BLOCK_END_TOKEN.test(parts[index].trim())) segments.push({ type: 'html', html: parts[index] });
+            continue;
+        }
 
+        // Only a matching explicit end can attach content to a block. Older
+        // documents without an end keep the independent-text behavior.
+        const end = parts.findIndex((part, offset) => offset > index && BLOCK_END_TOKEN.test(part.trim()) && part.trim().toLowerCase() === `[[/${block}]]`);
+        const nextStart = parts.findIndex((part, offset) => offset > index && matchProjectBlock(part));
+        if (end > index && (nextStart < 0 || end < nextStart)) {
+            const body = parts.slice(index + 1, end).join('').trim();
+            segments.push(body ? { type: 'block', block, body } : { type: 'block', block });
+            index = end;
+        } else {
+            segments.push({ type: 'block', block });
+        }
+    }
     return segments;
 }

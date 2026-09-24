@@ -68,25 +68,25 @@ const BLOCK_TOKEN = /^\[\[(mission|features|chronicles|installation)\]\]$/i;
 const BLOCK_META: Record<ProjectBlockKind, { label: string; hint: string; className: string; icon: typeof Box }> = {
     mission: {
         label: 'Mission Brief',
-        hint: 'Project overview heading',
+        hint: 'Start of Mission Brief content',
         className: 'border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-100',
         icon: Box,
     },
     features: {
         label: 'Features',
-        hint: 'Inserts a section; following text remains separate',
+        hint: 'Content ends at the matching End block',
         className: 'border-sky-400/25 bg-sky-400/[0.08] text-sky-100',
         icon: Zap,
     },
     chronicles: {
         label: 'Engineering Chronicles',
-        hint: 'Inserts a section; following text remains separate',
+        hint: 'Content ends at the matching End block',
         className: 'border-amber-400/25 bg-amber-400/[0.08] text-amber-100',
         icon: Terminal,
     },
     installation: {
         label: 'Installation',
-        hint: 'Inserts a section; following text remains separate',
+        hint: 'Content ends at the matching End block',
         className: 'border-violet-400/25 bg-violet-400/[0.08] text-violet-100',
         icon: SquareCode,
     },
@@ -99,19 +99,20 @@ function kindFromShortcode(value: string): ProjectBlockKind | null {
 
 function ProjectBlockView({ node, deleteNode }: NodeViewProps) {
     const kind = (String(node.attrs.kind || 'mission')) as ProjectBlockKind;
+    const isEnd = Boolean(node.attrs.end);
     const meta = BLOCK_META[kind] ?? BLOCK_META.mission;
     const Icon = meta.icon;
 
     return (
-        <NodeViewWrapper className="my-3" data-project-block={kind}>
+        <NodeViewWrapper className="my-3" data-project-block={kind} data-project-block-end={isEnd ? "true" : undefined}>
             <div className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 ${meta.className}`} contentEditable={false}>
                 <div className="flex min-w-0 items-center gap-2.5">
                     <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-black/20">
                         <Icon className="size-4" />
                     </span>
                     <div className="min-w-0">
-                        <p className="text-sm font-semibold leading-none">{meta.label}</p>
-                        <p className="mt-1 text-[11px] text-white/45">{meta.hint}</p>
+                        <p className="text-sm font-semibold leading-none">{isEnd ? `End ${meta.label}` : meta.label}</p>
+                        <p className="mt-1 text-[11px] text-white/45">{isEnd ? "Text below is outside this block" : meta.hint}</p>
                     </div>
                 </div>
                 <button
@@ -134,6 +135,11 @@ const ProjectBlock = TiptapNode.create({
     draggable: true,
     addAttributes() {
         return {
+            end: {
+                default: false,
+                parseHTML: (element) => element.hasAttribute('data-project-block-end') || /^\[\[\//.test(element.textContent || ''),
+                renderHTML: () => ({}),
+            },
             kind: {
                 default: 'mission',
                 parseHTML: (element) => element.getAttribute('data-project-block') || 'mission',
@@ -148,25 +154,26 @@ const ProjectBlock = TiptapNode.create({
                 getAttrs: (element) => {
                     if (!(element instanceof HTMLElement)) return false;
                     const kind = element.getAttribute('data-project-block');
-                    return kind && kind in BLOCK_META ? { kind } : false;
+                    return kind && kind in BLOCK_META ? { kind, end: element.hasAttribute('data-project-block-end') } : false;
                 },
             },
             {
                 tag: 'p',
                 getAttrs: (element) => {
                     if (!(element instanceof HTMLElement)) return false;
-                    const kind = kindFromShortcode(element.textContent || '');
-                    return kind ? { kind } : false;
+                    const token = (element.textContent || '').trim();
+                    const kind = kindFromShortcode(token.replace('[[/', '[['));
+                    return kind ? { kind, end: token.startsWith('[[/') } : false;
                 },
             },
         ];
     },
     renderHTML({ node }) {
         const kind = (node.attrs.kind || 'mission') as ProjectBlockKind;
-        return ['p', mergeAttributes({ 'data-project-block': kind }), `[[${kind}]]`];
+        return ['p', mergeAttributes({ 'data-project-block': kind, ...(node.attrs.end ? { 'data-project-block-end': 'true' } : {}) }), `[[${node.attrs.end ? '/' : ''}${kind}]]`];
     },
     renderText({ node }) {
-        return `[[${node.attrs.kind || 'mission'}]]`;
+        return `[[${node.attrs.end ? '/' : ''}${node.attrs.kind || 'mission'}]]`;
     },
     addNodeView() {
         return ReactNodeViewRenderer(ProjectBlockView);
@@ -328,7 +335,17 @@ function RichEditor({
         if (!editor || !value) return;
         const kind = kindFromShortcode(value);
         if (kind) {
-            editor.chain().focus().insertContent({ type: 'projectBlock', attrs: { kind } }).run();
+            editor.chain().focus().insertContent([
+                { type: 'projectBlock', attrs: { kind } },
+                { type: 'paragraph' },
+                { type: 'projectBlock', attrs: { kind, end: true } },
+                { type: 'paragraph' },
+            ]).run();
+            let endPosition: number | undefined;
+            editor.state.doc.descendants((node, position) => {
+                if (node.type.name === 'projectBlock' && node.attrs.kind === kind && node.attrs.end) endPosition = position;
+            });
+            if (endPosition !== undefined) editor.commands.setTextSelection(endPosition - 1);
         } else {
             editor.chain().focus().insertContent(`<p>${value}</p>`).run();
         }
