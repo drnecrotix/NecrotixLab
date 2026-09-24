@@ -241,6 +241,7 @@ export function PostEditor({
             <textarea
                 name={name}
                 defaultValue={initialValue}
+                onChange={(event) => onChange?.(event.target.value)}
                 rows={22}
                 className={`min-h-[34rem] w-full whitespace-pre-wrap rounded-2xl border border-white/10 px-6 py-6 font-serif text-lg leading-8 text-white outline-none focus:border-white/25 ${variant === 'journal' ? 'bg-[#0d0d0d] shadow-[0_20px_80px_rgba(0,0,0,0.22)]' : 'bg-white/[0.025]'}`}
                 placeholder="Write the poem exactly as it should appear. Line breaks and stanzas are preserved."

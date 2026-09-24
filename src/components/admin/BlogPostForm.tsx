@@ -11,6 +11,7 @@ import { SeoEditor } from '@/components/admin/SeoEditor';
 import { UnsavedContentPreview } from '@/components/admin/UnsavedContentPreview';
 import { FormDraftGuard, markDraftCommitted } from '@/components/admin/FormDraftGuard';
 import { NOTE_SYSTEM_IMAGE, type BlogLocale, type CmsPostTranslation } from '@/lib/cms-posts';
+import { socialDescription } from '@/lib/social-description';
 
 export type BlogTypeOption = { id: string; name: string; slug: string; editorMode: PostType };
 export type BlogCategoryOption = { id: string; name: string; slug: string };
@@ -73,6 +74,7 @@ export function BlogPostForm({ value = {}, postTypes, categories, action, submit
     const [slug, setSlug] = useState(value.slug ?? '');
     const [slugTouched, setSlugTouched] = useState(Boolean(value.slug));
     const [excerpt, setExcerpt] = useState(value.excerpt ?? '');
+    const [articleText, setArticleText] = useState(value.content?.html || value.content?.text || '');
     const [featuredImage, setFeaturedImage] = useState(value.content?.featuredImage ?? '');
     const [primaryLocale, setPrimaryLocale] = useState<BlogLocale>(initialPrimaryLocale);
     const [translationTitle, setTranslationTitle] = useState(initialTranslation.title ?? '');
@@ -160,10 +162,10 @@ export function BlogPostForm({ value = {}, postTypes, categories, action, submit
                             <div><p className="text-sm font-semibold text-white/75">Writing canvas</p><p className="mt-1 max-w-2xl text-xs leading-relaxed text-white/35">Write the original article in {primaryLabel}.</p></div>
                             {!poetry && <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/25">{note ? 'Text · Quote · Pause' : 'Text · Quote · Pause · Image'}</span>}
                         </div>
-                        <PostEditor key={`primary-${selectedTypeId || editorMode}`} name="content" initialValue={initialContent} poetry={poetry} variant="journal" />
+                        <PostEditor key={`primary-${selectedTypeId || editorMode}`} name="content" initialValue={initialContent} poetry={poetry} onChange={setArticleText} variant="journal" />
                     </section>
 
-                    <SeoEditor sourceTitle={title} sourceDescription={excerpt} slug={slug} hasImage={note || Boolean(featuredImage)} initialTitle={value.seoTitle} initialDescription={value.seoDescription} />
+                    <SeoEditor sourceTitle={title} sourceDescription={socialDescription(excerpt || articleText)} slug={slug} hasImage={note || Boolean(featuredImage)} initialTitle={value.seoTitle} initialDescription={value.seoDescription} />
 
                     <section className="rounded-3xl border border-cyan-400/15 bg-cyan-400/[0.025] p-6 md:p-8">
                         <div className="flex flex-wrap items-start justify-between gap-4">
