@@ -1,4 +1,17 @@
 import { expect, test, type Page } from '@playwright/test';
+import { PrismaClient } from '@prisma/client';
+
+// CI explicitly installs Tools for visual coverage. The production default stays uninstalled.
+if (process.env.CI) test.beforeAll(async () => {
+  const prisma = new PrismaClient();
+  try {
+    await prisma.page.upsert({
+      where: { slug: '__service-tools-config' },
+      create: { slug: '__service-tools-config', title: 'CI Tools addon', status: 'DRAFT', content: { version: 8, installed: true, active: true, packageVersion: '1.3.72' } },
+      update: { content: { version: 8, installed: true, active: true, packageVersion: '1.3.72' } },
+    });
+  } finally { await prisma.$disconnect(); }
+});
 
 const routes = [
   '/',
