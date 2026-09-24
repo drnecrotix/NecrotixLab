@@ -96,12 +96,6 @@ function stripHtml(value: string) {
     return value.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function cleanAttachedBody(html?: string) {
-    if (!html) return undefined;
-    const cleaned = html.replace(/^<\/p>/i, '').replace(/<p>\s*$/i, '').trim();
-    return cleaned || undefined;
-}
-
 function listItems(html: string) {
     return [...html.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)]
         .map((match) => stripHtml(match[1]))
@@ -167,22 +161,11 @@ export function composeProjectLayout(layout: string): LayoutSegment[] {
     const parts = splitLayoutParts(layout);
     const segments: LayoutSegment[] = [];
 
-    for (let index = 0; index < parts.length; index += 1) {
-        const block = matchProjectBlock(parts[index]);
-        if (!block) {
-            segments.push({ type: 'html', html: parts[index] });
-            continue;
-        }
-
-        const next = parts[index + 1];
-        const body = next && !matchProjectBlock(next) ? cleanAttachedBody(next) : undefined;
-        if (block !== 'mission' && body) {
-            segments.push({ type: 'block', block, body });
-            index += 1;
-            continue;
-        }
-
-        segments.push({ type: 'block', block });
+    for (const part of parts) {
+        const block = matchProjectBlock(part);
+        // A marker inserts its own section. Content typed after it is a
+        // separate document segment, regardless of the block kind.
+        segments.push(block ? { type: 'block', block } : { type: 'html', html: part });
     }
 
     return segments;

@@ -188,7 +188,7 @@ export function ProjectForm({ project, categories = [], action, submitLabel }: {
                 <section className={panel}>
                     <div className="mb-4">
                         <p className="text-sm font-medium text-white/70">Long description</p>
-                        <p className="mt-1 text-xs leading-relaxed text-white/35">Write a clean rich-text description. Insert a <strong className="text-white/55">Project block</strong> where Mission, Features, Chronicles or Installation should appear. Text and untitled lists below Features stay as normal content. To make feature cards, add a heading followed by a list for each card. Use <strong className="text-white/55">Pretext</strong> to improve the copy.</p>
+                        <p className="mt-1 text-xs leading-relaxed text-white/35">Write a clean rich-text description. A <strong className="text-white/55">Project block</strong> inserts a separate section; text and lists typed after it stay in the document. Structured Features, Chronicles and Installation cards can be entered in Advanced content JSON below. Use <strong className="text-white/55">Pretext</strong> to improve the copy.</p>
                     </div>
                     <PostEditor name="longDescription" initialValue={project?.longDescription ?? ''} shortcodes={projectShortcodes} />
                 </section>
