@@ -12,15 +12,17 @@ function SmartLink({ href, children, className }: { href: string; children: Reac
     return <Link href={href} className={className}>{children}</Link>;
 }
 
-function RelatedLinkCard({ item }: { item: WikiRelatedLink }) {
+function RelatedLinkRow({ item }: { item: WikiRelatedLink }) {
     return (
-        <SmartLink href={item.href} className="group flex min-h-28 flex-col justify-between rounded-2xl border border-foreground/10 bg-foreground/[0.018] p-4 transition hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-foreground/[0.035]">
-            <div className="flex items-start justify-between gap-3">
-                <span className="text-base font-bold tracking-tight">{item.label}</span>
-                {isExternal(item.href) ? <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> : <span className="text-muted-foreground transition group-hover:translate-x-0.5">↗</span>}
-            </div>
-            {item.note ? <p className="mt-4 text-xs leading-5 text-muted-foreground">{item.note}</p> : null}
-        </SmartLink>
+        <li className="border-t border-foreground/10 first:border-t-0">
+            <SmartLink href={item.href} className="group flex items-baseline justify-between gap-4 py-3 text-sm transition hover:text-foreground">
+                <span className="min-w-0">
+                    <span className="font-medium tracking-tight underline-offset-4 group-hover:underline">{item.label}</span>
+                    {item.note ? <span className="mt-0.5 block text-xs leading-5 text-muted-foreground sm:mt-0 sm:ml-2 sm:inline">{item.note}</span> : null}
+                </span>
+                {isExternal(item.href) ? <ExternalLink className="size-3.5 shrink-0 text-muted-foreground/70" /> : <span className="shrink-0 font-mono text-[10px] text-muted-foreground/70 transition group-hover:translate-x-0.5">↗</span>}
+            </SmartLink>
+        </li>
     );
 }
 
@@ -139,7 +141,7 @@ export function PersonalWikiPage({ content, identity, updatedAt }: { content: Pe
                         <section id="related" className="scroll-mt-28 py-12">
                             <div className="mb-5 flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground"><Link2 className="size-3.5" /> Index links</div>
                             <h2 className="text-3xl font-black tracking-[-0.035em] sm:text-4xl">{content.relatedTitle}</h2>
-                            <div className="mt-8 grid gap-3 sm:grid-cols-2">{related.map((item) => <RelatedLinkCard key={item.id} item={item} />)}</div>
+                            <ul className="mt-6 border-y border-foreground/10">{related.map((item) => <RelatedLinkRow key={item.id} item={item} />)}</ul>
                         </section>
                     ) : null}
                 </article>
