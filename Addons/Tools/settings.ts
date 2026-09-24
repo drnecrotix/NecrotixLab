@@ -15,7 +15,7 @@ export type ServiceTool = {
     comingSoon: boolean;
 };
 
-export const SERVICE_TOOLS_CONFIG_VERSION = 7;
+export const SERVICE_TOOLS_CONFIG_VERSION = 8;
 
 const CORE_SERVICE_TOOLS: ServiceTool[] = [
     { id: 'website-inspector', name: 'Website Inspector', href: '/services/website-inspector', icon: 'heart-pulse', enabled: true, visible: true, comingSoon: false },
@@ -82,8 +82,29 @@ export const DEFAULT_SERVICE_TOOLS: ServiceTool[] = [
 
 type ServiceToolsConfig = {
     version: number;
+    installed: boolean;
+    active: boolean;
+    packageVersion: string;
     tools: ServiceTool[];
 };
+
+export const TOOLS_ADDON_VERSION = '1.3.71';
+
+export function toolsInstalled(value: unknown): boolean {
+    if (value && typeof value === 'object' && !Array.isArray(value) && 'installed' in value) {
+        return (value as { installed: unknown }).installed === true;
+    }
+    // Existing installations retain their previous catalogue until an admin disables it.
+    return true;
+}
+
+export function toolsActive(value: unknown): boolean {
+    if (!toolsInstalled(value)) return false;
+    if (value && typeof value === 'object' && !Array.isArray(value) && 'active' in value) {
+        return (value as { active: unknown }).active === true;
+    }
+    return true;
+}
 
 function normalizeEntries(value: unknown): ServiceTool[] {
     if (!Array.isArray(value)) return [];
@@ -102,10 +123,13 @@ function normalizeEntries(value: unknown): ServiceTool[] {
 }
 
 export function normalizeServiceToolsConfig(value: unknown): ServiceToolsConfig {
-    const source = value && typeof value === 'object' && !Array.isArray(value) ? value as { version?: unknown; tools?: unknown } : null;
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value as { version?: unknown; tools?: unknown; packageVersion?: unknown } : null;
     const version = typeof source?.version === 'number' ? source.version : Array.isArray(value) ? 1 : 0;
     const configured = normalizeEntries(source?.tools ?? value);
-    if (!configured.length && version === 0) return { version: SERVICE_TOOLS_CONFIG_VERSION, tools: DEFAULT_SERVICE_TOOLS.map((tool) => ({ ...tool })) };
+    const installed = toolsInstalled(value);
+    const active = toolsActive(value);
+    const packageVersion = typeof source?.packageVersion === 'string' ? source.packageVersion : TOOLS_ADDON_VERSION;
+    if (!configured.length && (version === 0 || !installed)) return { version: SERVICE_TOOLS_CONFIG_VERSION, installed, active, packageVersion, tools: DEFAULT_SERVICE_TOOLS.map((tool) => ({ ...tool })) };
 
     const tools = [...configured];
     if (version < SERVICE_TOOLS_CONFIG_VERSION) {
@@ -129,7 +153,7 @@ export function normalizeServiceToolsConfig(value: unknown): ServiceToolsConfig 
             if (!tool) { const definition = CORE_SERVICE_TOOLS.find((item) => item.id === id); if (definition) tools.push({ ...definition }); }
         }
     }
-    return { version: SERVICE_TOOLS_CONFIG_VERSION, tools };
+    return { version: SERVICE_TOOLS_CONFIG_VERSION, installed, active, packageVersion, tools };
 }
 
 function text(value: unknown, fallback: string, max: number) {

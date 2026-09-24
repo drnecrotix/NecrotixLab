@@ -29,7 +29,6 @@ const navGroups = [
         ['Orders', '/admin/store/orders'],
         ['Service Requests', '/admin/service-requests'],
         ['Service Pricing', '/admin/service-pricing'],
-        ['Service Tools', '/admin/service-tools'],
         ['Service Monitoring', '/admin/service-monitoring'],
     ]],
     ['Appearance', [

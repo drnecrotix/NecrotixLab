@@ -11,6 +11,7 @@ import {
     Workflow,
 } from 'lucide-react';
 import { BackToLabLink } from '@/components/services/BackToLabLink';
+import { toolsPackageActive } from '@/lib/addons.server';
 
 export const metadata: Metadata = {
     title: 'Lab Services',
@@ -31,7 +32,8 @@ const engineeringServices = [
     { icon: Workflow, title: 'CAD to manufacturing', description: 'DXF or DWG preparation, operations, tooling strategy and setup documentation.' },
 ] as const;
 
-export default function ServicesPage() {
+export default async function ServicesPage() {
+    const showTools = await toolsPackageActive();
     return (
         <main className="min-h-screen bg-background px-5 pb-24 pt-28 text-foreground sm:px-8 lg:pt-36">
             <div className="mx-auto max-w-6xl">
@@ -72,10 +74,10 @@ export default function ServicesPage() {
                     </div>
                 </section>
 
-                <section className="mt-20 flex flex-col gap-5 border border-border/80 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+                {showTools && <section className="mt-20 flex flex-col gap-5 border border-border/80 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
                     <div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-500">Free utilities</p><h2 className="mt-2 text-2xl font-black tracking-tight">Looking for Tools?</h2><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Explore the free website, file, media and CNC tools in their own catalogue.</p></div>
                     <Link href="/tools" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-foreground px-5 text-sm font-bold text-background">Open Tools <ArrowRight className="size-4" /></Link>
-                </section>
+                </section>}
             </div>
         </main>
     );
