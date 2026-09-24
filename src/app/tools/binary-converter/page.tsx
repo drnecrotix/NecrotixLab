@@ -1,6 +1,1 @@
-import type { Metadata } from 'next';
-import { BinaryConverter } from '@/components/tools/BinaryConverter';
-import { ToolShell } from '@/components/tools/ToolShell';
-
-export const metadata: Metadata = { title: 'Binary Converter', description: 'Convert values between binary, octal, decimal and hexadecimal locally in your browser.' };
-export default function BinaryConverterPage() { return <ToolShell title="Binary Converter" description="Convert large integer values between base 2, 8, 10 and 16 without sending the input to a server."><BinaryConverter /></ToolShell>; }
+export { default, metadata } from '@addons/Tools/routes/binary-converter';

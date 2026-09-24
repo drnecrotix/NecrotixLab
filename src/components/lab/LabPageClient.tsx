@@ -122,7 +122,7 @@ function FloatingTechnology({ item, mouseX, mouseY }: { item: Bubble; mouseX: Mo
     );
 }
 
-export function LabPageClient() {
+export function LabPageClient({ toolsAvailable }: { toolsAvailable: boolean }) {
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
     const reduceMotion = useReducedMotion();
@@ -259,7 +259,7 @@ export function LabPageClient() {
                             <span className="inline-flex w-full shrink-0 items-center justify-between rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-3.5 text-sm font-black text-white sm:w-auto sm:min-w-44 sm:gap-8">Explore services <ArrowRight className="size-4 transition-transform group-hover:translate-x-1 motion-reduce:transition-none" /></span>
                         </span>
                     </Link>
-                    <Link href="/tools" className="mt-5 inline-flex min-h-11 items-center gap-3 rounded-xl border border-border/70 px-5 text-sm font-bold transition hover:border-cyan-500 hover:text-cyan-500">Explore free Tools <ArrowRight className="size-4" /></Link>
+                    {toolsAvailable && <Link href="/tools" className="mt-5 inline-flex min-h-11 items-center gap-3 rounded-xl border border-border/70 px-5 text-sm font-bold transition hover:border-cyan-500 hover:text-cyan-500">Explore free Tools <ArrowRight className="size-4" /></Link>}
                 </motion.div>
             </section>
 

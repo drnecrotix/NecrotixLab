@@ -23,6 +23,9 @@ const nextConfig = {
     reactStrictMode: true,
     poweredByHeader: false,
     productionBrowserSourceMaps: false,
+    outputFileTracingIncludes: {
+        '/api/admin/addons/tools/download': ['./Addons/Tools/*.zip'],
+    },
     transpilePackages: ['three'],
     // The self-updater builds into .next-update while the live .next tree stays in
     // place. Older deployments can therefore still contain stale generated route

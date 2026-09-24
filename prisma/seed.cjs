@@ -35,6 +35,8 @@ async function main() {
     },
   });
 
+  const firstInstall = !(await prisma.siteSettings.findUnique({ where: { id: 'default' }, select: { id: true } }));
+
   await prisma.siteSettings.upsert({
     where: { id: 'default' },
     update: {},
@@ -46,6 +48,14 @@ async function main() {
     update: {},
     create: { id: 'default' },
   });
+
+  if (firstInstall) {
+    await prisma.page.upsert({
+      where: { slug: '__service-tools-config' },
+      update: {},
+      create: { slug: '__service-tools-config', title: 'Tools addon configuration', status: 'DRAFT', content: { version: 8, installed: false, active: false, packageVersion: '1.3.71' } },
+    });
+  }
 
   console.log(`CMS owner ready: ${owner.email}`);
 }

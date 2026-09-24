@@ -1,0 +1,2 @@
+import { QuickWebTool } from '@addons/Tools/components/QuickWebTool'; import { ToolShell } from '@addons/Tools/components/ToolShell';
+export default function Page() { return <ToolShell eyebrow="Security tools" title="Password Generator" description="Create strong random passwords using the browser cryptography API. Generated values never leave the page."><QuickWebTool mode="password" /></ToolShell>; }

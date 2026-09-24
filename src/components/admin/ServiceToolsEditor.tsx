@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
-import { type ServiceTool } from '@/modules/service-tools/settings';
+import { type ServiceTool } from '@addons/Tools/settings';
 import { IconPicker } from '@/components/admin/IconPicker';
 
 const field = 'min-h-11 w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cyan-500';
