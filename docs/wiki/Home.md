@@ -1,6 +1,6 @@
-# Portfolio Wiki
+# NecrotixLab Wiki
 
-Welcome to the Portfolio CMS documentation.
+Welcome to the NecrotixLab CMS documentation.
 
 This documentation is split into focused pages so installation, administration and troubleshooting information can be maintained independently.
 
@@ -10,6 +10,7 @@ This documentation is split into focused pages so installation, administration a
 - [Install on N0C](Installation-N0C.md) — PlanetHoster/N0C/Passenger deployment.
 - [Install on cPanel](Installation-cPanel.md) — generic cPanel Node.js deployment.
 - [Install on a Home Server](Installation-Home-Server.md) — self-hosting behind a reverse proxy.
+- [Addons](Addons.md) — create, package, publish and install modules.
 - [Admin Dashboard](Admin-Dashboard.md) — what each CMS module does.
 - [SEO and Meta Tags](SEO-and-Meta-Tags.md) — SEO fields, social previews and custom meta tags.
 - [Troubleshooting](Troubleshooting.md) — common errors and known fixes.
