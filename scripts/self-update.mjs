@@ -115,6 +115,7 @@ try {
     '--exclude=public/.htaccess',
     '--exclude=public/.well-known',
     '--exclude=public/uploads',
+    '--exclude=storage/addons',
     `${checkout}/`,
     `${appRoot}/`,
   ]);

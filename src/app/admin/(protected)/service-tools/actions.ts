@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { normalizeServiceToolsConfig, SERVICE_TOOLS_CONFIG_SLUG, SERVICE_TOOLS_CONFIG_VERSION } from '@addons/Tools/settings';
+import { DEFAULT_SERVICE_TOOLS, normalizeServiceToolsConfig, SERVICE_TOOLS_CONFIG_SLUG, SERVICE_TOOLS_CONFIG_VERSION } from '@addons/Tools/settings';
 
 export async function updateServiceTools(form: FormData) {
     let destination = '/admin/addons?saved=1#tools-settings';
@@ -15,7 +15,13 @@ export async function updateServiceTools(form: FormData) {
         const current = await prisma.page.findUnique({ where: { slug: SERVICE_TOOLS_CONFIG_SLUG }, select: { content: true } });
         const previous = normalizeServiceToolsConfig(current?.content);
         if (!previous.installed) throw new Error('Install the Tools package first.');
-        const tools = normalizeServiceToolsConfig({ version: SERVICE_TOOLS_CONFIG_VERSION, tools: raw, installed: previous.installed, active: previous.active, packageVersion: previous.packageVersion });
+        const submitted = normalizeServiceToolsConfig({ version: SERVICE_TOOLS_CONFIG_VERSION, tools: raw, installed: previous.installed, active: previous.active, packageVersion: previous.packageVersion });
+        const definitions = new Map(DEFAULT_SERVICE_TOOLS.map((item) => [item.id, item]));
+        const tools = { ...submitted, tools: submitted.tools.filter((item) => definitions.has(item.id)).map((item) => {
+            const definition = definitions.get(item.id)!;
+            return { ...item, href: definition.href, comingSoon: definition.comingSoon, enabled: !definition.comingSoon && item.enabled };
+        }) };
+        for (const definition of DEFAULT_SERVICE_TOOLS) if (!tools.tools.some((item) => item.id === definition.id)) tools.tools.push({ ...definition, enabled: false });
         await prisma.page.upsert({
             where: { slug: SERVICE_TOOLS_CONFIG_SLUG },
             create: { slug: SERVICE_TOOLS_CONFIG_SLUG, title: 'Service tools configuration', status: 'DRAFT', content: tools },

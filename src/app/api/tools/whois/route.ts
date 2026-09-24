@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isIP } from 'node:net';
 import { domainToASCII } from 'node:url';
 import { resolve4, resolve6, resolveMx, resolveNs, reverse } from 'node:dns/promises';
-import { toolsPackageActive } from '@/lib/addons.server';
+import { addonToolEnabled } from '@/lib/addons.server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 import { lookupRdap, summarizeRdap } from '@/modules/whois/rdap';
 async function safeDns<T>(lookup: () => Promise<T>, fallback: T): Promise<T> { try { return await lookup(); } catch { return fallback; } }
 export async function GET(request: NextRequest) {
-    if (!(await toolsPackageActive())) return NextResponse.json({ error: 'Tools is inactive.' }, { status: 404 });
+    if (!(await addonToolEnabled('whois'))) return NextResponse.json({ error: 'Tools is inactive.' }, { status: 404 });
     const raw = request.nextUrl.searchParams.get('q')?.trim() ?? '';
     const ip = isIP(raw);
     const domain = !ip ? domainToASCII(raw.toLowerCase().replace(/\.$/, '')) : '';

@@ -8,9 +8,10 @@ const headers = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version':
 
 type Entry = { name?: unknown; type?: unknown; content?: unknown; encoding?: unknown };
 
-export async function githubAddonCatalogue(): Promise<{ addons: MarketplaceAddon[]; error?: string }> {
+export async function githubAddonCatalogue(refresh = false): Promise<{ addons: MarketplaceAddon[]; error?: string }> {
     try {
-        const listing = await fetch(`${base}?ref=main`, { headers, cache: 'no-store', signal: AbortSignal.timeout(6000) });
+        const fetchOptions = { headers, signal: AbortSignal.timeout(6000), ...(refresh ? { cache: 'no-store' as const } : { next: { revalidate: 300 } }) };
+        const listing = await fetch(`${base}?ref=main`, fetchOptions);
         if (!listing.ok) throw new Error(`GitHub returned ${listing.status}.`);
         const entries: unknown = await listing.json();
         if (!Array.isArray(entries)) throw new Error('Invalid GitHub catalogue.');
@@ -18,7 +19,7 @@ export async function githubAddonCatalogue(): Promise<{ addons: MarketplaceAddon
         const addons = await Promise.all(directories.map(async (entry) => {
             const directory = entry.name as string;
             try {
-                const response = await fetch(`${base}/${encodeURIComponent(directory)}/manifest.json?ref=main`, { headers, cache: 'no-store', signal: AbortSignal.timeout(6000) });
+                const response = await fetch(`${base}/${encodeURIComponent(directory)}/manifest.json?ref=main`, fetchOptions);
                 if (!response.ok) return null;
                 const file = await response.json() as Entry;
                 if (file.encoding !== 'base64' || typeof file.content !== 'string' || file.content.length > 32768) return null;

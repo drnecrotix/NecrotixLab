@@ -88,7 +88,7 @@ type ServiceToolsConfig = {
     tools: ServiceTool[];
 };
 
-export const TOOLS_ADDON_VERSION = '1.3.71';
+export const TOOLS_ADDON_VERSION = '1.3.72';
 
 export function toolsInstalled(value: unknown): boolean {
     if (value && typeof value === 'object' && !Array.isArray(value) && 'installed' in value) {
