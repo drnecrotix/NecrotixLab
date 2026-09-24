@@ -72,7 +72,7 @@ function ProjectBlock({ block, project, body }: { block: ProjectContentBlock; pr
                     <h2 className="text-2xl font-bold text-foreground">{t('sections.keyFeatures')}</h2>
                 </div>
                 {groups.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className={`grid grid-cols-1 gap-4 ${groups.length > 1 ? 'md:grid-cols-2' : ''}`}>
                         {groups.map((group, index) => (
                             <motion.div
                                 key={`${group.title}-${index}`}
@@ -213,8 +213,8 @@ export function ProjectComposerPage({ project }: { project: Project }) {
             </div>
 
             <main className="container mx-auto max-w-7xl px-6">
-                <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
-                    <article className="space-y-12 lg:col-span-8">
+                <div className="space-y-16">
+                    <article className="space-y-12">
                         {segments.map((segment, index) => {
                             if (segment.type === 'block') {
                                 return <ProjectBlock key={`${segment.block}-${index}`} block={segment.block} project={project} body={segment.body} />;
@@ -243,8 +243,8 @@ export function ProjectComposerPage({ project }: { project: Project }) {
                         )}
                     </article>
 
-                    <aside className="relative lg:col-span-4">
-                        <div className="sticky top-20 space-y-8">
+                    <aside className="border-t border-border/40 pt-10">
+                        <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
                             {(project.demoUrl || project.repoUrl || project.downloadUrl) && (
                                 <div className="rounded-2xl border border-black/20 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-secondary/5 dark:shadow-none">
                                     <h3 className="mb-6 text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('sections.projectAccess')}</h3>

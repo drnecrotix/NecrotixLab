@@ -27,14 +27,20 @@ test('paragraph tokens stay intact', () => {
     assert.equal(normalizeProjectBlockMarkers(html), '[[mission]]<p>Body copy</p>');
 });
 
-test('lists after a features marker become feature cards', () => {
+test('untitled lists after a features marker remain prose', () => {
     const groups = featuresFromHtml('<ul><li>Local SEO.</li><li>Simple home page</li></ul>');
-    assert.deepEqual(groups, [{ title: 'Highlights', items: ['Local SEO.', 'Simple home page'] }]);
+    assert.deepEqual(groups, []);
 });
 
-test('tiptap nested paragraphs inside list items still become cards', () => {
-    const groups = featuresFromHtml('<ul><li><p>Local SEO.</p></li><li><p>Simple home page</p></li></ul>');
-    assert.deepEqual(groups, [{ title: 'Highlights', items: ['Local SEO.', 'Simple home page'] }]);
+test('titled feature lists become cards with nested editor paragraphs', () => {
+    const groups = featuresFromHtml('<h2>Discovery</h2><ul><li><p>Local SEO.</p></li><li><p>Simple home page</p></li></ul>');
+    assert.deepEqual(groups, [{ title: 'Discovery', items: ['Local SEO.', 'Simple home page'] }]);
+});
+
+test('copy following a titled feature list is retained as normal body content', () => {
+    const body = '<h2>Discovery</h2><ul><li>Local SEO</li></ul><p>The project is built for players.</p>';
+    assert.deepEqual(featuresFromHtml(body), []);
+    assert.match(composeProjectLayout(`[[features]]${body}`)[0].body || '', /built for players/);
 });
 
 test('layout attaches list HTML to the features block so it is not dropped', () => {
@@ -47,7 +53,7 @@ test('layout attaches list HTML to the features block so it is not dropped', () 
     assert.equal(segments.length, 2);
 });
 
-test('screenshot-style HTML becomes a features section with cards', () => {
+test('screenshot-style untitled list stays in the features body without a Highlights card', () => {
     const html = [
         '<p>Mirko Build Stroy is a professional web project.</p>',
         '<div class="my-3" data-project-block="features"><div>Features REMOVE</div></div>',
@@ -57,7 +63,7 @@ test('screenshot-style HTML becomes a features section with cards', () => {
     const segments = composeProjectLayout(layout);
     const features = segments.find((segment) => segment.type === 'block' && segment.block === 'features');
     assert.ok(features && features.type === 'block');
-    assert.deepEqual(featuresFromHtml(features.body), [{ title: 'Highlights', items: ['Local SEO.', 'Simple home page'] }]);
+    assert.deepEqual(featuresFromHtml(features.body), []);
 });
 
 test('installation code blocks are parsed from following HTML', () => {
