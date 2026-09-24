@@ -1,4 +1,5 @@
 import { StatusToast } from '@/components/admin/StatusToast';
+import { ProjectCategoriesPanel } from '@/components/admin/ProjectCategoriesPanel';
 import { prisma } from '@/lib/prisma';
 import {
     createBlogCategory,
@@ -8,6 +9,7 @@ import {
     updateBlogCategory,
     updateBlogType,
 } from './actions';
+import { listProjectCategories } from '@/lib/project-categories';
 
 const input = 'mt-2 w-full rounded-xl border border-foreground/10 bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-foreground/30 focus:ring-2 focus:ring-foreground/5';
 const editorModes = ['ARTICLE', 'POETRY', 'THOUGHT', 'NOTE', 'PROJECT_LOG'] as const;
@@ -18,33 +20,39 @@ const messages: Record<string, string> = {
     'category-created': 'Category created.',
     'category-updated': 'Category updated.',
     'category-removed': 'Category removed.',
+    'project-category-created': 'Project category created.',
+    'project-category-updated': 'Project category updated.',
+    'project-category-removed': 'Project category removed.',
 };
 
 export const dynamic = 'force-dynamic';
 
 export default async function BlogTaxonomiesPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
-    const [types, categories, params] = await Promise.all([
+    const [types, categories, projectCategories, params] = await Promise.all([
         prisma.blogPostType.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { _count: { select: { posts: true } } } }),
         prisma.blogCategory.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { _count: { select: { posts: true } } } }),
+        listProjectCategories(),
         searchParams,
     ]);
     const success = params.saved ? messages[params.saved] || 'Taxonomy saved.' : undefined;
     const activeTypes = types.filter((item) => item.isActive).length;
     const activeCategories = categories.filter((item) => item.isActive).length;
+    const activeProjectCategories = projectCategories.filter((item) => item.isActive).length;
 
     return (
         <div className="mx-auto max-w-7xl">
             <StatusToast type={params.error ? 'error' : success ? 'success' : undefined} message={params.error || success} />
             <div className="mb-8 sm:mb-10">
-                <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Blog</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Content</p>
                 <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Types & Categories</h2>
-                <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">Create reusable publication types and categories without keeping every editor open at once. Expand an item only when you need to edit it.</p>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">Create reusable publication types, blog categories and project categories without keeping every editor open at once. Expand an item only when you need to edit it.</p>
             </div>
 
             <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4"><p className="text-xs uppercase tracking-wider text-muted-foreground">Post types</p><p className="mt-2 text-2xl font-semibold">{types.length}</p><p className="mt-1 text-xs text-muted-foreground">{activeTypes} active</p></div>
                 <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4"><p className="text-xs uppercase tracking-wider text-muted-foreground">Categories</p><p className="mt-2 text-2xl font-semibold">{categories.length}</p><p className="mt-1 text-xs text-muted-foreground">{activeCategories} active</p></div>
-                <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 sm:col-span-2"><p className="text-xs uppercase tracking-wider text-muted-foreground">Tip</p><p className="mt-2 text-sm leading-6 text-muted-foreground">Editor mode controls the writing experience; the public renderer still uses the selected reusable type/category labels.</p></div>
+                <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4"><p className="text-xs uppercase tracking-wider text-muted-foreground">Project categories</p><p className="mt-2 text-2xl font-semibold">{projectCategories.length}</p><p className="mt-1 text-xs text-muted-foreground">{activeProjectCategories} active</p></div>
+                <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4"><p className="text-xs uppercase tracking-wider text-muted-foreground">Tip</p><p className="mt-2 text-sm leading-6 text-muted-foreground">Editor mode controls the writing experience. Project categories drive the archive filters and project forms.</p></div>
             </div>
 
             <div className="grid gap-8 xl:grid-cols-2">
@@ -120,6 +128,8 @@ export default async function BlogTaxonomiesPage({ searchParams }: { searchParam
                     </div>
                 </section>
             </div>
+
+            <ProjectCategoriesPanel items={projectCategories} />
         </div>
     );
 }
