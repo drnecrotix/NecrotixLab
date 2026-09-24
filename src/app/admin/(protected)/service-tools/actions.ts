@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { DEFAULT_SERVICE_TOOLS, normalizeServiceToolsConfig, SERVICE_TOOLS_CONFIG_SLUG, SERVICE_TOOLS_CONFIG_VERSION } from '@addons/Tools/settings';
 
 export async function updateServiceTools(form: FormData) {
-    let destination = '/admin/addons?saved=1#tools-settings';
+    let destination = '/admin/addons/tools?saved=1';
     try {
         const session = await auth();
         if (!session?.user || !['OWNER', 'ADMIN'].includes(session.user.role)) throw new Error('Forbidden');
@@ -30,9 +30,10 @@ export async function updateServiceTools(form: FormData) {
         revalidatePath('/services');
         revalidatePath('/admin/service-tools');
         revalidatePath('/admin/addons');
+        revalidatePath('/admin/addons/tools');
         revalidatePath('/tools');
     } catch (error) {
-        destination = `/admin/addons?error=${encodeURIComponent(error instanceof Error ? error.message : 'Unable to save tool settings.')}`;
+        destination = `/admin/addons/tools?error=${encodeURIComponent(error instanceof Error ? error.message : 'Unable to save tool settings.')}`;
     }
     redirect(destination);
 }
