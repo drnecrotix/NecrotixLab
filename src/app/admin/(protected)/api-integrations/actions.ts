@@ -35,7 +35,7 @@ const allowedFields: Record<ApiIntegrationId, readonly string[]> = {
     lemonsqueezy: ['lemonsqueezy.apiKey', 'lemonsqueezy.storeId', 'lemonsqueezy.webhookSecret'],
     creem: ['creem.apiKey', 'creem.webhookSecret'],
     smtp: ['smtp.user', 'smtp.password', 'smtp.host', 'smtp.port', 'smtp.secure'],
-    discord: ['discord.botToken'],
+    discord: ['discord.botToken', 'discord.guildId'],
 };
 
 const envNames: Record<string, string> = {
@@ -63,6 +63,7 @@ const envNames: Record<string, string> = {
     'smtp.port': 'SMTP_PORT',
     'smtp.secure': 'SMTP_SECURE',
     'discord.botToken': 'DISCORD_BOT_TOKEN',
+    'discord.guildId': 'DISCORD_GUILD_ID',
 };
 
 const aiProviders = new Set<ApiIntegrationId>(['openai', 'groq', 'gemini', 'openrouter']);
@@ -169,6 +170,10 @@ export async function saveApiIntegration(input: {
             }
             const secureValue = changes['smtp.secure'];
             if (typeof secureValue === 'string' && !['true', 'false'].includes(secureValue.toLowerCase())) return { ok: false, message: 'SMTP secure must be true or false.' };
+        }
+
+        if (input.id === 'discord' && typeof changes['discord.guildId'] === 'string' && !/^\d{17,20}$/.test(changes['discord.guildId'])) {
+            return { ok: false, message: 'Discord server ID must contain 17 to 20 digits.' };
         }
 
         const existing = await prisma.siteSettings.findUnique({
@@ -343,7 +348,12 @@ async function runIntegrationTest(id: ApiIntegrationId, values: Record<string, s
         });
         const bot = await response.json();
         if (bot?.bot !== true) throw new Error('Discord token did not identify a bot account.');
-        return `Discord bot connected as ${String(bot.username || 'bot').slice(0, 100)}. User ID lookup can now show available profile fields.`;
+        const guildId = values['discord.guildId'];
+        if (guildId) {
+            if (!/^\d{17,20}$/.test(guildId)) throw new Error('Discord server ID must contain 17 to 20 digits.');
+            await fetchChecked(`https://discord.com/api/v10/guilds/${guildId}`, { headers: { Authorization: `Bot ${token}`, Accept: 'application/json' } });
+        }
+        return `Discord bot connected as ${String(bot.username || 'bot').slice(0, 100)}.${guildId ? ' Server access verified for member lookup.' : ' Add a server ID to enable member lookup fallback.'}`;
     }
 
     if (id === 'creem') {

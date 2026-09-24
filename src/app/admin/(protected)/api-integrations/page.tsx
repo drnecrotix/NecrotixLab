@@ -68,8 +68,11 @@ export default async function ApiIntegrationsPage() {
             category: 'Community & social',
             description: 'Enables Discord Lookup to show available user profile details, avatars and banners by User ID.',
             usedBy: ['Discord Lookup - user profiles'],
-            docsHint: 'Copy the bot token from Discord Developer Portal > Application > Bot. It is encrypted in the CMS, never returned to the browser, and overrides DISCORD_BOT_TOKEN from the environment.',
-            fields: [field('discord.botToken', 'Bot token', 'DISCORD_BOT_TOKEN', true)],
+            docsHint: 'Copy the token from Discord Developer Portal > Application > Bot. Add the ID of a server where this bot is installed. The server enables a second lookup for its members when a direct User ID lookup returns 404. The token is encrypted and never returned to the browser.',
+            fields: [
+                field('discord.botToken', 'Bot token', 'DISCORD_BOT_TOKEN', true),
+                { ...field('discord.guildId', 'Server ID for member lookup', 'DISCORD_GUILD_ID', false, 'The bot must be installed in this server.'), required: false },
+            ],
             lastTest: tests.discord ?? null,
         },
         {
