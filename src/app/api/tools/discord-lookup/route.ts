@@ -7,6 +7,9 @@ export const dynamic = 'force-dynamic';
 const attempts = new Map<string, { count: number; until: number }>();
 const api = 'https://discord.com/api/v10';
 type Data = Record<string, unknown>;
+class DiscordApiError extends Error {
+    constructor(readonly status: number, message: string) { super(message); }
+}
 function object(value: unknown): Data { return value && typeof value === 'object' && !Array.isArray(value) ? value as Data : {}; }
 function cdnAvatar(id: string, hash: string, kind: 'avatars' | 'icons' | 'banners') {
     return id && /^[a-f0-9_]{1,128}$/i.test(hash) ? `https://cdn.discordapp.com/${kind}/${id}/${hash}.${hash.startsWith('a_') ? 'gif' : 'png'}?size=256` : null;
@@ -16,7 +19,7 @@ function cdnAsset(id: string, hash: string, kind: 'splashes' | 'discovery-splash
 }
 async function discord(path: string, token?: string) {
     const response = await fetch(`${api}${path}`, { signal: AbortSignal.timeout(8000), headers: { accept: 'application/json', ...(token ? { authorization: `Bot ${token}` } : {}) }, cache: 'no-store' });
-    if (!response.ok) throw new Error(response.status === 404 ? 'Discord record not found or not public.' : response.status === 429 ? 'Discord rate limit reached. Try again shortly.' : 'Discord API unavailable for this lookup.');
+    if (!response.ok) throw new DiscordApiError(response.status, response.status === 404 ? 'Discord could not find this record or make it available to this bot.' : response.status === 401 ? 'The configured Discord bot token is invalid. Check it in Admin > API & Tokens.' : response.status === 403 ? 'The Discord bot does not have access to this record.' : response.status === 429 ? 'Discord rate limit reached. Try again shortly.' : 'Discord API unavailable for this lookup.');
     return object(await response.json());
 }
 export async function GET(request: NextRequest) {
@@ -45,7 +48,12 @@ export async function GET(request: NextRequest) {
         }
         const botToken = await getDiscordBotToken();
         if (!botToken) return NextResponse.json({ kind, configurationRequired: true, user: { id: query, username: '', displayName: '', bot: null, created: snowflakeDate(query) }, note: 'Profile data and avatar require a Discord bot token. Configure it in Admin > API & Tokens. The decoded creation date does not verify this account.', profileUrl: `https://discord.com/users/${query}` }, { headers: { 'Cache-Control': 'no-store' } });
-        const data = await discord(`/users/${query}`, botToken);
+        let data: Data;
+        try { data = await discord(`/users/${query}`, botToken); }
+        catch (error) {
+            if (!(error instanceof DiscordApiError) || error.status !== 404) throw error;
+            return NextResponse.json({ kind, user: { id: query, username: '', displayName: '', avatarUrl: null, bannerUrl: null, bot: null, created: snowflakeDate(query) }, note: 'Discord returned 404 for this User ID. The account may not exist or may be unavailable to the configured bot. The date is decoded from the ID and does not verify an account. Check that you copied the User ID, not a server or message ID.', profileUrl: `https://discord.com/users/${query}` }, { headers: { 'Cache-Control': 'no-store' } });
+        }
         const decoration = object(data.avatar_decoration_data), primaryGuild = object(data.primary_guild);
         return NextResponse.json({ kind, user: { id: query, username: text(data.username), displayName: text(data.global_name), discriminator: text(data.discriminator) === '0' ? null : text(data.discriminator), avatarUrl: cdnAvatar(query, text(data.avatar), 'avatars') || `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(query) >> 22n) % 6}.png`, hasCustomAvatar: Boolean(data.avatar), bannerUrl: cdnAvatar(query, text(data.banner), 'banners'), decorationAsset: text(decoration.asset), accentColor: number(data.accent_color), bot: data.bot === true, system: data.system === true, publicFlags: number(data.public_flags), primaryGuildTag: text(primaryGuild.tag), primaryGuildId: text(primaryGuild.identity_guild_id), created: snowflakeDate(query) }, note: 'Only profile fields available to the configured bot are shown. If no custom avatar exists, the default Discord avatar is shown.', profileUrl: `https://discord.com/users/${query}` }, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Discord lookup failed.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } }); }
