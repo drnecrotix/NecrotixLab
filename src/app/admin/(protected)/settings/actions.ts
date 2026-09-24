@@ -98,6 +98,9 @@ export async function updatePageAccessSettings(form: FormData) {
             blog: field(form, 'blogAccess', 20),
             gallery: field(form, 'galleryAccess', 20),
             store: field(form, 'storeAccess', 20),
+            projects: field(form, 'projectsAccess', 20),
+            journey: field(form, 'journeyAccess', 20),
+            resume: field(form, 'resumeAccess', 20),
         });
 
         await prisma.page.upsert({
@@ -116,6 +119,10 @@ export async function updatePageAccessSettings(form: FormData) {
         revalidatePath('/blog', 'layout');
         revalidatePath('/gallery', 'layout');
         revalidatePath('/store', 'layout');
+        revalidatePath('/projects', 'layout');
+        revalidatePath('/journey', 'layout');
+        revalidatePath('/experience', 'layout');
+        revalidatePath('/resume', 'layout');
         revalidatePath('/sitemap.xml');
         revalidatePath('/admin/settings');
     } catch (error) {

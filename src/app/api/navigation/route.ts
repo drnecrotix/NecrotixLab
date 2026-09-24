@@ -37,6 +37,9 @@ function managedKeyFromHref(href: string): ManagedPageKey | null {
     if (path === '/blog' || path.startsWith('/blog/')) return 'blog';
     if (path === '/gallery' || path.startsWith('/gallery/')) return 'gallery';
     if (path === '/store' || path.startsWith('/store/')) return 'store';
+    if (path === '/projects' || path.startsWith('/projects/')) return 'projects';
+    if (path === '/journey' || path.startsWith('/journey/') || path === '/experience' || path.startsWith('/experience/')) return 'journey';
+    if (path === '/resume' || path.startsWith('/resume/')) return 'resume';
     return null;
 }
 
