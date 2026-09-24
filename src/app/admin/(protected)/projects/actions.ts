@@ -12,6 +12,7 @@ import {
     safeProjectContent,
 } from '@/lib/cms-projects';
 import { uniqueProjectLabels, withoutProjectLabelDuplicates } from '@/lib/project-labels';
+import { ensureProjectCategory } from '@/lib/project-categories';
 
 const PROJECT_STATUSES = ['PLANNED', 'ONGOING', 'COMPLETED', 'ARCHIVED'] as const;
 type ProjectStatusValue = (typeof PROJECT_STATUSES)[number];
@@ -154,6 +155,7 @@ export async function createProject(formData: FormData): Promise<ProjectSaveResu
         await requireEditor();
         const data = readProjectForm(formData);
         const project = await prisma.project.create({ data });
+        await ensureProjectCategory(data.category);
         revalidatePath('/admin/projects');
         revalidateProjectDiscovery();
         return { ok: true, id: project.id, created: true, savedAt: new Date().toISOString() };
@@ -182,6 +184,7 @@ export async function updateProject(projectId: string, formData: FormData): Prom
             });
             await tx.project.update({ where: { id: projectId }, data: nextData });
         });
+        await ensureProjectCategory(nextData.category);
 
         revalidatePath('/admin/projects');
         revalidatePath(`/admin/projects/${projectId}`);
