@@ -130,7 +130,7 @@ export function normalizeServiceToolsConfig(value: unknown): ServiceToolsConfig 
     const installed = toolsInstalled(value);
     const active = toolsActive(value);
     const packageVersion = typeof source?.packageVersion === 'string' ? source.packageVersion : TOOLS_ADDON_VERSION;
-    if (!configured.length && (version === 0 || !installed)) return { version: SERVICE_TOOLS_CONFIG_VERSION, installed, active, packageVersion, tools: DEFAULT_SERVICE_TOOLS.map((tool) => ({ ...tool })) };
+    if (!configured.length) return { version: SERVICE_TOOLS_CONFIG_VERSION, installed, active, packageVersion, tools: DEFAULT_SERVICE_TOOLS.map((tool) => ({ ...tool })) };
 
     const tools = [...configured];
     if (version < SERVICE_TOOLS_CONFIG_VERSION) {
