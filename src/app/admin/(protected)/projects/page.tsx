@@ -19,7 +19,10 @@ export default async function AdminProjectsPage() {
                     <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Projects</h2>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Projects created here drive the public projects archive and detail pages.</p>
                 </div>
-                <Link href="/admin/projects/new" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background sm:self-start md:self-auto">New project</Link>
+                <div className="flex flex-wrap gap-2 sm:self-start md:self-auto">
+                    <Link href="/admin/blog/taxonomies" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-foreground/10 px-4 py-2.5 text-sm text-muted-foreground transition hover:bg-foreground/[0.04] hover:text-foreground">Types &amp; Categories</Link>
+                    <Link href="/admin/projects/new" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background">New project</Link>
+                </div>
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.015]">

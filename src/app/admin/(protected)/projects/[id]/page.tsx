@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getProjectCategoryNames } from '@/lib/project-categories';
 import { ProjectForm } from '@/components/admin/ProjectForm';
 import { deleteProject, updateProject } from '../actions';
 
@@ -8,21 +9,15 @@ export const dynamic = 'force-dynamic';
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const [project, categoryRows] = await Promise.all([
+    const [project, categories] = await Promise.all([
         prisma.project.findUnique({
             where: { id },
             include: { revisions: { orderBy: { createdAt: 'desc' }, take: 10 } },
         }),
-        prisma.project.findMany({
-            where: { category: { not: null } },
-            distinct: ['category'],
-            select: { category: true },
-            orderBy: { category: 'asc' },
-        }),
+        getProjectCategoryNames(),
     ]);
     if (!project) notFound();
 
-    const categories = categoryRows.map((item) => item.category).filter((value): value is string => Boolean(value));
     const updateAction = updateProject.bind(null, project.id);
     const deleteAction = deleteProject.bind(null, project.id);
 
