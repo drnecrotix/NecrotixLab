@@ -5,6 +5,11 @@ import { redirect } from 'next/navigation';
 import type { PostType } from '@prisma/client';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import {
+    createProjectCategoryRecord,
+    deleteProjectCategoryRecord,
+    updateProjectCategoryRecord,
+} from '@/lib/project-categories';
 
 const editorModes = new Set<PostType>(['ARTICLE', 'POETRY', 'THOUGHT', 'NOTE', 'PROJECT_LOG']);
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -134,4 +139,50 @@ export async function deleteBlogCategory(id: string) {
         revalidatePath('/admin/blog/taxonomies');
     } catch (error) { done('category-removed', error); }
     done('category-removed');
+}
+
+export async function createProjectCategory(form: FormData) {
+    try {
+        await requireAdmin();
+        await createProjectCategoryRecord({
+            name: bounded(form.get('name'), 80, 'Category name', true),
+            slug: slug(form.get('slug')),
+            description: bounded(form.get('description'), 500, 'Description'),
+            sortOrder: order(form.get('sortOrder')),
+            isActive: form.get('isActive') === 'on',
+        });
+        revalidatePath('/admin/blog/taxonomies');
+        revalidatePath('/admin/projects');
+        revalidatePath('/admin/projects/new');
+        revalidatePath('/projects');
+    } catch (error) { done('project-category-created', error); }
+    done('project-category-created');
+}
+
+export async function updateProjectCategory(id: string, form: FormData) {
+    try {
+        await requireAdmin();
+        await updateProjectCategoryRecord(id, {
+            name: bounded(form.get('name'), 80, 'Category name', true),
+            slug: slug(form.get('slug')),
+            description: bounded(form.get('description'), 500, 'Description'),
+            sortOrder: order(form.get('sortOrder')),
+            isActive: form.get('isActive') === 'on',
+        });
+        revalidatePath('/admin/blog/taxonomies');
+        revalidatePath('/admin/projects');
+        revalidatePath('/projects');
+    } catch (error) { done('project-category-updated', error); }
+    done('project-category-updated');
+}
+
+export async function deleteProjectCategory(id: string) {
+    try {
+        await requireAdmin();
+        await deleteProjectCategoryRecord(id);
+        revalidatePath('/admin/blog/taxonomies');
+        revalidatePath('/admin/projects');
+        revalidatePath('/projects');
+    } catch (error) { done('project-category-removed', error); }
+    done('project-category-removed');
 }
