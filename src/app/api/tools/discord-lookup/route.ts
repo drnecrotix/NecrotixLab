@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { number, parseDiscordQuery, snowflakeDate, text, type LookupKind } from '@/modules/discord-lookup/core';
-import { getDiscordBotToken } from '@/lib/discord-credentials';
+import { getDiscordLookupCredentials } from '@/lib/discord-credentials';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,6 +16,23 @@ function cdnAvatar(id: string, hash: string, kind: 'avatars' | 'icons' | 'banner
 }
 function cdnAsset(id: string, hash: string, kind: 'splashes' | 'discovery-splashes' | 'avatar-decorations') {
     return id && /^[a-f0-9_]{1,128}$/i.test(hash) ? `https://cdn.discordapp.com/${kind}/${id}/${hash}.png?size=512` : null;
+}
+function memberImage(guildId: string, userId: string, hash: string, kind: 'avatars' | 'banners') {
+    return /^[a-f0-9_]{1,128}$/i.test(hash) ? `https://cdn.discordapp.com/guilds/${guildId}/users/${userId}/${kind}/${hash}.${hash.startsWith('a_') ? 'gif' : 'png'}?size=256` : null;
+}
+function userResult(id: string, data: Data, note: string, member: Data = {}, guildId = '') {
+    const decoration = object(data.avatar_decoration_data), primaryGuild = object(data.primary_guild);
+    const discriminator = text(data.discriminator);
+    return { kind: 'user', user: { id, username: text(data.username), displayName: text(data.global_name), nickname: text(member.nick), discriminator: discriminator === '0' ? null : discriminator, avatarUrl: memberImage(guildId, id, text(member.avatar), 'avatars') || cdnAvatar(id, text(data.avatar), 'avatars') || `https://cdn.discordapp.com/embed/avatars/${discriminator && discriminator !== '0' ? Number(discriminator) % 5 : Number(BigInt(id) >> 22n) % 6}.png`, hasCustomAvatar: Boolean(member.avatar || data.avatar), bannerUrl: memberImage(guildId, id, text(member.banner), 'banners') || cdnAvatar(id, text(data.banner), 'banners'), decorationAsset: text(decoration.asset), accentColor: number(data.accent_color), bot: data.bot === true, system: data.system === true, publicFlags: number(data.public_flags), primaryGuildTag: text(primaryGuild.tag), primaryGuildId: text(primaryGuild.identity_guild_id), created: snowflakeDate(id), guildJoinedAt: text(member.joined_at) }, note, profileUrl: `https://discord.com/users/${id}` };
+}
+async function lanyardUser(id: string): Promise<Data> {
+    try {
+        const response = await fetch(`https://api.lanyard.rest/v1/users/${id}`, { signal: AbortSignal.timeout(4000), cache: 'no-store' });
+        if (!response.ok) return {};
+        const payload = object(await response.json());
+        const user = object(object(payload.data).discord_user);
+        return payload.success === true && text(user.id) === id && text(user.username) ? user : {};
+    } catch { return {}; }
 }
 async function discord(path: string, token?: string) {
     const response = await fetch(`${api}${path}`, { signal: AbortSignal.timeout(8000), headers: { accept: 'application/json', ...(token ? { authorization: `Bot ${token}` } : {}) }, cache: 'no-store' });
@@ -46,15 +63,32 @@ export async function GET(request: NextRequest) {
             if (!text(preview.id) && !text(widget.id)) throw new Error('This server has no public preview or enabled widget. Use a public invite link for its profile.');
             return NextResponse.json({ kind, server: { id: query, name: text(preview.name) || text(widget.name), description: text(preview.description), iconUrl: cdnAvatar(query, text(preview.icon), 'icons'), splashUrl: cdnAsset(query, text(preview.splash), 'splashes'), discoverySplashUrl: cdnAsset(query, text(preview.discovery_splash), 'discovery-splashes'), widgetUrl: text(widget.id) ? `https://discord.com/api/guilds/${query}/widget.png?style=banner2` : null, online: number(preview.approximate_presence_count) ?? number(widget.presence_count), members: number(preview.approximate_member_count), features: Array.isArray(preview.features) ? preview.features.filter((v): v is string => typeof v === 'string').slice(0, 30) : [], created: snowflakeDate(query), invite: text(widget.instant_invite), channels: Array.isArray(widget.channels) ? widget.channels.length : null }, note: text(preview.id) ? 'Public Discovery preview. Member counts are approximate.' : 'Only the public widget is available. It shows a server badge, not the original icon or banner.' }, { headers: { 'Cache-Control': 'no-store' } });
         }
-        const botToken = await getDiscordBotToken();
-        if (!botToken) return NextResponse.json({ kind, configurationRequired: true, user: { id: query, username: '', displayName: '', bot: null, created: snowflakeDate(query) }, note: 'Profile data and avatar require a Discord bot token. Configure it in Admin > API & Tokens. The decoded creation date does not verify this account.', profileUrl: `https://discord.com/users/${query}` }, { headers: { 'Cache-Control': 'no-store' } });
-        let data: Data;
-        try { data = await discord(`/users/${query}`, botToken); }
+        const { token: botToken, guildId } = await getDiscordLookupCredentials();
+        if (!botToken) {
+            const lanyard = await lanyardUser(query);
+            if (text(lanyard.username)) return NextResponse.json(userResult(query, lanyard, 'Profile fields from Lanyard, available only for users enrolled in its Discord server. Add a bot token for official Discord lookup.'), { headers: { 'Cache-Control': 'no-store' } });
+            return NextResponse.json({ kind, configurationRequired: true, user: { id: query, username: '', displayName: '', bot: null, created: snowflakeDate(query) }, note: 'Profile data and avatar require a Discord bot token or an enrolled Lanyard profile. Configure the bot in Admin > API & Tokens. The decoded creation date does not verify this account.', profileUrl: `https://discord.com/users/${query}` }, { headers: { 'Cache-Control': 'no-store' } });
+        }
+        try {
+            const data = await discord(`/users/${query}`, botToken);
+            return NextResponse.json(userResult(query, data, 'Profile fields returned by the configured Discord bot. A personal banner or server nickname may not be available.'), { headers: { 'Cache-Control': 'no-store' } });
+        }
         catch (error) {
             if (!(error instanceof DiscordApiError) || error.status !== 404) throw error;
-            return NextResponse.json({ kind, user: { id: query, username: '', displayName: '', avatarUrl: null, bannerUrl: null, bot: null, created: snowflakeDate(query) }, note: 'Discord returned 404 for this User ID. The account may not exist or may be unavailable to the configured bot. The date is decoded from the ID and does not verify an account. Check that you copied the User ID, not a server or message ID.', profileUrl: `https://discord.com/users/${query}` }, { headers: { 'Cache-Control': 'no-store' } });
+            if (/^\d{17,20}$/.test(guildId)) {
+                try {
+                    const member = await discord(`/guilds/${guildId}/members/${query}`, botToken);
+                    const user = object(member.user);
+                    if (text(user.id) === query && text(user.username)) {
+                        return NextResponse.json(userResult(query, user, 'Verified through a server where the configured bot is installed. Nickname and server avatar are specific to that server.', member, guildId), { headers: { 'Cache-Control': 'no-store' } });
+                    }
+                } catch (memberError) {
+                    if (memberError instanceof DiscordApiError && memberError.status === 401) throw memberError;
+                }
+            }
+            const lanyard = await lanyardUser(query);
+            if (text(lanyard.username)) return NextResponse.json(userResult(query, lanyard, 'Profile fields from Lanyard, available only for users enrolled in its Discord server. A banner and server nickname may be unavailable.'), { headers: { 'Cache-Control': 'no-store' } });
+            return NextResponse.json({ kind, user: { id: query, username: '', displayName: '', avatarUrl: null, bannerUrl: null, bot: null, created: snowflakeDate(query) }, note: `Discord returned 404 for this User ID.${guildId ? ' The configured bot could not find this member in its server.' : ' Add a Server ID in Admin > API & Tokens to try member lookup.'} Lanyard had no matching enrolled profile. The date is decoded from the ID and does not verify an account. Check that you copied the User ID, not a server or message ID.`, profileUrl: `https://discord.com/users/${query}` }, { headers: { 'Cache-Control': 'no-store' } });
         }
-        const decoration = object(data.avatar_decoration_data), primaryGuild = object(data.primary_guild);
-        return NextResponse.json({ kind, user: { id: query, username: text(data.username), displayName: text(data.global_name), discriminator: text(data.discriminator) === '0' ? null : text(data.discriminator), avatarUrl: cdnAvatar(query, text(data.avatar), 'avatars') || `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(query) >> 22n) % 6}.png`, hasCustomAvatar: Boolean(data.avatar), bannerUrl: cdnAvatar(query, text(data.banner), 'banners'), decorationAsset: text(decoration.asset), accentColor: number(data.accent_color), bot: data.bot === true, system: data.system === true, publicFlags: number(data.public_flags), primaryGuildTag: text(primaryGuild.tag), primaryGuildId: text(primaryGuild.identity_guild_id), created: snowflakeDate(query) }, note: 'Only profile fields available to the configured bot are shown. If no custom avatar exists, the default Discord avatar is shown.', profileUrl: `https://discord.com/users/${query}` }, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Discord lookup failed.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } }); }
 }
