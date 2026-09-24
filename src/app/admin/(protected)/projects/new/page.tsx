@@ -1,18 +1,12 @@
 import Link from 'next/link';
 import { ProjectForm } from '@/components/admin/ProjectForm';
-import { prisma } from '@/lib/prisma';
 import { createProject } from '../actions';
+import { getProjectCategoryNames } from '@/lib/project-categories';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewProjectPage() {
-    const categoryRows = await prisma.project.findMany({
-        where: { category: { not: null } },
-        distinct: ['category'],
-        select: { category: true },
-        orderBy: { category: 'asc' },
-    });
-    const categories = categoryRows.map((item) => item.category).filter((value): value is string => Boolean(value));
+    const categories = await getProjectCategoryNames();
 
     return (
         <div className="mx-auto max-w-5xl">
