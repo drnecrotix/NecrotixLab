@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { number, parseDiscordQuery, snowflakeDate, text, type LookupKind } from '@/modules/discord-lookup/core';
 import { getDiscordLookupCredentials } from '@/lib/discord-credentials';
+import { addonEnabled } from '@/lib/addons.server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,6 +41,7 @@ async function discord(path: string, token?: string) {
     return object(await response.json());
 }
 export async function GET(request: NextRequest) {
+    if (!(await addonEnabled('discord-lookup'))) return NextResponse.json({ error: 'Discord Lookup is disabled.' }, { status: 404 });
     const kind = request.nextUrl.searchParams.get('kind') as LookupKind;
     if (!['invite', 'server', 'user'].includes(kind)) return NextResponse.json({ error: 'Choose invite, server or user lookup.' }, { status: 400 });
     let query: string;

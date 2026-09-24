@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import Link from 'next/link';
+import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { AdminHealthSecurityPanel } from '@/components/admin/AdminHealthSecurityPanel';
 import { PortfolioUpdater, type PortfolioUpdateStatus } from '@/components/admin/PortfolioUpdater';
@@ -17,6 +19,8 @@ function readUpdateStatus(): PortfolioUpdateStatus | null {
 }
 
 export default async function AdminDashboardPage() {
+    const session = await auth();
+    const canManageAddons = session?.user?.role === 'OWNER' || session?.user?.role === 'ADMIN';
     let projects: number | null = null;
     let posts: number | null = null;
     let pages: number | null = null;
@@ -44,12 +48,12 @@ export default async function AdminDashboardPage() {
         // the health panel can report the failure instead of claiming success.
     }
 
-    const contentStats: Array<[string, number | null]> = [
-        ['Projects', projects],
-        ['Posts', posts],
-        ['Pages', pages],
-        ['Media', media],
-        ['Draft posts', drafts],
+    const contentStats: Array<[string, number | null, string]> = [
+        ['Projects', projects, '/admin/projects'],
+        ['Posts', posts, '/admin/blog'],
+        ['Pages', pages, '/admin/pages'],
+        ['Media', media, '/admin/media'],
+        ['Draft posts', drafts, '/admin/blog'],
     ];
 
     const updateStatus = readUpdateStatus();
@@ -57,19 +61,38 @@ export default async function AdminDashboardPage() {
     const siteModeLabel = siteMode?.mode ?? (databaseHealthy ? 'NORMAL' : 'UNKNOWN');
 
     return (
-        <div className="mx-auto max-w-[1500px]">
-            <header className="mb-6 flex flex-col gap-4 border-b border-foreground/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="admin-dashboard mx-auto max-w-[1500px] space-y-5">
+            <header className="admin-dashboard-enter flex flex-col gap-5 rounded-3xl border border-border bg-card p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8">
                 <div>
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground sm:text-xs">Control center</p>
-                    <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Dashboard</h2>
+                    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400">NecrotixLab / Control center</p>
+                    <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Dashboard</h1>
+                    <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Content, traffic, system health and updates in one workspace.</p>
                 </div>
-                <div className="sm:text-right">
-                    <p className="text-sm text-muted-foreground">{settings?.siteName ?? 'Dr Necrotix'}</p>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:text-xs sm:tracking-[0.2em]">Site mode: {siteModeLabel} · v{currentVersion}</p>
+                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <span className="rounded-full border border-border px-3 py-1.5 text-xs font-medium">{settings?.siteName ?? 'NecrotixLab'}</span>
+                    <span className="rounded-full border border-cyan-500/25 bg-cyan-500/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-700 dark:text-cyan-300">{siteModeLabel}</span>
+                    <span className="rounded-full border border-border px-3 py-1.5 font-mono text-xs text-muted-foreground">v{currentVersion}</span>
                 </div>
             </header>
 
-            <section className="mb-5">
+            <section aria-label="Content overview" className="admin-dashboard-enter grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                {contentStats.map(([label, value, href], index) => (
+                    <Link key={label} href={href} className="group min-w-0 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-cyan-500/50 hover:bg-cyan-500/[0.04]" style={{ animationDelay: `${index * 45}ms` }}>
+                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+                        <span className="mt-3 block text-3xl font-bold tabular-nums">{value ?? '—'}</span>
+                        <span className="mt-2 block text-xs text-cyan-700 opacity-70 transition-opacity group-hover:opacity-100 dark:text-cyan-300">Open section →</span>
+                    </Link>
+                ))}
+            </section>
+            {!databaseHealthy && <p className="rounded-xl border border-amber-500/30 p-3 text-xs text-amber-700 dark:text-amber-300">Content totals are unavailable because the database query failed.</p>}
+
+            <nav aria-label="Quick actions" className="admin-dashboard-enter flex flex-wrap gap-2">
+                {[['Blog posts', '/admin/blog'], ['Projects', '/admin/projects'], ['Media library', '/admin/media'], ...(canManageAddons ? [['Addons', '/admin/addons'], ['Site health', '/admin/site-health']] : [])].map(([label, href]) => (
+                    <Link key={href} href={href} className="rounded-xl border border-border bg-card px-4 py-2.5 text-xs font-semibold transition-colors hover:border-cyan-500/50 hover:text-cyan-700 dark:hover:text-cyan-300">{label}</Link>
+                ))}
+            </nav>
+
+            <section className="admin-dashboard-enter" aria-label="Traffic">
                 <TrafficAnalyticsPanel
                     locationLimit={4}
                     refreshIntervalMs={10000}
@@ -78,24 +101,17 @@ export default async function AdminDashboardPage() {
                 />
             </section>
 
-            <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
+            <section className="admin-dashboard-enter grid items-start gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]" aria-label="Operations">
                 <div className="min-w-0">
                     <PortfolioUpdater currentVersion={currentVersion} initialStatus={updateStatus} />
                 </div>
 
                 <div className="min-w-0 space-y-4">
                     <AdminHealthSecurityPanel />
-                    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.025] p-4">
-                        <div className="flex items-center justify-between gap-3"><p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Content</p><span className="text-[9px] text-muted-foreground">Current totals</span></div>
-                        <div className="mt-3 grid grid-cols-5 gap-2">
-                            {contentStats.map(([label, value]) => (
-                                <div key={label} className="min-w-0 rounded-xl border border-foreground/10 bg-background/45 px-2 py-2.5 text-center">
-                                    <p className="truncate text-[8px] uppercase tracking-[0.08em] text-muted-foreground">{label}</p><p className="mt-1 text-base font-semibold tabular-nums">{value ?? '—'}</p>
-                                </div>
-                            ))}
-                        </div>
-                        {!databaseHealthy ? <p className="mt-3 text-[10px] text-amber-700 dark:text-amber-300">Content totals are unavailable because the database query failed.</p> : null}
-                        <div className="mt-3"><PurgeCacheButton /></div>
+                    <div className="rounded-2xl border border-border bg-card p-5">
+                        <h2 className="text-sm font-semibold">Maintenance</h2>
+                        <p className="mt-1 text-xs text-muted-foreground">Clear cached content after a configuration change.</p>
+                        <div className="mt-4"><PurgeCacheButton /></div>
                     </div>
                 </div>
             </section>

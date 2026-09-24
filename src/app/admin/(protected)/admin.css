@@ -3,6 +3,9 @@
 .dark .admin-shell { --background: 225 17% 8%; --foreground: 220 14% 93%; --muted-foreground: 220 10% 65%; --border: 225 12% 22%; }
 .admin-shell :is(button, a, input, select, textarea, summary):focus-visible { outline: 2px solid #38bdf8; outline-offset: 3px; }
 .admin-shell h1, .admin-shell h2, .admin-shell h3 { letter-spacing: -0.025em; }
+.admin-dashboard-enter { animation: admin-enter .45s ease-out both; }
+@keyframes admin-enter { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .admin-dashboard-enter { animation: none; } }
 .admin-shell .admin-quick-link { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem .65rem; border: 1px solid hsl(var(--foreground) / .12); border-radius: .5rem; font-size: .75rem; }
 .admin-shell .admin-quick-link:hover { background: hsl(var(--foreground) / .06); }
 .admin-shell[data-density="compact"] #admin-content { padding: 1.25rem; }
