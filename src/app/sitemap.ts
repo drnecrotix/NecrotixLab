@@ -22,6 +22,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const galleryPublic = isManagedPagePublic(pageAccess, 'gallery');
     const storePublic = isManagedPagePublic(pageAccess, 'store');
     const wikiPublic = isManagedPagePublic(pageAccess, 'wiki');
+    const projectsPublic = isManagedPagePublic(pageAccess, 'projects');
+    const journeyPublic = isManagedPagePublic(pageAccess, 'journey');
+    const resumePublic = isManagedPagePublic(pageAccess, 'resume');
     let seo = defaultSeoDefaults;
     let gallery = normalizeGallerySettings(null);
     let galleryUpdatedAt: Date | undefined;
@@ -57,10 +60,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const staticEntries: MetadataRoute.Sitemap = [
         { url: baseUrl, changeFrequency: 'weekly', priority: 1 },
         ...(seo.sitemapIncludeBlog && blogPublic ? [{ url: `${baseUrl}/blog`, changeFrequency: 'daily' as const, priority: 0.9 }] : []),
-        ...(seo.sitemapIncludeProjects ? [{ url: `${baseUrl}/projects`, changeFrequency: 'weekly' as const, priority: 0.9 }] : []),
+        ...(seo.sitemapIncludeProjects && projectsPublic ? [{ url: `${baseUrl}/projects`, changeFrequency: 'weekly' as const, priority: 0.9 }] : []),
         ...(storePublic ? [{ url: `${baseUrl}/store`, changeFrequency: 'weekly' as const, priority: 0.9 }] : []),
         ...(galleryPublic ? [{ url: `${baseUrl}/gallery`, lastModified: galleryUpdatedAt, changeFrequency: 'weekly' as const, priority: 0.8, images: galleryImages.length ? galleryImages : undefined }] : []),
-        { url: `${baseUrl}/journey`, changeFrequency: 'monthly', priority: 0.7 },
+        ...(journeyPublic ? [{ url: `${baseUrl}/journey`, changeFrequency: 'monthly' as const, priority: 0.7 }] : []),
         { url: `${baseUrl}/lab`, changeFrequency: 'monthly', priority: 0.7 },
         { url: `${baseUrl}/services`, changeFrequency: 'monthly', priority: 0.8 },
         { url: `${baseUrl}/services/website-inspector`, changeFrequency: 'monthly', priority: 0.75 },
@@ -72,7 +75,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             { url: `${baseUrl}/wiki/articles`, changeFrequency: 'weekly' as const, priority: 0.7 },
             ...(faqEnabled && faqIndexable ? [{ url: `${baseUrl}/wiki/faq`, changeFrequency: 'monthly' as const, priority: 0.75 }] : []),
         ] : []),
-        { url: `${baseUrl}/resume`, changeFrequency: 'monthly', priority: 0.7 },
+        ...(resumePublic ? [{ url: `${baseUrl}/resume`, changeFrequency: 'monthly' as const, priority: 0.7 }] : []),
         { url: `${baseUrl}/contact`, changeFrequency: 'monthly', priority: 0.5 },
         { url: `${baseUrl}/legal`, changeFrequency: 'yearly', priority: 0.35 },
         { url: `${baseUrl}/privacy`, changeFrequency: 'yearly', priority: 0.35 },
@@ -85,7 +88,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     try {
         const now = new Date();
         const [projects, posts, pages, wikiArticles, storeProducts] = await Promise.all([
-            seo.sitemapIncludeProjects
+            seo.sitemapIncludeProjects && projectsPublic
                 ? prisma.project.findMany({ where: { status: { in: ['ONGOING', 'COMPLETED'] } }, select: { slug: true, updatedAt: true } })
                 : Promise.resolve([]),
             seo.sitemapIncludeBlog && blogPublic

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getProjectCategoryNames } from '@/lib/project-categories';
 import { ProjectForm } from '@/components/admin/ProjectForm';
 import { deleteProject, updateProject } from '../actions';
 
@@ -8,21 +9,15 @@ export const dynamic = 'force-dynamic';
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const [project, categoryRows] = await Promise.all([
+    const [project, categories] = await Promise.all([
         prisma.project.findUnique({
             where: { id },
             include: { revisions: { orderBy: { createdAt: 'desc' }, take: 10 } },
         }),
-        prisma.project.findMany({
-            where: { category: { not: null } },
-            distinct: ['category'],
-            select: { category: true },
-            orderBy: { category: 'asc' },
-        }),
+        getProjectCategoryNames(),
     ]);
     if (!project) notFound();
 
-    const categories = categoryRows.map((item) => item.category).filter((value): value is string => Boolean(value));
     const updateAction = updateProject.bind(null, project.id);
     const deleteAction = deleteProject.bind(null, project.id);
 
@@ -34,9 +29,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
                     <Link href="/admin/projects" className="rounded-xl border border-white/10 px-4 py-3 text-sm text-white/70 hover:text-white">Back</Link>
                 </div>
             </div>
-
             <ProjectForm project={project} categories={categories} action={updateAction} submitLabel="Save changes" />
-
             <section className="mt-10 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
                 <div className="flex items-center justify-between gap-4"><div><h3 className="text-xl font-semibold">Revision history</h3><p className="mt-1 text-sm text-white/40">A snapshot is saved automatically before each edit.</p></div><span className="text-sm text-white/35">{project.revisions.length} shown</span></div>
                 <div className="mt-5 divide-y divide-white/10 border-t border-white/10">
@@ -45,7 +38,6 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
                     ))}
                 </div>
             </section>
-
             <section className="mt-10 rounded-2xl border border-red-500/20 bg-red-500/[0.03] p-6">
                 <h3 className="font-semibold text-red-300">Danger zone</h3><p className="mt-2 text-sm text-white/40">Deleting a project also deletes its revision history.</p>
                 <form action={deleteAction} className="mt-4"><button className="rounded-xl border border-red-500/30 px-4 py-2 text-sm text-red-300 hover:bg-red-500/10">Delete project</button></form>

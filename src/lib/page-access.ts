@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export const PAGE_ACCESS_CONFIG_SLUG = '__page-access-config';
 
-export const MANAGED_PAGE_KEYS = ['wiki', 'blog', 'gallery', 'store'] as const;
+export const MANAGED_PAGE_KEYS = ['wiki', 'blog', 'gallery', 'store', 'projects', 'journey', 'resume'] as const;
 export type ManagedPageKey = (typeof MANAGED_PAGE_KEYS)[number];
 export type ManagedPageAccessMode = 'PUBLIC' | 'DISABLED' | 'ADMIN_ONLY';
 export type ManagedPageAccessSettings = Record<ManagedPageKey, ManagedPageAccessMode>;
@@ -14,6 +14,9 @@ export const defaultManagedPageAccessSettings: ManagedPageAccessSettings = {
     blog: 'PUBLIC',
     gallery: 'PUBLIC',
     store: 'PUBLIC',
+    projects: 'PUBLIC',
+    journey: 'PUBLIC',
+    resume: 'PUBLIC',
 };
 
 const validModes = new Set<ManagedPageAccessMode>(['PUBLIC', 'DISABLED', 'ADMIN_ONLY']);

@@ -12,15 +12,17 @@ function SmartLink({ href, children, className }: { href: string; children: Reac
     return <Link href={href} className={className}>{children}</Link>;
 }
 
-function RelatedLinkCard({ item }: { item: WikiRelatedLink }) {
+function RelatedLinkRow({ item }: { item: WikiRelatedLink }) {
     return (
-        <SmartLink href={item.href} className="group flex min-h-28 flex-col justify-between rounded-2xl border border-foreground/10 bg-foreground/[0.018] p-4 transition hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-foreground/[0.035]">
-            <div className="flex items-start justify-between gap-3">
-                <span className="text-base font-bold tracking-tight">{item.label}</span>
-                {isExternal(item.href) ? <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> : <span className="text-muted-foreground transition group-hover:translate-x-0.5">↗</span>}
-            </div>
-            {item.note ? <p className="mt-4 text-xs leading-5 text-muted-foreground">{item.note}</p> : null}
-        </SmartLink>
+        <li className="border-t border-foreground/10 first:border-t-0">
+            <SmartLink href={item.href} className="group flex items-baseline justify-between gap-4 py-3 text-sm transition hover:text-foreground">
+                <span className="min-w-0">
+                    <span className="font-medium tracking-tight underline-offset-4 group-hover:underline">{item.label}</span>
+                    {item.note ? <span className="mt-0.5 block text-xs leading-5 text-muted-foreground sm:mt-0 sm:ml-2 sm:inline">{item.note}</span> : null}
+                </span>
+                {isExternal(item.href) ? <ExternalLink className="size-3.5 shrink-0 text-muted-foreground/70" /> : <span className="shrink-0 font-mono text-[10px] text-muted-foreground/70 transition group-hover:translate-x-0.5">↗</span>}
+            </SmartLink>
+        </li>
     );
 }
 
@@ -53,7 +55,6 @@ export function PersonalWikiPage({ content, identity, updatedAt }: { content: Pe
                             <div className="inline-flex items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.02] px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground"><Clock3 className="size-3.5" /> Updated {updatedLabel}</div>
                         </div>
                     </div>
-
                     <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-end">
                         <div>
                             <h1 className="max-w-5xl text-5xl font-black tracking-[-0.055em] sm:text-7xl lg:text-8xl">{content.title || identity.name}</h1>
@@ -66,7 +67,6 @@ export function PersonalWikiPage({ content, identity, updatedAt }: { content: Pe
                     </div>
                 </div>
             </header>
-
             {content.showContents && toc.length > 1 ? (
                 <div className="mx-auto mt-6 max-w-7xl px-5 sm:px-8 lg:hidden">
                     <div className="mb-3 grid grid-cols-3 gap-2">
@@ -82,7 +82,6 @@ export function PersonalWikiPage({ content, identity, updatedAt }: { content: Pe
                     </details>
                 </div>
             ) : null}
-
             <div className="mx-auto mt-10 grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[190px_minmax(0,1fr)_280px] lg:px-10 xl:grid-cols-[210px_minmax(0,1fr)_300px]">
                 <aside className="hidden lg:block">
                     <div className="sticky top-28 space-y-8">
@@ -102,13 +101,11 @@ export function PersonalWikiPage({ content, identity, updatedAt }: { content: Pe
                         ) : null}
                     </div>
                 </aside>
-
                 <article className="min-w-0">
                     <section id="introduction" className="scroll-mt-28 border-b border-foreground/10 pb-12">
                         <div className="mb-5 flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground"><Hash className="size-3.5" /> 01 · Introduction</div>
                         <div className={`${richTextClass} text-[1.04rem] sm:text-lg`} dangerouslySetInnerHTML={{ __html: content.lead }} />
                     </section>
-
                     {sections.map((section, index) => (
                         <section key={section.id} id={section.id} className="scroll-mt-28 border-b border-foreground/10 py-12">
                             <div className="mb-5 flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground"><Hash className="size-3.5" /> {String(index + 2).padStart(2, '0')} · Article</div>
@@ -116,7 +113,6 @@ export function PersonalWikiPage({ content, identity, updatedAt }: { content: Pe
                             <div className={`${richTextClass} mt-7`} dangerouslySetInnerHTML={{ __html: section.body }} />
                         </section>
                     ))}
-
                     {content.showTimeline && timeline.length ? (
                         <section id="chronology" className="scroll-mt-28 border-b border-foreground/10 py-12">
                             <div className="mb-5 flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground"><Clock3 className="size-3.5" /> Chronology</div>
@@ -134,16 +130,14 @@ export function PersonalWikiPage({ content, identity, updatedAt }: { content: Pe
                             </div>
                         </section>
                     ) : null}
-
                     {content.showRelatedLinks && related.length ? (
                         <section id="related" className="scroll-mt-28 py-12">
                             <div className="mb-5 flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground"><Link2 className="size-3.5" /> Index links</div>
                             <h2 className="text-3xl font-black tracking-[-0.035em] sm:text-4xl">{content.relatedTitle}</h2>
-                            <div className="mt-8 grid gap-3 sm:grid-cols-2">{related.map((item) => <RelatedLinkCard key={item.id} item={item} />)}</div>
+                            <ul className="mt-6 border-y border-foreground/10">{related.map((item) => <RelatedLinkRow key={item.id} item={item} />)}</ul>
                         </section>
                     ) : null}
                 </article>
-
                 <aside>
                     {content.showInfobox ? (
                         <div className="sticky top-28 overflow-hidden rounded-[1.4rem] border border-foreground/10 bg-foreground/[0.018]">
@@ -167,7 +161,6 @@ export function PersonalWikiPage({ content, identity, updatedAt }: { content: Pe
                     ) : null}
                 </aside>
             </div>
-
             <footer className="mx-auto mt-12 max-w-7xl px-5 sm:px-8 lg:px-10"><div className="border-t border-foreground/10 pt-6 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{content.footerNote}</div></footer>
         </main>
     );

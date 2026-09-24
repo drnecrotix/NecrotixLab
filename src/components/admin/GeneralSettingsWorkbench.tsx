@@ -24,7 +24,7 @@ import type { GeneralSiteSettings } from '@/lib/site-settings';
 import { updateGeneralSettings, updatePageAccessSettings } from '@/app/admin/(protected)/settings/actions';
 
 type SectionId = 'identity' | 'appearance' | 'access' | 'contact' | 'social' | 'regional';
-type AccessKey = 'wiki' | 'blog' | 'gallery' | 'store';
+type AccessKey = 'wiki' | 'blog' | 'gallery' | 'store' | 'projects' | 'journey' | 'resume';
 type AccessValue = 'PUBLIC' | 'ADMIN_ONLY' | 'DISABLED';
 type AccessSettings = Record<AccessKey, AccessValue>;
 
@@ -44,6 +44,9 @@ const accessMeta: Record<AccessKey, { title: string; path: string; description: 
     blog: { title: 'Blog', path: '/blog', description: 'Journal archive and public publications.' },
     gallery: { title: 'Gallery', path: '/gallery', description: 'Gallery index and individual works.' },
     store: { title: 'Store', path: '/store', description: 'Catalog, product pages and checkout entry points.' },
+    projects: { title: 'Projects', path: '/projects', description: 'Portfolio index and individual project pages.' },
+    journey: { title: 'Journey', path: '/journey', description: 'Experience and career timeline (/journey and /experience).' },
+    resume: { title: 'Resume', path: '/resume', description: 'Public resume and career dossier.' },
 };
 
 const accessOptions: Array<{ value: AccessValue; label: string; icon: typeof Eye }> = [
