@@ -41,11 +41,8 @@ export function SeoEditor({
 }) {
   const [customTitle, setCustomTitle] = useState(initialTitle ?? '');
   const [customDescription, setCustomDescription] = useState(initialDescription ?? '');
-  const [titleTouched, setTitleTouched] = useState(Boolean(initialTitle));
-  const [descriptionTouched, setDescriptionTouched] = useState(Boolean(initialDescription));
-
-  const seoTitle = titleTouched ? customTitle : (customTitle || sourceTitle);
-  const seoDescription = descriptionTouched ? customDescription : (customDescription || sourceDescription);
+  const seoTitle = customTitle || sourceTitle;
+  const seoDescription = customDescription || sourceDescription;
   const health = useMemo(() => scoreSeo(seoTitle, seoDescription, slug, hasImage), [seoTitle, seoDescription, slug, hasImage]);
 
   const tone = health.state === 'good'
@@ -59,7 +56,7 @@ export function SeoEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold">SEO</h3>
-          <p className="mt-1 text-xs text-white/35">Empty SEO fields follow the post/project title and summary automatically until you edit them.</p>
+          <p className="mt-1 text-xs text-white/35">Leave the fields blank to generate the share title and summary automatically. A typed value overrides the generated result.</p>
         </div>
         <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${tone}`}>
           {health.state} · {health.score}/100
@@ -71,8 +68,9 @@ export function SeoEditor({
           SEO title
           <input
             name="seoTitle"
-            value={seoTitle}
-            onChange={(event) => { setTitleTouched(true); setCustomTitle(event.target.value); }}
+            value={customTitle}
+            placeholder={sourceTitle}
+            onChange={(event) => setCustomTitle(event.target.value)}
             className={inputClass}
           />
           <span className="mt-1 block text-[10px] text-white/25">{seoTitle.length} characters</span>
@@ -82,8 +80,9 @@ export function SeoEditor({
           <textarea
             name="seoDescription"
             rows={4}
-            value={seoDescription}
-            onChange={(event) => { setDescriptionTouched(true); setCustomDescription(event.target.value); }}
+            value={customDescription}
+            placeholder={sourceDescription}
+            onChange={(event) => setCustomDescription(event.target.value)}
             className={inputClass}
           />
           <span className="mt-1 block text-[10px] text-white/25">{seoDescription.length} characters</span>

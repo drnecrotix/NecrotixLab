@@ -7,6 +7,7 @@ import { MediaPicker } from '@/components/admin/MediaPicker';
 import { PostEditor } from '@/components/admin/PostEditor';
 import { TagInput } from '@/components/admin/TagInput';
 import { SeoEditor } from '@/components/admin/SeoEditor';
+import { socialDescription } from '@/lib/social-description';
 import { UnsavedContentPreview } from '@/components/admin/UnsavedContentPreview';
 import { FormDraftGuard, markDraftCommitted } from '@/components/admin/FormDraftGuard';
 import type { ProjectSaveResult } from '@/app/admin/(protected)/projects/actions';
@@ -60,6 +61,7 @@ export function ProjectForm({ project, categories = [], action, submitLabel }: {
     const [title, setTitle] = useState(project?.title ?? '');
     const [slug, setSlug] = useState(project?.slug ?? '');
     const [description, setDescription] = useState(project?.description ?? '');
+    const [projectText, setProjectText] = useState(project?.longDescription ?? '');
     const [image, setImage] = useState(initialImage);
     const [saveState, setSaveState] = useState<'idle' | 'saved' | 'error'>('idle');
     const [saveMessage, setSaveMessage] = useState('');
@@ -182,7 +184,7 @@ export function ProjectForm({ project, categories = [], action, submitLabel }: {
                         </select>
                     </label>
                     {category === '__new__' && <label className="block md:col-span-2"><span className="text-sm text-white/55">New category name</span><input className={field} name="newCategory" required placeholder="e.g. Web development" /></label>}
-                    <label className="block md:col-span-2"><span className="text-sm text-white/55">Short description</span><textarea className={field} name="description" rows={3} required value={description} onChange={(event) => setDescription(event.target.value)} /></label>
+                    <label className="block md:col-span-2"><span className="text-sm text-white/55">Short description</span><textarea className={field} name="description" rows={3} placeholder="Optional - generated from the long description if empty" value={description} onChange={(event) => setDescription(event.target.value)} /></label>
                 </section>
 
                 <section className={panel}>
@@ -190,7 +192,7 @@ export function ProjectForm({ project, categories = [], action, submitLabel }: {
                         <p className="text-sm font-medium text-white/70">Long description</p>
                         <p className="mt-1 text-xs leading-relaxed text-white/35">Write a clean rich-text description. A <strong className="text-white/55">Project block</strong> inserts a visible start and end. Write its content between them; text after End stays separate. Features need a heading followed by a list for cards. Structured cards can also be entered in Advanced content JSON below. Use <strong className="text-white/55">Pretext</strong> to improve the copy.</p>
                     </div>
-                    <PostEditor name="longDescription" initialValue={project?.longDescription ?? ''} shortcodes={projectShortcodes} />
+                    <PostEditor name="longDescription" initialValue={project?.longDescription ?? ''} onChange={setProjectText} shortcodes={projectShortcodes} />
                 </section>
 
                 <section className={panel}>
@@ -219,7 +221,7 @@ export function ProjectForm({ project, categories = [], action, submitLabel }: {
                     <label className="block"><span className="text-sm text-white/55">Team</span><input className={field} name="team" defaultValue={project?.team ?? ''} /></label>
                 </section>
 
-                <SeoEditor sourceTitle={title} sourceDescription={description} slug={slug} hasImage={Boolean(image)} initialTitle={project?.seoTitle} initialDescription={project?.seoDescription} />
+                <SeoEditor sourceTitle={title} sourceDescription={socialDescription(description || projectText)} slug={slug} hasImage={Boolean(image)} initialTitle={project?.seoTitle} initialDescription={project?.seoDescription} />
 
                 <section className={panel}>
                     <label className="block"><span className="text-sm text-white/55">Advanced content JSON</span><p className="mt-1 text-xs text-white/30">Optional data sources for project blocks: galleryImages, features, installation, challengesAndSolutions. Download URL is managed by the dedicated field above. A block renders only when its shortcode is placed in Long description.</p><textarea className={`${field} font-mono`} name="content" rows={16} defaultValue={content} /></label>

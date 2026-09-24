@@ -1,5 +1,7 @@
 'use server';
 
+import { socialDescription } from '@/lib/social-description';
+
 import { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -59,8 +61,9 @@ function revalidateProjectDiscovery() {
 function readProjectForm(formData: FormData) {
     const title = text(formData.get('title'), 160, 'Title', true);
     const slug = text(formData.get('slug'), 120, 'Slug', true).toLowerCase();
-    const description = text(formData.get('description'), 500, 'Description', true);
     const longDescription = text(formData.get('longDescription'), 50_000, 'Long description') || null;
+    const description = text(formData.get('description'), 500, 'Description') || socialDescription(longDescription);
+    if (!description) throw new Error('Add a short description or write the project text to generate one.');
     const rawStatus = String(formData.get('status') ?? 'PLANNED');
     if (!PROJECT_STATUSES.includes(rawStatus as ProjectStatusValue)) throw new Error('Invalid project status.');
     const status = rawStatus as ProjectStatusValue;

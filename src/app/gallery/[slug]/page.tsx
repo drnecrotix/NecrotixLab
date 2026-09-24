@@ -15,7 +15,7 @@ import {
   normalizeGallerySettings,
   type GalleryItemSetting,
 } from '@/lib/gallery-settings';
-import { getPublicSiteUrl } from '@/lib/social-metadata';
+import { absoluteSocialMediaUrl, getPublicSiteUrl } from '@/lib/social-metadata';
 import { protectGalleryMedia } from '@/lib/blog-media-protection';
 
 export const dynamic = 'force-dynamic';
@@ -40,10 +40,12 @@ async function loadItem(slug: string) {
     where: { id: 'default' },
     select: { siteName: true, galleryContent: true, updatedAt: true },
   }).catch(() => null);
-  const content = await protectGalleryMedia(normalizeGallerySettings(settings?.galleryContent));
+  const raw = normalizeGallerySettings(settings?.galleryContent);
+  const rawItem = raw.items.find((candidate) => candidate.slug === slug && candidate.isVisible && candidate.mediaUrl);
+  const content = await protectGalleryMedia(raw);
   const item = content.items.find((candidate) => candidate.slug === slug && candidate.isVisible && candidate.mediaUrl);
   if (!item) return null;
-  return { item, siteName: settings?.siteName || 'NecrotixLab', updatedAt: settings?.updatedAt || new Date() };
+  return { item, rawItem, siteName: settings?.siteName || 'NecrotixLab', updatedAt: settings?.updatedAt || new Date() };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -51,14 +53,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const loaded = await loadItem(slug);
   if (!loaded) return { robots: { index: false, follow: false } };
 
-  const { item, siteName } = loaded;
+  const { item, rawItem, siteName } = loaded;
   const canonical = `${siteUrl}${galleryItemHref(item.slug)}`;
   const title = item.seoTitle || `${item.title} - ${siteName} Gallery`;
   const description = descriptionFor(item);
   const socialImage = item.isNsfw
     ? NSFW_PREVIEW
-    : item.socialImageUrl || (item.type === 'image' ? item.mediaUrl : item.thumbnailUrl);
-  const socialImageAbsolute = socialImage ? absoluteMediaUrl(socialImage) : '';
+    : rawItem?.socialImageUrl || (rawItem?.type === 'image' ? rawItem.mediaUrl : rawItem?.thumbnailUrl);
+  const managed = !item.isNsfw && socialImage ? await prisma.mediaAsset.findFirst({ where: { url: socialImage, mimeType: { startsWith: 'image/' } }, select: { id: true } }) : null;
+  const socialImageAbsolute = managed
+    ? `${siteUrl}/api/gallery/social-image/${encodeURIComponent(item.slug)}`
+    : absoluteSocialMediaUrl(socialImage);
   const socialAlt = item.isNsfw ? 'NSFW sensitive Gallery work' : item.altText || item.title;
 
   return {
@@ -72,7 +77,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       url: canonical,
       title,
       description,
-      images: socialImageAbsolute ? [{ url: socialImageAbsolute, alt: socialAlt }] : undefined,
+      images: socialImageAbsolute ? [{ url: socialImageAbsolute, alt: socialAlt, ...(managed ? { type: 'image/jpeg' } : {}) }] : undefined,
     },
     twitter: {
       card: socialImageAbsolute ? 'summary_large_image' : 'summary',

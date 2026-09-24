@@ -11,6 +11,7 @@ import { normalizeSeoDefaults } from '@/lib/seo-settings';
 import { absoluteSocialMediaUrl, getPublicSiteUrl, socialImageDescriptor } from '@/lib/social-metadata';
 import styles from './project-page.module.css';
 import { protectManagedMediaUrls } from '@/lib/blog-media-protection';
+import { socialDescription } from '@/lib/social-description';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const ogImage = absoluteSocialMediaUrl(protectedImage || seo.ogImage || homepage.socialImage);
     const twitterImage = absoluteSocialMediaUrl(protectedImage || seo.twitterImage || seo.ogImage || homepage.socialImage);
     const title = project.seoTitle?.trim() || project.title;
-    const description = project.seoDescription?.trim() || project.description;
+    const description = socialDescription(project.seoDescription || project.description || project.longDescription) || undefined;
 
     return {
         title,

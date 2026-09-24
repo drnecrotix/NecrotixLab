@@ -12,6 +12,7 @@ import { normalizeHomepageContent } from '@/lib/homepage-content';
 import { normalizeSeoDefaults } from '@/lib/seo-settings';
 import { absoluteSocialMediaUrl, getPublicSiteUrl, socialImageDescriptor } from '@/lib/social-metadata';
 import { protectBlogMedia } from '@/lib/blog-media-protection';
+import { socialDescription } from '@/lib/social-description';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const ogImage = absoluteSocialMediaUrl(publicationImage || seo.ogImage || homepage.socialImage);
     const twitterImage = absoluteSocialMediaUrl(publicationImage || seo.twitterImage || seo.ogImage || homepage.socialImage);
     const title = localized.seoTitle?.trim() || localized.title;
-    const description = localized.seoDescription?.trim() || localized.excerpt || undefined;
+    const description = socialDescription(localized.seoDescription || localized.excerpt || localized.content.text || localized.content.html) || undefined;
     const publishedTime = (cmsPost.publishedAt ?? cmsPost.createdAt).toISOString();
 
     return {
