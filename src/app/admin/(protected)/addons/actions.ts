@@ -47,12 +47,16 @@ export async function setToolsAddonState(form: FormData) {
     const config = normalizeServiceToolsConfig(current?.content);
     const operation = form.get('operation');
     if (operation === 'install' || operation === 'activate') { config.installed = true; config.active = true; }
+    else if (operation === 'update') {
+        if (!config.installed) throw new Error('Install Tools before updating.');
+        config.packageVersion = TOOLS_ADDON_VERSION;
+    }
     else if (operation === 'deactivate') config.active = false;
     else if (operation === 'uninstall') { config.installed = false; config.active = false; }
     else throw new Error('Unknown package operation.');
     await prisma.page.upsert({ where: { slug: SERVICE_TOOLS_CONFIG_SLUG }, create: { slug: SERVICE_TOOLS_CONFIG_SLUG, title: 'Tools addon configuration', status: 'DRAFT', content: config }, update: { content: config } });
     refresh();
-    redirect('/admin/addons?tab=installed');
+    redirect(`/admin/addons?tab=installed&saved=${operation === 'update' ? 'updated' : 'state'}`);
 }
 
 export async function uploadAddon(form: FormData) {
