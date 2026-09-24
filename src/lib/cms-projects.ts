@@ -22,7 +22,7 @@ type ProjectContent = {
 
 const MAX_LIST_ITEMS = 50;
 const MAX_LIST_ITEM_LENGTH = 120;
-const BLOCK_PATTERN = /\[\[(mission|features|chronicles|installation)\]\]/gi;
+const BLOCK_PATTERN = /\[\[\/?(?:mission|features|chronicles|installation)\]\]/gi;
 
 function sanitizeProjectDescription(value?: string | null) {
     if (!value) return undefined;

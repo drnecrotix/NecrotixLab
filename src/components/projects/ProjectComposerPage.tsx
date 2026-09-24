@@ -56,10 +56,13 @@ function ProjectBlock({ block, project, body }: { block: ProjectContentBlock; pr
 
     if (block === 'mission') {
         return (
-            <div id="mission" className="flex w-full min-w-0 items-center gap-3 pt-2">
-                <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500"><Box className="h-5 w-5" /></span>
-                <h2 className="text-2xl font-bold text-foreground">{t('sections.missionBrief')}</h2>
-            </div>
+            <section id="mission" className="w-full min-w-0 space-y-6 pt-2">
+                <div className="flex items-center gap-3">
+                    <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500"><Box className="h-5 w-5" /></span>
+                    <h2 className="text-2xl font-bold text-foreground">{t('sections.missionBrief')}</h2>
+                </div>
+                {body && <div className={proseClass} dangerouslySetInnerHTML={{ __html: body }} />}
+            </section>
         );
     }
 

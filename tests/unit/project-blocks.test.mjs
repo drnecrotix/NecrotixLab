@@ -86,3 +86,20 @@ test('installation code blocks are parsed from following HTML', () => {
     assert.equal(steps[0]?.type, 'code');
     assert.equal(steps[0]?.cmd, 'npm install');
 });
+
+test('paired project blocks stop at their matching end marker', () => {
+    for (const block of ['mission', 'features', 'chronicles', 'installation']) {
+        const html = `<p data-project-block="${block}">[[${block}]]</p><p>Inside</p><p data-project-block="${block}" data-project-block-end="true">[[/${block}]]</p><p>Outside</p>`;
+        const segments = composeProjectLayout(normalizeProjectBlockMarkers(html));
+        assert.deepEqual(segments[0], { type: 'block', block, body: '<p>Inside</p>' });
+        assert.deepEqual(segments[1], { type: 'html', html: '<p>Outside</p>' });
+    }
+});
+
+test('matching ends do not consume another block or following prose', () => {
+    const segments = composeProjectLayout('[[features]]<h2>Search</h2><ul><li>Fast</li></ul>[[/features]]<p>Next</p>[[mission]]<p>Legacy copy</p>');
+    assert.deepEqual(featuresFromHtml(segments[0].body), [{ title: 'Search', items: ['Fast'] }]);
+    assert.deepEqual(segments[1], { type: 'html', html: '<p>Next</p>' });
+    assert.deepEqual(segments[2], { type: 'block', block: 'mission' });
+    assert.deepEqual(segments[3], { type: 'html', html: '<p>Legacy copy</p>' });
+});
