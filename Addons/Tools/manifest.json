@@ -2,7 +2,7 @@
   "format": "necrotixlab-addon-v1",
   "id": "tools",
   "name": "Tools",
-  "version": "1.3.71",
-  "requiresCms": "1.3.71",
+  "version": "1.3.72",
+  "requiresCms": "1.3.72",
   "description": "The complete Tools catalogue and its individual tool settings."
 }

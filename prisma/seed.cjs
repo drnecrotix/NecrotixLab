@@ -53,7 +53,7 @@ async function main() {
     await prisma.page.upsert({
       where: { slug: '__service-tools-config' },
       update: {},
-      create: { slug: '__service-tools-config', title: 'Tools addon configuration', status: 'DRAFT', content: { version: 8, installed: false, active: false, packageVersion: '1.3.71' } },
+      create: { slug: '__service-tools-config', title: 'Tools addon configuration', status: 'DRAFT', content: { version: 8, installed: false, active: false, packageVersion: '1.3.72' } },
     });
   }
 

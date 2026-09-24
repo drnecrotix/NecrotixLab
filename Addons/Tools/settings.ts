@@ -88,14 +88,15 @@ type ServiceToolsConfig = {
     tools: ServiceTool[];
 };
 
-export const TOOLS_ADDON_VERSION = '1.3.71';
+export const TOOLS_ADDON_VERSION = '1.3.72';
 
 export function toolsInstalled(value: unknown): boolean {
     if (value && typeof value === 'object' && !Array.isArray(value) && 'installed' in value) {
         return (value as { installed: unknown }).installed === true;
     }
-    // Existing installations retain their previous catalogue until an admin disables it.
-    return true;
+    // No configuration means no addon installation. The migration below preserves
+    // older sites by recording their previously active Tools package explicitly.
+    return false;
 }
 
 export function toolsActive(value: unknown): boolean {

@@ -22,3 +22,12 @@ export async function addonEnabled(id: BundledAddonId) {
         return false;
     }
 }
+
+export async function addonToolEnabled(id: string) {
+    try {
+        const page = await prisma.page.findUnique({ where: { slug: SERVICE_TOOLS_CONFIG_SLUG }, select: { content: true } });
+        if (!toolsActive(page?.content)) return false;
+        const tool = normalizeServiceTools(page?.content).find((item) => item.id === id);
+        return Boolean(tool?.enabled && !tool.comingSoon);
+    } catch { return false; }
+}
