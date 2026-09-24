@@ -56,7 +56,7 @@ function ProjectBlock({ block, project, body }: { block: ProjectContentBlock; pr
 
     if (block === 'mission') {
         return (
-            <div id="mission" className="flex items-center gap-3 pt-2">
+            <div id="mission" className="flex w-full min-w-0 items-center gap-3 pt-2">
                 <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500"><Box className="h-5 w-5" /></span>
                 <h2 className="text-2xl font-bold text-foreground">{t('sections.missionBrief')}</h2>
             </div>
@@ -66,20 +66,20 @@ function ProjectBlock({ block, project, body }: { block: ProjectContentBlock; pr
     if (block === 'features') {
         const groups = project.features?.length ? project.features : featuresFromHtml(body);
         return (
-            <section id="features" className="space-y-8">
+            <section id="features" className="w-full min-w-0 space-y-8">
                 <div className="flex items-center gap-3">
                     <span className="rounded-lg bg-blue-500/10 p-2 text-blue-500"><Zap className="h-5 w-5" /></span>
                     <h2 className="text-2xl font-bold text-foreground">{t('sections.keyFeatures')}</h2>
                 </div>
                 {groups.length > 0 ? (
-                    <div className={`grid grid-cols-1 gap-4 ${groups.length > 1 ? 'md:grid-cols-2' : ''}`}>
+                    <div className={`grid w-full min-w-0 grid-cols-1 gap-4 ${groups.length > 1 ? 'md:grid-cols-2' : ''}`}>
                         {groups.map((group, index) => (
                             <motion.div
                                 key={`${group.title}-${index}`}
                                 initial={{ opacity: 0, y: 16 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
-                                className="rounded-2xl border border-black/15 bg-secondary/10 p-6 dark:border-white/5 dark:bg-secondary/5"
+                                className="min-w-0 rounded-2xl border border-black/15 bg-secondary/10 p-6 dark:border-white/5 dark:bg-secondary/5"
                             >
                                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-black/10 text-emerald-700 dark:bg-white/5 dark:text-emerald-400">
                                     {index % 2 === 0 ? <Box className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
@@ -106,7 +106,7 @@ function ProjectBlock({ block, project, body }: { block: ProjectContentBlock; pr
     if (block === 'chronicles') {
         const entries = project.challengesAndSolutions?.length ? project.challengesAndSolutions : chroniclesFromHtml(body);
         return (
-            <section id="chronicles" className="space-y-8">
+            <section id="chronicles" className="w-full min-w-0 space-y-8">
                 <div className="flex items-center gap-3">
                     <span className="rounded-lg bg-amber-500/10 p-2 text-amber-500"><Terminal className="h-5 w-5" /></span>
                     <h2 className="text-2xl font-bold text-foreground">{t('sections.engineeringChronicles')}</h2>
@@ -133,7 +133,7 @@ function ProjectBlock({ block, project, body }: { block: ProjectContentBlock; pr
 
     const steps = project.installation?.length ? project.installation : installationFromHtml(body);
     return (
-        <section id="installation" className="space-y-8">
+        <section id="installation" className="w-full min-w-0 space-y-8">
             <div className="flex items-center gap-3">
                 <span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500"><Terminal className="h-5 w-5" /></span>
                 <h2 className="text-2xl font-bold text-foreground">{t('sections.installation')}</h2>
@@ -213,8 +213,8 @@ export function ProjectComposerPage({ project }: { project: Project }) {
             </div>
 
             <main className="container mx-auto max-w-7xl px-6">
-                <div className="space-y-16">
-                    <article className="space-y-12">
+                <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
+                    <article className="min-w-0 space-y-12 lg:col-span-8">
                         {segments.map((segment, index) => {
                             if (segment.type === 'block') {
                                 return <ProjectBlock key={`${segment.block}-${index}`} block={segment.block} project={project} body={segment.body} />;
@@ -243,8 +243,8 @@ export function ProjectComposerPage({ project }: { project: Project }) {
                         )}
                     </article>
 
-                    <aside className="border-t border-border/40 pt-10">
-                        <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+                    <aside className="relative min-w-0 lg:col-span-4">
+                        <div className="sticky top-20 space-y-8">
                             {(project.demoUrl || project.repoUrl || project.downloadUrl) && (
                                 <div className="rounded-2xl border border-black/20 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-secondary/5 dark:shadow-none">
                                     <h3 className="mb-6 text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('sections.projectAccess')}</h3>

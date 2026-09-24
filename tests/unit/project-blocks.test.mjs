@@ -37,23 +37,27 @@ test('titled feature lists become cards with nested editor paragraphs', () => {
     assert.deepEqual(groups, [{ title: 'Discovery', items: ['Local SEO.', 'Simple home page'] }]);
 });
 
-test('copy following a titled feature list is retained as normal body content', () => {
+test('copy following a titled feature list is an independent document segment', () => {
     const body = '<h2>Discovery</h2><ul><li>Local SEO</li></ul><p>The project is built for players.</p>';
     assert.deepEqual(featuresFromHtml(body), []);
-    assert.match(composeProjectLayout(`[[features]]${body}`)[0].body || '', /built for players/);
+    const segments = composeProjectLayout(`[[features]]${body}`);
+    assert.deepEqual(segments[0], { type: 'block', block: 'features' });
+    assert.equal(segments[1].type, 'html');
+    if (segments[1].type !== 'html') throw new Error('expected normal content');
+    assert.match(segments[1].html, /built for players/);
 });
 
-test('layout attaches list HTML to the features block so it is not dropped', () => {
+test('layout keeps list HTML after the features block as normal content', () => {
     const segments = composeProjectLayout('<p>Hello</p>[[features]]<ul><li>Local SEO.</li></ul>');
     assert.equal(segments[0].type, 'html');
-    assert.equal(segments[1].type, 'block');
-    if (segments[1].type !== 'block') throw new Error('expected block');
-    assert.equal(segments[1].block, 'features');
-    assert.match(segments[1].body || '', /Local SEO/);
-    assert.equal(segments.length, 2);
+    assert.deepEqual(segments[1], { type: 'block', block: 'features' });
+    assert.equal(segments[2].type, 'html');
+    if (segments[2].type !== 'html') throw new Error('expected list content');
+    assert.match(segments[2].html, /Local SEO/);
+    assert.equal(segments.length, 3);
 });
 
-test('screenshot-style untitled list stays in the features body without a Highlights card', () => {
+test('screenshot-style untitled list stays outside the Features block', () => {
     const html = [
         '<p>Mirko Build Stroy is a professional web project.</p>',
         '<div class="my-3" data-project-block="features"><div>Features REMOVE</div></div>',
@@ -63,7 +67,18 @@ test('screenshot-style untitled list stays in the features body without a Highli
     const segments = composeProjectLayout(layout);
     const features = segments.find((segment) => segment.type === 'block' && segment.block === 'features');
     assert.ok(features && features.type === 'block');
-    assert.deepEqual(featuresFromHtml(features.body), []);
+    assert.equal(features.body, undefined);
+    assert.equal(segments[2].type, 'html');
+    if (segments[2].type !== 'html') throw new Error('expected independent list');
+    assert.match(segments[2].html, /Local SEO/);
+});
+
+test('every project block leaves following text independent', () => {
+    for (const block of ['mission', 'features', 'chronicles', 'installation']) {
+        const segments = composeProjectLayout(`[[${block}]]<p>Text after ${block}</p>`);
+        assert.deepEqual(segments[0], { type: 'block', block });
+        assert.deepEqual(segments[1], { type: 'html', html: `<p>Text after ${block}</p>` });
+    }
 });
 
 test('installation code blocks are parsed from following HTML', () => {

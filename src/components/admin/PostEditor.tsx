@@ -74,19 +74,19 @@ const BLOCK_META: Record<ProjectBlockKind, { label: string; hint: string; classN
     },
     features: {
         label: 'Features',
-        hint: 'Renders the following list as feature cards',
+        hint: 'Inserts a section; following text remains separate',
         className: 'border-sky-400/25 bg-sky-400/[0.08] text-sky-100',
         icon: Zap,
     },
     chronicles: {
         label: 'Engineering Chronicles',
-        hint: 'Renders following headings as problem / solution',
+        hint: 'Inserts a section; following text remains separate',
         className: 'border-amber-400/25 bg-amber-400/[0.08] text-amber-100',
         icon: Terminal,
     },
     installation: {
         label: 'Installation',
-        hint: 'Renders following steps or code blocks',
+        hint: 'Inserts a section; following text remains separate',
         className: 'border-violet-400/25 bg-violet-400/[0.08] text-violet-100',
         icon: SquareCode,
     },
