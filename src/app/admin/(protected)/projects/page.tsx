@@ -30,24 +30,16 @@ export default async function AdminProjectsPage() {
                 ) : (
                     <div>
                         {projects.map((project) => (
-                            <Link key={project.id} href={`/admin/projects/${project.id}`} className="block border-b border-foreground/10 p-4 transition-colors last:border-b-0 hover:bg-foreground/[0.035] sm:p-5 md:grid md:grid-cols-[minmax(0,1fr)_160px_100px_120px] md:items-center md:gap-4">
+                            <Link key={project.id} href={`/admin/projects/${project.id}`} className="block border-b border-foreground/10 p-4 transition-colors last:border-b-0 hover:bg-foreground/[0.035] sm:p-5 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-5">
                                 <div className="min-w-0">
-                                    <p className="break-words text-lg font-semibold sm:text-base">{project.title}</p>
-                                    <p className="mt-1 truncate text-xs text-muted-foreground sm:text-sm">/{project.slug}</p>
-                                </div>
-                                <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-xs md:mt-0 md:contents">
-                                    <div className="min-w-0 md:block">
-                                        <span className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground md:hidden">Category</span>
-                                        <span className="block truncate text-sm text-muted-foreground">{project.category || 'Uncategorized'}</span>
-                                    </div>
-                                    <div className="md:block">
-                                        <span className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground md:hidden">Status</span>
+                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                        <h3 className="mr-1 min-w-0 break-words text-lg font-semibold sm:text-xl">{project.title}</h3>
+                                        <span className="max-w-full break-words rounded-full border border-sky-500/20 bg-sky-500/[0.06] px-2 py-1 text-[10px] uppercase tracking-wider text-sky-600 dark:text-sky-300">{project.category || 'Uncategorized'}</span>
                                         <ProjectStatusBadge status={normalizeProjectStatus(project.status)} />
                                     </div>
-                                    <div className="col-span-2 md:block">
-                                        <span className="text-xs text-muted-foreground">{project._count.revisions} revisions</span>
-                                    </div>
+                                    <p className="mt-1 truncate text-xs text-muted-foreground sm:text-sm">/{project.slug}</p>
                                 </div>
+                                <p className="mt-3 whitespace-nowrap text-xs text-muted-foreground md:mt-0 md:text-right">{project._count.revisions} revisions</p>
                             </Link>
                         ))}
                     </div>
