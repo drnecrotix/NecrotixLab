@@ -15,13 +15,62 @@
 
 </div>
 
-## What is NecrotixLab?
+## Product
 
-NecrotixLab is the independent, experimental CMS behind [necrotixlab.com](https://necrotixlab.com). It combines a public site and a protected administration area in one Next.js application. Content lives in PostgreSQL through Prisma. The project is in active development, so review the [release notes](docs/releases/) and deployment requirements before upgrading a production installation.
+NecrotixLab is a self-hosted CMS for people who ship a public brand and the operations behind it from the same codebase. One Next.js app serves the site visitors see and the admin you work in. Content, media, projects, services, commerce and site controls live in PostgreSQL — not in a pile of disconnected plugins.
 
-### Included in the CMS
+It is the system behind [necrotixlab.com](https://necrotixlab.com): journal and wiki publishing, a project archive, service pages, a tools catalogue, PWA install, and a GitHub-connected updater. Use the defaults, or extend the lab with themes and addons.
 
-| Area | Capabilities |
+The project is experimental and in active development. Read the [release notes](docs/releases/) and deployment requirements before you upgrade a production install.
+
+## Overview
+
+Admin, operations and the public tools surface — the product as it runs today.
+
+<p align="center"><strong>Analytics dashboard</strong> — live visitors, pages in view, traffic and audience location.</p>
+
+<img src="docs/assets/overview/analytics.webp" alt="NecrotixLab admin traffic overview with live visitors, daily visits chart and audience locations" width="100%" />
+
+<p align="center"><strong>Audience &amp; traffic</strong> — session list, world map and device breakdown from the same operations desk.</p>
+
+<img src="docs/assets/overview/audience.webp" alt="NecrotixLab audience and traffic workspace with live sessions and world map" width="100%" />
+
+<p align="center"><strong>Wiki</strong> — biography, FAQ and connected articles from one compact index.</p>
+
+<img src="docs/assets/overview/wiki.webp" alt="NecrotixLab Wiki admin with main biography, FAQ and published articles" width="100%" />
+
+<p align="center"><strong>Projects</strong> — portfolio items with type, status and revision history that drive the public archive.</p>
+
+<img src="docs/assets/overview/projects.webp" alt="NecrotixLab Projects admin listing apps and web projects with status badges" width="100%" />
+
+<p align="center"><strong>Site mode</strong> — Normal, Maintenance, Coming Soon, Private or Archive, each with a dedicated holding template.</p>
+
+<img src="docs/assets/overview/site-mode.webp" alt="NecrotixLab Site Mode controls with Normal, Maintenance, Coming Soon, Private and Archive plus templates" width="100%" />
+
+<p align="center"><strong>Progressive Web App</strong> — name, icons, splash, start URL and standalone chrome without changing the public site.</p>
+
+<img src="docs/assets/overview/pwa.webp" alt="NecrotixLab Progressive Web App identity settings with installed-app preview" width="100%" />
+
+<p align="center"><strong>GitHub updater</strong> — pull from <code>main</code>, sync files, migrate, build and activate with a visible pipeline.</p>
+
+<img src="docs/assets/overview/updater.webp" alt="NecrotixLab GitHub updater showing deployment progress and update pipeline stages" width="100%" />
+
+<p align="center"><strong>Tools &amp; addons</strong> — public utilities and service catalogue, managed as an installable addon rather than hardcoded pages.</p>
+
+<img src="docs/assets/overview/tools.webp" alt="NecrotixLab public Tools catalogue and related lab services" width="100%" />
+
+## Why this CMS
+
+- **One product, two surfaces.** Public site and protected admin share the same Next.js application, design system and data model.
+- **Built for a lab, not a brochure.** Publishing, portfolio, services, commerce, analytics and site modes sit next to each other instead of behind extra platforms.
+- **Operations are first-class.** Live audience, health, security and a GitHub → production updater are part of the CMS, not an afterthought.
+- **Installable as an app.** SuperPWA-style controls generate icons, splash screens and a standalone shell from one source logo.
+- **Extend without forking first.** Themes and addons live beside the core. The Tools collection is an addon you opt into.
+- **Honest about the runtime.** This is a Node server with a database. It is not a static export and it will not run on PHP-only hosting.
+
+## What's included
+
+| Area | What you get |
 | --- | --- |
 | Publishing | Journal, custom pages, Wiki, comments, scheduling, revisions and SEO metadata |
 | Portfolio | Projects and case studies, gallery, media library and homepage sections |
@@ -30,9 +79,15 @@ NecrotixLab is the independent, experimental CMS behind [necrotixlab.com](https:
 | Operations | Dashboard, audience analytics, site health, security settings and updater |
 | Appearance | Navigation, footer, site modes, PWA settings and watermarks |
 
-The public **Tools** collection is managed as the **Tools addon**. An initial installation does not activate it automatically. Admins can install and configure it from **Admin → Addons**. Addon source is kept under [`Addons/`](Addons/), separate from the CMS modules.
+The public **Tools** collection is the **Tools addon**. A fresh install does not activate it. Admins install and configure it from **Admin → Addons**. Source lives under [`Addons/`](Addons/), separate from CMS modules.
 
 > Current addon boundary: ZIP imports validate and stage packages. New executable addon routes require a reviewed CMS build; uploading a ZIP alone does not run arbitrary server code. See the [Addons guide](docs/wiki/Addons.md).
+
+## Who it is for
+
+- Independent studios and personal brands that want a public site plus a real admin, not a page builder.
+- Labs that publish writing, ship projects, sell digital work and run small service funnels in one place.
+- Operators who want live traffic, site modes and a GitHub-backed update path without stitching five SaaS dashboards.
 
 ## Stack
 
@@ -42,8 +97,6 @@ The public **Tools** collection is managed as the **Tools addon**. An initial in
 - Tiptap for rich content
 - Node test runner, ESLint, TypeScript checks and Playwright
 - Optional S3-compatible storage, SMTP and payment integrations
-
-This is a server application with database-backed routes. It cannot be deployed as a static HTML export or on PHP-only hosting.
 
 ## Get started locally
 
