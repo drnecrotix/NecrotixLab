@@ -241,11 +241,11 @@ export function LabPageClient() {
 
             <section className="mx-auto max-w-7xl px-5 pt-24 sm:px-8">
                 <motion.div initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: reduceMotion ? 0 : 0.55 }} whileHover={reduceMotion ? undefined : { y: -4 }}>
-                    <Link href="/services" id="services" className="group relative block overflow-hidden rounded-[2rem] bg-gradient-to-r from-cyan-500 via-sky-500 to-violet-500 p-px shadow-[0_18px_70px_-35px_rgba(56,189,248,0.8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-4 focus-visible:ring-offset-background">
+                    <Link href="/services" id="services" className="group relative block overflow-hidden rounded-[2rem] bg-gradient-to-r from-cyan-500 via-sky-500 to-violet-500 p-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-4 focus-visible:ring-offset-background">
                         <span className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-sky-500 to-violet-500 bg-[length:200%_100%] animate-gradient-shift opacity-70 transition-opacity group-hover:opacity-100 motion-reduce:animate-none" />
                         <span className="relative flex min-h-48 flex-col justify-between gap-8 rounded-[calc(2rem-1px)] bg-background/95 p-6 backdrop-blur-xl sm:min-h-0 sm:flex-row sm:items-center sm:p-8 lg:px-10 lg:py-9">
                             <span className="flex min-w-0 items-start gap-4 sm:items-center sm:gap-6">
-                                <span className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-500 text-white shadow-lg shadow-sky-500/20 sm:size-14">
+                                <span className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-500 text-white sm:size-14">
                                     <PanelsTopLeft className="size-5 sm:size-6" />
                                     <span className="absolute inset-0 rounded-2xl ring-1 ring-white/30 transition group-hover:scale-110 group-hover:opacity-0 motion-reduce:transition-none" />
                                 </span>
@@ -256,7 +256,7 @@ export function LabPageClient() {
                                     <span className="mt-4 flex flex-wrap gap-2 font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground"><span>Inspect</span><span aria-hidden="true">/</span><span>Build</span><span aria-hidden="true">/</span><span>Support</span></span>
                                 </span>
                             </span>
-                            <span className="inline-flex w-full shrink-0 items-center justify-between rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-sky-500/15 sm:w-auto sm:min-w-44 sm:gap-8">Explore services <ArrowRight className="size-4 transition-transform group-hover:translate-x-1 motion-reduce:transition-none" /></span>
+                            <span className="inline-flex w-full shrink-0 items-center justify-between rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-3.5 text-sm font-black text-white sm:w-auto sm:min-w-44 sm:gap-8">Explore services <ArrowRight className="size-4 transition-transform group-hover:translate-x-1 motion-reduce:transition-none" /></span>
                         </span>
                     </Link>
                     <Link href="/tools" className="mt-5 inline-flex min-h-11 items-center gap-3 rounded-xl border border-border/70 px-5 text-sm font-bold transition hover:border-cyan-500 hover:text-cyan-500">Explore free Tools <ArrowRight className="size-4" /></Link>

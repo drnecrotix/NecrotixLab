@@ -3,10 +3,12 @@ import { parseSocialVideoUrl, safeFilename, verifyDownloadToken } from '@/module
 import { fetchXMedia, inspectXPost } from '@/modules/video-download/x-public';
 import { fetchThreadsMedia, inspectThreadsPost } from '@/modules/video-download/threads-public';
 import { fetchYouTubeMedia, inspectYouTubeVideo } from '@/modules/video-download/youtube-public';
+import { addonEnabled } from '@/lib/addons.server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 const downloads = new Map<string, { count: number; expires: number }>();
 export async function GET(request: NextRequest) {
+    if (!(await addonEnabled('social-video'))) return NextResponse.json({ error: 'Video Download is disabled.' }, { status: 404 });
     try {
         if (!process.env.AUTH_SECRET) return NextResponse.json({ error: 'Server signing secret is missing.' }, { status: 503 });
         const token = request.nextUrl.searchParams.get('token') || '';
