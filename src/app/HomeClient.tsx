@@ -8,7 +8,8 @@ import { HomeBlogSection } from '@/components/home/HomeBlogSection';
 import { HomeProjectsSection } from '@/components/home/HomeProjectsSection';
 import { HomeCapabilitiesSection, HomeServicesAndLabSection } from '@/components/home/HomeEditorialSections';
 import { HomeEngineeringSection } from '@/components/home/HomeEngineeringSection';
-import { HomeCloudSection } from '@/components/home/HomeCloudSection';
+import { HomeGallerySection } from '@/components/home/HomeGallerySection';
+import type { GalleryItemSetting } from '@/lib/gallery-settings';
 import { usePreloadState } from '@/components/ui/arc-preloader-hero';
 import type { HomepageContent } from '@/lib/homepage-content';
 import type { PublicIdentity } from '@/lib/public-identity';
@@ -37,9 +38,10 @@ type Props = {
     identity: PublicIdentity;
     posts: PublicPost[];
     projects: Project[];
+    galleryItems: GalleryItemSetting[];
 };
 
-export default function HomeClient({ content, identity, posts, projects }: Props) {
+export default function HomeClient({ content, identity, posts, projects, galleryItems }: Props) {
     const { phase } = usePreloadState();
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoadingExit, setIsInitialLoadingExit] = useState(false);
@@ -73,8 +75,8 @@ export default function HomeClient({ content, identity, posts, projects }: Props
 
     return (
         <>
-            {isLoading && <LoadingScreen onComplete={handleLoadingComplete} onExitStart={() => setIsInitialLoadingExit(true)} duration={loaderDuration} />}
-            <motion.main
+            {content.showHero && isLoading && <LoadingScreen onComplete={handleLoadingComplete} onExitStart={() => setIsInitialLoadingExit(true)} duration={loaderDuration} />}
+            {content.showHero && <motion.main
                 id="home-hero"
                 initial={skipAnimation ? false : { opacity: 0, y: 40 }}
                 animate={skipAnimation ? { opacity: 1, y: 0 } : isReadyToAnimate ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
@@ -86,13 +88,13 @@ export default function HomeClient({ content, identity, posts, projects }: Props
                     content={content}
                     identity={identity}
                 />
-            </motion.main>
-            <HomeCapabilitiesSection discordUrl={identity.discordUrl} content={content} />
+            </motion.main>}
+            {content.showCapabilities && <HomeCapabilitiesSection discordUrl={identity.discordUrl} content={content} />}
             {journalSection}
-            <HomeEngineeringSection content={content} />
+            {content.showEngineering && <HomeEngineeringSection content={content} />}
             {projectsSection}
-            <HomeCloudSection content={content} />
-            <HomeServicesAndLabSection projects={projects} />
+            {content.showGallery && <HomeGallerySection items={galleryItems} />}
+            {content.showServicesAndLab && <HomeServicesAndLabSection projects={projects} />}
         </>
     );
 }

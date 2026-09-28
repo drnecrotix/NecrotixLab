@@ -1,4 +1,9 @@
 export type HomepageContent = {
+    showHero: boolean;
+    showCapabilities: boolean;
+    showEngineering: boolean;
+    showGallery: boolean;
+    showServicesAndLab: boolean;
     intro: string;
     lineOne: string;
     lineTwoPrefix: string;
@@ -59,6 +64,11 @@ export type HomepageContent = {
 export type CustomMetaTag = { attribute: 'name' | 'property' | 'http-equiv'; key: string; content: string };
 
 export const defaultHomepageContent: HomepageContent = {
+    showHero: true,
+    showCapabilities: true,
+    showEngineering: true,
+    showGallery: true,
+    showServicesAndLab: true,
     intro: "Hi, I'm Dr Necrotix. I build digital systems, creative projects and communities.",
     lineOne: 'DIGITAL LAB',
     lineTwoPrefix: 'DR.',
@@ -123,6 +133,11 @@ export function normalizeHomepageContent(value: unknown): HomepageContent {
     const normalized = {
         ...defaultHomepageContent,
         ...source,
+        showHero: source.showHero !== false,
+        showCapabilities: source.showCapabilities !== false,
+        showEngineering: source.showEngineering !== false,
+        showGallery: source.showGallery !== false,
+        showServicesAndLab: source.showServicesAndLab !== false,
         showBlogPosts: source.showBlogPosts !== false,
         homeBlogPostLimit: Number.isFinite(blogLimit) ? Math.max(1, Math.min(5, Math.round(blogLimit))) : defaultHomepageContent.homeBlogPostLimit,
         showProjects: source.showProjects !== false,
