@@ -1,7 +1,7 @@
 'use client';
 
 import { Children, type ReactNode, useState } from 'react';
-import { BookOpen, Boxes, Images, Cpu, FolderKanban, LayoutTemplate, Wrench } from 'lucide-react';
+import { BookOpen, Boxes, Image, Cpu, FolderKanban, LayoutTemplate, Wrench } from 'lucide-react';
 
 const tabs = [
     { id: 'hero', label: 'Hero & profile', hint: 'Opening experience', icon: LayoutTemplate },
@@ -9,7 +9,7 @@ const tabs = [
     { id: 'journal', label: 'Journal', hint: 'Dynamic posts', icon: BookOpen },
     { id: 'engineering', label: 'Engineering', hint: 'CNC lab', icon: Cpu },
     { id: 'projects', label: 'Selected work / Case studies', hint: 'Homepage project section', icon: FolderKanban },
-    { id: 'gallery', label: 'Gallery', hint: 'Selected visual work', icon: Images },
+    { id: 'gallery', label: 'Gallery', hint: 'Selected visual work', icon: Image },
     { id: 'services', label: 'Services & Lab', hint: 'Closing section', icon: Wrench },
 ] as const;
 
