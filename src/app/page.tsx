@@ -5,6 +5,8 @@ import { cmsPostToPublicPost, type PublicPost } from '@/lib/cms-posts';
 import { cmsProjectToPortfolioProject } from '@/lib/cms-projects';
 import type { Project } from '@/types';
 import HomeClient from './HomeClient';
+import { normalizeGallerySettings, type GalleryItemSetting } from '@/lib/gallery-settings';
+import { protectGalleryMedia } from '@/lib/blog-media-protection';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,10 +17,21 @@ export default async function HomePage() {
     let identity = defaultPublicIdentity;
     let posts: PublicPost[] = [];
     let projects: Project[] = [];
+    let galleryItems: GalleryItemSetting[] = [];
 
     try {
         const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
         rawContent = settings?.homepageContent;
+        const gallery = normalizeGallerySettings(settings?.galleryContent);
+        const selectedGalleryItems = gallery.items
+            .filter((item) => item.isVisible && !item.isNsfw && item.type === 'image' && Boolean(item.thumbnailUrl || item.mediaUrl) && Boolean(item.slug))
+            .slice(0, 4);
+        try {
+            // A gallery media failure must not hide posts and projects.
+            galleryItems = (await protectGalleryMedia({ ...gallery, items: selectedGalleryItems })).items;
+        } catch {
+            galleryItems = [];
+        }
         const homepage = normalizeHomepageContent(rawContent);
         const publicIdentity = buildPublicIdentity(settings, homepage.profileImage);
         identity = { ...publicIdentity, name: homepage.profileName || publicIdentity.name };
@@ -58,6 +71,7 @@ export default async function HomePage() {
             identity={identity}
             posts={posts}
             projects={projects}
+            galleryItems={galleryItems}
         />
     );
 }
