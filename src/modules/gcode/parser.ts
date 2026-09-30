@@ -24,7 +24,7 @@ export function analyzeGCode(source: string): GCodeAnalysis {
     let x = 0, y = 0, z = 0, absolute = true, motion = 0, distance = 0, motionCount = 0;
     let feed = 0, spindleSpeed = 0, spindle: GCodeFrame['spindle'] = 'off', coolant = false;
     let units: GCodeFrame['units'] = 'mm', tool: number | null = null, workOffset = 'G54', plane = 17;
-    let suspended = false;
+    let suspended = false, hasXYPosition = false;
     let unitsSet = false, planeSet = false, feedSet = false, safeRetract = false, ended = false;
     const allLines = source.split(/\r?\n/);
     const lines = allLines.slice(0, 10000);
@@ -83,12 +83,15 @@ export function analyzeGCode(source: string): GCodeAnalysis {
         const nextMotion = gCodes.find((code) => code >= 0 && code <= 3);
         if (nextMotion !== undefined) motion = nextMotion;
         const hasAxis = values.has('X') || values.has('Y') || values.has('Z') || motion >= 2 && (values.has('I') || values.has('J'));
+        if (motion >= 2 && hasAxis && !hasXYPosition) { suspended = true; issues.push({ line: lineNumber, level: 'warning', message: 'Arc start position is unknown; specify XY positioning before an arc.' }); }
+        if (hasAxis && words.some(match => !supportedWords.has(match[1]!))) suspended = true;
         const unsupportedMove = hasAxis && (suspended || gCodes.includes(53) || gCodes.some((code) => !safeG.has(code)) || plane !== 17 && motion >= 2);
         if (unsupportedMove) {
             suspended = true;
             issues.push({ line: lineNumber, level: 'warning', message: 'Axis movement is not previewed for this machine-coordinate, plane or unsupported command.' });
             actions.push('Unmodelled axis command');
         } else if (hasAxis && !gCodes.includes(4)) {
+            if (motion <= 1 && (values.has('X') || values.has('Y'))) hasXYPosition = true;
             // Coordinates and distances always use mm, even across G20/G21 switches.
             const scale = units === 'in' ? 25.4 : 1;
             for (const axis of ['X', 'Y', 'Z', 'I', 'J', 'K', 'R']) if (values.has(axis)) values.set(axis, values.get(axis)! * scale);

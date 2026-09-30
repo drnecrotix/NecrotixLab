@@ -1,0 +1,11 @@
+/* Structural layout is local to the workbench and independent of utility scanning. */
+.workbench { display: grid; grid-template-columns: minmax(0, 1fr); overflow: hidden; }
+.editorSurface { display: grid; grid-template-columns: 3rem minmax(0, 1fr); min-width: 0; height: clamp(280px, 43vh, 480px); }
+.editorSurfaceWrapped { grid-template-columns: minmax(0, 1fr); }
+.editorSurface textarea { display: block; box-sizing: border-box; min-width: 0; width: 100%; height: 100%; min-height: 0; resize: none; margin: 0; padding: 16px; font-family: var(--font-jetbrains), monospace; font-size: 13px; line-height: 24px; tab-size: 2; overflow: auto; white-space: pre; }
+.editorSurfaceWrapped textarea { white-space: pre-wrap; overflow-wrap: anywhere; }
+.gutter { box-sizing: border-box; height: 100%; min-height: 0; overflow: hidden; padding-block: 16px; font-family: var(--font-jetbrains), monospace; font-size: 13px; line-height: 24px; }
+.gutter > div { height: 24px; }
+.preview { width: 100%; height: clamp(200px, 30vh, 340px); display: block; }
+@media (min-width: 900px) { .workbench { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 599px) { .editorSurface { height: 240px; } .preview { height: 220px; } }
