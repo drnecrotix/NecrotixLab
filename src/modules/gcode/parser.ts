@@ -10,6 +10,7 @@ export type GCodeFrame = {
 export type GCodeAnalysis = {
     points: GCodePoint[]; frames: GCodeFrame[]; issues: GCodeIssue[];
     lineCount: number; motionCount: number; distance: number;
+    previewComplete: boolean;
     bounds: { minX: number; maxX: number; minY: number; maxY: number };
 };
 const supportedWords = new Set(['G', 'M', 'X', 'Y', 'Z', 'I', 'J', 'K', 'R', 'F', 'S', 'T', 'N', 'P', 'L']);
@@ -23,8 +24,11 @@ export function analyzeGCode(source: string): GCodeAnalysis {
     let x = 0, y = 0, z = 0, absolute = true, motion = 0, distance = 0, motionCount = 0;
     let feed = 0, spindleSpeed = 0, spindle: GCodeFrame['spindle'] = 'off', coolant = false;
     let units: GCodeFrame['units'] = 'mm', tool: number | null = null, workOffset = 'G54', plane = 17;
+    let suspended = false;
     let unitsSet = false, planeSet = false, feedSet = false, safeRetract = false, ended = false;
-    const lines = source.split(/\r?\n/);
+    const allLines = source.split(/\r?\n/);
+    const lines = allLines.slice(0, 10000);
+    if (allLines.length > lines.length) issues.push({ line: 10000, level: 'error', message: 'Preview limited to 10000 lines; remaining program is omitted.' });
     lines.forEach((raw, index) => {
         const lineNumber = index + 1;
         const line = raw.replace(/\([^)]*\)/g, '').replace(/;.*$/, '').trim().toUpperCase();
@@ -35,11 +39,22 @@ export function analyzeGCode(source: string): GCodeAnalysis {
             frames.push({ line: lineNumber, code: raw, action: 'Comment / blank line', detail: 'No machine motion.', x, y, z, feed, spindleSpeed, spindle, coolant, tool, units, absolute, workOffset, motion: 'none' });
             return;
         }
-        if (ended) issues.push({ line: lineNumber, level: 'warning', message: 'Command appears after program end.' });
+        if (ended) {
+            issues.push({ line: lineNumber, level: 'warning', message: 'Command appears after program end; it is not executed.' });
+            frames.push({ line: lineNumber, code: raw, action: 'After program end', detail: 'Command not executed.', x, y, z, feed, spindleSpeed, spindle, coolant, tool, units, absolute, workOffset, motion: 'none' });
+            return;
+        }
         const words = [...line.matchAll(/([A-Z])\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))/g)];
         const residue = line.replace(/([A-Z])\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))/g, '').replace(/\s+/g, '');
         if (residue) issues.push({ line: lineNumber, level: 'error', message: `Cannot parse "${residue.slice(0, 18)}".` });
         for (const match of words) if (!supportedWords.has(match[1]!)) issues.push({ line: lineNumber, level: 'warning', message: `${match[1]} is not analysed by the preview.` });
+        if (residue && words.some(match => match[1] === 'F' && Number(match[2]) <= 0)) issues.push({ line: lineNumber, level: 'error', message: 'Feed rate must be greater than zero.' });
+        if (residue || words.some(match => !Number.isFinite(Number(match[2])) || Math.abs(Number(match[2])) > 1e7)) {
+            issues.push({ line: lineNumber, level: 'error', message: 'Invalid or excessive numeric value; block omitted.' });
+            suspended = true;
+            frames.push({ line: lineNumber, code: raw, action: 'Invalid block', detail: 'Preview stopped; position cannot be trusted.', x, y, z, feed, spindleSpeed, spindle, coolant, tool, units, absolute, workOffset, motion: 'none' });
+            return;
+        }
         const values = new Map(words.map((match) => [match[1]!, Number(match[2])]));
         const gCodes = words.filter((match) => match[1] === 'G').map((match) => Number(match[2]));
         const mCodes = words.filter((match) => match[1] === 'M').map((match) => Number(match[2]));
@@ -63,14 +78,20 @@ export function analyzeGCode(source: string): GCodeAnalysis {
         if (mCodes.includes(9)) { coolant = false; actions.push('Coolant off'); }
         if (mCodes.includes(6)) actions.push(`Tool change${tool !== null ? ` to T${tool}` : ''} - verify machine position`);
         if (mCodes.includes(2) || mCodes.includes(30)) { ended = true; actions.push('Program end'); }
+        if (points.length > 100000) { suspended = true; issues.push({ line: lineNumber, level: 'error', message: 'Preview point limit reached.' }); }
+        if (gCodes.some(code => !safeG.has(code) || code === 53 || code === 43) || offset !== undefined && workOffset !== 'G54') suspended = true;
         const nextMotion = gCodes.find((code) => code >= 0 && code <= 3);
         if (nextMotion !== undefined) motion = nextMotion;
-        const hasAxis = values.has('X') || values.has('Y') || values.has('Z');
-        const unsupportedMove = hasAxis && (gCodes.includes(53) || gCodes.some((code) => !safeG.has(code)) || plane !== 17 && motion >= 2);
+        const hasAxis = values.has('X') || values.has('Y') || values.has('Z') || motion >= 2 && (values.has('I') || values.has('J'));
+        const unsupportedMove = hasAxis && (suspended || gCodes.includes(53) || gCodes.some((code) => !safeG.has(code)) || plane !== 17 && motion >= 2);
         if (unsupportedMove) {
+            suspended = true;
             issues.push({ line: lineNumber, level: 'warning', message: 'Axis movement is not previewed for this machine-coordinate, plane or unsupported command.' });
             actions.push('Unmodelled axis command');
-        } else if (hasAxis) {
+        } else if (hasAxis && !gCodes.includes(4)) {
+            // Coordinates and distances always use mm, even across G20/G21 switches.
+            const scale = units === 'in' ? 25.4 : 1;
+            for (const axis of ['X', 'Y', 'Z', 'I', 'J', 'K', 'R']) if (values.has(axis)) values.set(axis, values.get(axis)! * scale);
             const nextX = values.has('X') ? (absolute ? values.get('X')! : x + values.get('X')!) : x;
             const nextY = values.has('Y') ? (absolute ? values.get('Y')! : y + values.get('Y')!) : y;
             const nextZ = values.has('Z') ? (absolute ? values.get('Z')! : z + values.get('Z')!) : z;
@@ -81,11 +102,11 @@ export function analyzeGCode(source: string): GCodeAnalysis {
             if (motion === 0) actions.push('Rapid positioning');
             else if (motion === 1) actions.push('Linear feed move');
             else actions.push(motion === 2 ? 'Clockwise arc' : 'Counterclockwise arc');
-            detail = `X ${x.toFixed(2)} → ${nextX.toFixed(2)} · Y ${y.toFixed(2)} → ${nextY.toFixed(2)} · Z ${z.toFixed(2)} → ${nextZ.toFixed(2)} ${units}`;
-            if (values.has('X') || values.has('Y')) {
+            detail = `X ${x.toFixed(2)} → ${nextX.toFixed(2)} · Y ${y.toFixed(2)} → ${nextY.toFixed(2)} · Z ${z.toFixed(2)} → ${nextZ.toFixed(2)} mm (preview)`;
+            if (values.has('X') || values.has('Y') || motion >= 2 && (values.has('I') || values.has('J'))) {
                 motionCount++;
-                if ((motion === 2 || motion === 3) && values.has('I') && values.has('J')) {
-                    const cx = x + values.get('I')!, cy = y + values.get('J')!;
+                if ((motion === 2 || motion === 3) && (values.has('I') || values.has('J'))) {
+                    const cx = x + (values.get('I') ?? 0), cy = y + (values.get('J') ?? 0);
                     const radius = Math.hypot(x - cx, y - cy), targetRadius = Math.hypot(nextX - cx, nextY - cy);
                     if (radius > 0 && Math.abs(radius - targetRadius) < Math.max(.01, radius * .001)) {
                         const from = Math.atan2(y - cy, x - cx), to = Math.atan2(nextY - cy, nextX - cx);
@@ -100,11 +121,11 @@ export function analyzeGCode(source: string): GCodeAnalysis {
                             distance += Math.hypot(px - previous.x, py - previous.y);
                             points.push({ x: px, y: py, rapid: false, line: lineNumber });
                         }
-                    } else issues.push({ line: lineNumber, level: 'error', message: 'Arc radius does not match endpoint.' });
+                    } else { suspended = true; issues.push({ line: lineNumber, level: 'error', message: 'Arc radius does not match endpoint; subsequent path is suspended.' }); }
                 } else if (motion <= 1) {
                     distance += Math.hypot(nextX - x, nextY - y);
                     points.push({ x: nextX, y: nextY, rapid: motion === 0, line: lineNumber });
-                } else issues.push({ line: lineNumber, level: 'warning', message: 'Arc needs I/J center offsets; XY path is omitted.' });
+                } else { suspended = true; issues.push({ line: lineNumber, level: 'warning', message: 'Arc needs I/J center offsets; subsequent path is suspended.' }); }
             }
             x = nextX; y = nextY; z = nextZ;
         }
@@ -116,6 +137,6 @@ export function analyzeGCode(source: string): GCodeAnalysis {
     if (!feedSet && points.some((point) => !point.rapid)) issues.push({ line: 1, level: 'warning', message: 'Set a positive feed before cutting.' });
     if (!safeRetract && points.length > 2) issues.push({ line: 1, level: 'warning', message: 'No positive rapid Z clearance detected.' });
     if (!ended) issues.push({ line: lines.length, level: 'warning', message: 'Program has no M2 or M30 end command.' });
-    const xs = points.map((point) => point.x), ys = points.map((point) => point.y);
-    return { points, frames, issues, lineCount: lines.length, motionCount, distance, bounds: { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) } };
+    const bounds = points.reduce((b, p) => ({ minX: Math.min(b.minX, p.x), maxX: Math.max(b.maxX, p.x), minY: Math.min(b.minY, p.y), maxY: Math.max(b.maxY, p.y) }), { minX: 0, maxX: 0, minY: 0, maxY: 0 });
+    return { points, frames, issues, lineCount: lines.length, motionCount, distance, previewComplete: !suspended && allLines.length <= lines.length, bounds };
 }

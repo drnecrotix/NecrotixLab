@@ -42,3 +42,26 @@ test('does not invent XY motion for G53 machine coordinates', () => {
     assert.deepEqual(result.points.at(-1), { x: 0, y: 0, rapid: true, line: 0 });
     assert.ok(result.issues.some((issue) => issue.line === 3 && issue.message.includes('not previewed')));
 });
+
+test('normalizes mixed inch and metric motion to millimetres', () => {
+ const r = analyzeGCode('G20 G90 G17\nG1 X1 F10\nG21\nG91 X10\nM30');
+ assert.equal(r.frames[1].x, 25.4);
+ assert.equal(r.frames[3].x, 35.4);
+ assert.equal(r.distance, 35.4);
+});
+test('supports full circles and omitted zero J offset', () => {
+ const r = analyzeGCode('G21 G90 G17\nG0 X10\nG2 I-10 F100\nM30');
+ assert.ok(r.points.length > 20);
+ assert.ok(Math.abs(r.distance - (10 + Math.PI * 20)) < .2);
+});
+test('does not execute after end, dwell axes or resume a fabricated canned-cycle path', () => {
+ assert.equal(analyzeGCode('G0 X1\nM30\nG0 X99').frames.at(-1).x, 1);
+ assert.equal(analyzeGCode('G0 X1\nG4 X10\nM30').frames[1].x, 1);
+ const r = analyzeGCode('G0 X1\nG81 X10 Z-5\nX20\nG80\nG0 X30\nM30');
+ assert.equal(r.points.at(-1).x, 1);
+});
+test('invalid numeric and malformed blocks do not produce coordinates', () => {
+ const r = analyzeGCode('G0 X1\nG1 X999999999999999999999999 F10\nG0 X10\nM30');
+ assert.equal(r.points.at(-1).x, 1);
+ assert.ok(r.issues.some(i => i.level === 'error'));
+});
