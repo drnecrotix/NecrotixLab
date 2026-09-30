@@ -134,7 +134,7 @@ test('G-code editor keeps code beside the preview and follows edited motion', as
     expect(previewBox!.y).toBeLessThan(editorBox!.y + editorBox!.height);
   }
   await editor.fill('G21 G90\nG0 X10 Y10\nG1 X20 Y10 F100\nG1 X20 Y20');
-  await expect(page.getByText('2 program XY blocks')).toBeVisible();
+  await expect(editor).toHaveValue('G21 G90\nG0 X10 Y10\nG1 X20 Y10 F100\nG1 X20 Y20');
   await expect(preview.locator('path')).toHaveCount(0);
   await page.getByLabel('Show planned path').check();
   await expect(preview.locator('path')).toHaveCount(2);
@@ -147,4 +147,36 @@ test('G-code editor keeps code beside the preview and follows edited motion', as
   const scroll = await editor.evaluate(el => ({ top: el.scrollTop, height: el.scrollHeight, visible: el.clientHeight }));
   expect(scroll.height).toBeGreaterThan(scroll.visible);
   expect(scroll.top).toBeGreaterThan(0);
+});
+
+
+test('G-code dual projections classify depth and share one export action', async ({ page }) => {
+  await gotoWithTheme(page, '/tools/gcode-editor', 'dark');
+  const editor = page.getByRole('textbox', { name: 'G-Code program', exact: true });
+  const xy = page.getByRole('img', { name: 'G-code XY simulation', exact: true });
+  const xz = page.getByRole('img', { name: 'G-code XZ simulation', exact: true });
+  const code = 'G21 G90 G17\nG0 X0 Y0\nG0 Z5\nM3 S12000\nG1 Z-2 F100\nG1 X20\nG0 Z5\nM30';
+  await editor.fill(code);
+  await expect(xy).toBeVisible(); await expect(xz).toBeVisible();
+  await page.getByLabel('Show planned path').check();
+  await expect(xy.locator('path')).toHaveCount(1);
+  await expect(xz.locator('path[data-motion="cutting"]')).toHaveCount(2);
+  await expect(xz.locator('path[data-motion="air"]')).toHaveCount(1);
+  await page.getByLabel('Stock top Z (mm)').fill('-3');
+  await expect(xz.locator('path[data-motion="cutting"]')).toHaveCount(0);
+  await page.getByLabel('Depth view plane').selectOption('yz');
+  await expect(page.getByRole('img', { name: 'G-code YZ simulation', exact: true })).toBeVisible();
+  const exportButton = page.getByRole('button', { name: 'Export file', exact: true });
+  await expect(exportButton).toHaveCount(1);
+  for (const format of ['nc', 'txt']) {
+    await page.getByLabel('Export file format').selectOption(format);
+    const wait = page.waitForEvent('download');
+    await exportButton.click();
+    const download = await wait;
+    expect(download.suggestedFilename()).toBe(`necrotixlab-program.${format}`);
+    const stream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+    expect(Buffer.concat(chunks).toString('utf8')).toBe(code);
+  }
 });

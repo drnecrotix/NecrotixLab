@@ -2,10 +2,76 @@
 .workbench { display: grid; grid-template-columns: minmax(0, 1fr); overflow: hidden; }
 .editorSurface { display: grid; grid-template-columns: 3rem minmax(0, 1fr); min-width: 0; height: clamp(280px, 43vh, 480px); }
 .editorSurfaceWrapped { grid-template-columns: minmax(0, 1fr); }
-.editorSurface textarea { display: block; box-sizing: border-box; min-width: 0; width: 100%; height: 100%; min-height: 0; resize: none; margin: 0; padding: 16px; font-family: var(--font-jetbrains), monospace; font-size: 13px; line-height: 24px; tab-size: 2; overflow: auto; white-space: pre; }
+.editorSurface textarea { display: block; box-sizing: border-box; min-width: 0; width: 100%; height: 100%; min-height: 0; resize: none; margin: 0; padding: 16px; font-family: var(--font-jetbrains, monospace); font-size: 13px; line-height: 24px; tab-size: 2; overflow: auto; white-space: pre; }
 .editorSurfaceWrapped textarea { white-space: pre-wrap; overflow-wrap: anywhere; }
-.gutter { box-sizing: border-box; height: 100%; min-height: 0; overflow: hidden; padding-block: 16px; font-family: var(--font-jetbrains), monospace; font-size: 13px; line-height: 24px; }
+.gutter { box-sizing: border-box; height: 100%; min-height: 0; overflow: hidden; padding-block: 16px; font-family: var(--font-jetbrains, monospace); font-size: 13px; line-height: 24px; }
 .gutter > div { height: 24px; }
 .preview { width: 100%; height: clamp(200px, 30vh, 340px); display: block; }
 @media (min-width: 900px) { .workbench { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 @media (max-width: 599px) { .editorSurface { height: 240px; } .preview { height: 220px; } }
+/* Shared controls use the site's foreground/background tokens in both themes. */
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 9px 12px; border: 1px solid hsl(var(--foreground) / .22); border-radius: 8px; background: hsl(var(--foreground) / .07); color: hsl(var(--foreground)); font-size: 12px; font-weight: 650; line-height: 1.25; cursor: pointer; transition: background .15s, border-color .15s; }
+.button:hover:not(:disabled) { background: hsl(var(--foreground) / .13); border-color: hsl(var(--foreground) / .5); }
+.button:focus-visible, .viewSwitch button:focus-visible { outline: 2px solid #0891b2; outline-offset: 3px; }
+.button:disabled { opacity: .35; cursor: not-allowed; }
+.button svg { flex-shrink: 0; }
+.primaryButton { background: hsl(var(--foreground)); color: hsl(var(--background)); border-color: hsl(var(--foreground)); }
+.primaryButton:hover:not(:disabled) { background: hsl(var(--foreground) / .85); }
+.editorHeader, .panelHeading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.editorHeader { padding: 16px; border-bottom: 1px solid hsl(var(--border)); }
+.editorHeader h2, .panelHeading h2 { font-size: 16px; font-weight: 700; margin-top: 3px; }
+.eyebrow { font: 10px var(--font-jetbrains, monospace); letter-spacing: .16em; color: hsl(var(--muted-foreground)); }
+.editorMeta { margin-top: 3px; font-size: 11px; color: hsl(var(--muted-foreground)); }
+.fileActions, .editToolbar, .playback, .viewToolbar, .zoomControls, .previewOptions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.exportFormat select, .speedLabel select, .projection select { min-height: 38px; border: 1px solid hsl(var(--border)); border-radius: 7px; padding: 5px 8px; background: hsl(var(--background)); color: hsl(var(--foreground)); font-size: 12px; }
+.editToolbar { padding: 12px; border-bottom: 1px solid hsl(var(--border)); }
+.wrapToggle { display: flex; align-items: center; gap: 6px; padding: 9px 0; font-size: 12px; }
+.simulation { min-width: 0; padding: 16px; border-top: 1px solid hsl(var(--border)); }
+.lineBadge { border: 1px solid hsl(var(--border)); border-radius: 6px; padding: 5px 8px; font: 11px var(--font-jetbrains, monospace); }
+.playback { margin-top: 12px; }
+.speedLabel { display: flex; gap: 6px; align-items: center; font-size: 11px; color: hsl(var(--muted-foreground)); }
+.timeline { display: flex; align-items: center; gap: 12px; margin: 12px 0; font-size: 11px; color: hsl(var(--muted-foreground)); }
+.timeline input { flex: 1; min-width: 0; accent-color: #0891b2; }
+.machineStatus { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid hsl(var(--border)); border-radius: 8px; background: hsl(var(--foreground) / .04); }
+.machineStatus strong { font-size: 13px; }
+.machineStatus p { margin-top: 2px; font: 11px var(--font-jetbrains, monospace); color: hsl(var(--muted-foreground)); overflow-wrap: anywhere; }
+.statusDot { width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: hsl(var(--muted-foreground)); flex-shrink: 0; }
+.viewToolbar { margin: 12px 0; justify-content: space-between; }
+.viewSwitch { display: inline-flex; border: 1px solid hsl(var(--border)); border-radius: 8px; padding: 3px; background: hsl(var(--foreground) / .03); }
+.viewSwitch button { min-height: 36px; padding: 6px 9px; border-radius: 5px; font-size: 11px; color: hsl(var(--muted-foreground)); }
+.viewSwitch button[aria-pressed="true"] { background: hsl(var(--foreground)); color: hsl(var(--background)); font-weight: 650; }
+.zoomControls { gap: 4px; }
+.zoomControls .button { min-height: 36px; padding: 6px 9px; }
+.viewports { display: grid; gap: 10px; }
+.projection { min-width: 0; border: 1px solid hsl(var(--border)); border-radius: 9px; overflow: hidden; background: hsl(var(--foreground) / .025); }
+.projection header, .projection footer { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 5px; padding: 7px 10px; font-size: 10px; color: hsl(var(--muted-foreground)); }
+.projection header { border-bottom: 1px solid hsl(var(--border)); }
+.projection header strong { color: hsl(var(--foreground)); font-size: 12px; }
+.projection header strong span { margin-left: 5px; font-size: 10px; color: hsl(var(--muted-foreground)); font-weight: 400; }
+.projection select { min-height: 26px; font-size: 10px; padding: 2px 6px; }
+.projection footer { border-top: 1px solid hsl(var(--border)); }
+.preview { height: 130px; width: 100%; padding: 10px; }
+.expandedPreview { height: 350px; }
+.stockRegion { fill: hsl(var(--foreground) / .065); }
+.surfaceLine { stroke: hsl(var(--foreground) / .4); stroke-width: 1; stroke-dasharray: 3 4; }
+.toolMarker { fill: hsl(var(--background)); stroke: hsl(var(--foreground)); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 12px 0 10px; font-size: 10px; color: hsl(var(--muted-foreground)); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legendStroke, .plannedStroke { width: 18px; height: 0; border-top: 2px solid hsl(var(--muted-foreground)); }
+.legendStroke:not(.cutting) { border-top-style: dashed; }
+.cutting { background-color: #10b981; border-color: #10b981; }
+.air { background-color: #3b82f6; border-color: #3b82f6; }
+.rapid { background-color: #0891b2; border-color: #0891b2; }
+.rapid-low { background-color: #ef4444; border-color: #ef4444; }
+.spindle-off { background-color: #d97706; border-color: #d97706; }
+.plannedStroke { opacity: .3; }
+.previewOptions { padding: 8px 0; border-top: 1px solid hsl(var(--border)); gap: 10px 16px; font-size: 11px; }
+.previewOptions label { display: inline-flex; gap: 6px; align-items: center; }
+.previewOptions input[type="number"] { width: 64px; min-height: 32px; padding: 4px 6px; border: 1px solid hsl(var(--border)); border-radius: 5px; background: hsl(var(--background)); }
+.surfaceHint { font-size: 10px; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+.readouts { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 8px; border-top: 1px solid hsl(var(--border)); margin-top: 10px; padding-top: 10px; }
+.readouts span { display: block; font-size: 10px; color: hsl(var(--muted-foreground)); }
+.readouts strong { display: block; margin-top: 3px; font: 10px var(--font-jetbrains, monospace); overflow-wrap: anywhere; }
+.shortcuts { font-size: 10px; color: hsl(var(--muted-foreground)); }
+@media (min-width: 900px) { .simulation { border-top: 0; border-left: 1px solid hsl(var(--border)); } .editorSurface { height: clamp(440px, 62vh, 700px); } }
+@media (max-width: 599px) { .editorHeader, .simulation { padding: 12px; } .editorSurface { height: 340px; } .preview { height: 185px; } .expandedPreview { height: 300px; } .readouts { grid-template-columns: 1fr; } .fileActions { width: 100%; } .fileActions .primaryButton { flex: 1; } }
