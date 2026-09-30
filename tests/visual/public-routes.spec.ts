@@ -119,3 +119,32 @@ for (const theme of themes) {
     });
   }
 }
+
+
+test('G-code editor keeps code beside the preview and follows edited motion', async ({ page }, testInfo) => {
+  await gotoWithTheme(page, '/tools/gcode-editor', 'dark');
+  const editor = page.getByRole('textbox', { name: 'G-Code program', exact: true });
+  const preview = page.getByRole('img', { name: 'G-code XY simulation' });
+  await expect(editor).toBeVisible();
+  const editorBox = await editor.boundingBox();
+  const previewBox = await preview.boundingBox();
+  expect(editorBox!.height).toBeGreaterThanOrEqual(240);
+  if (testInfo.project.name === 'desktop-chromium') {
+    expect(previewBox!.x).toBeGreaterThan(editorBox!.x + editorBox!.width);
+    expect(previewBox!.y).toBeLessThan(editorBox!.y + editorBox!.height);
+  }
+  await editor.fill('G21 G90\nG0 X10 Y10\nG1 X20 Y10 F100\nG1 X20 Y20');
+  await expect(page.getByText('2 program XY blocks')).toBeVisible();
+  await expect(preview.locator('path')).toHaveCount(0);
+  await page.getByLabel('Show planned path').check();
+  await expect(preview.locator('path')).toHaveCount(2);
+  await editor.fill('G0 Z5\nG1 Z-1 F100');
+  await expect(preview.locator('path')).toHaveCount(0);
+  const longCode = Array.from({ length: 100 }, (_, i) => `G1 X${i} F100`).join('\n');
+  await editor.fill(longCode);
+  await editor.press('Control+End');
+  await expect(editor).toHaveValue(longCode);
+  const scroll = await editor.evaluate(el => ({ top: el.scrollTop, height: el.scrollHeight, visible: el.clientHeight }));
+  expect(scroll.height).toBeGreaterThan(scroll.visible);
+  expect(scroll.top).toBeGreaterThan(0);
+});
