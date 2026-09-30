@@ -1,4 +1,4 @@
-export type GCodePoint = { x: number; y: number; rapid: boolean; line: number };
+export type GCodePoint = { x: number; y: number; z: number; spindleActive: boolean; xyKnown: boolean; rapid: boolean; line: number };
 export type GCodeIssue = { line: number; level: 'error' | 'warning'; message: string };
 export type GCodeFrame = {
     line: number; code: string; action: string; detail: string;
@@ -18,7 +18,7 @@ const safeG = new Set([0, 1, 2, 3, 4, 17, 18, 19, 20, 21, 40, 43, 49, 53, 54, 55
 const safeM = new Set([2, 3, 4, 5, 6, 7, 8, 9, 30]);
 
 export function analyzeGCode(source: string): GCodeAnalysis {
-    const points: GCodePoint[] = [{ x: 0, y: 0, rapid: true, line: 0 }];
+    const points: GCodePoint[] = [{ x: 0, y: 0, z: 0, spindleActive: false, xyKnown: false, rapid: true, line: 0 }];
     const frames: GCodeFrame[] = [];
     const issues: GCodeIssue[] = [];
     let x = 0, y = 0, z = 0, absolute = true, motion = 0, distance = 0, motionCount = 0;
@@ -106,8 +106,8 @@ export function analyzeGCode(source: string): GCodeAnalysis {
             else if (motion === 1) actions.push('Linear feed move');
             else actions.push(motion === 2 ? 'Clockwise arc' : 'Counterclockwise arc');
             detail = `X ${x.toFixed(2)} → ${nextX.toFixed(2)} · Y ${y.toFixed(2)} → ${nextY.toFixed(2)} · Z ${z.toFixed(2)} → ${nextZ.toFixed(2)} mm (preview)`;
-            if (values.has('X') || values.has('Y') || motion >= 2 && (values.has('I') || values.has('J'))) {
-                motionCount++;
+            if (hasAxis) {
+                if (values.has('X') || values.has('Y') || motion >= 2) motionCount++;
                 if ((motion === 2 || motion === 3) && (values.has('I') || values.has('J'))) {
                     const cx = x + (values.get('I') ?? 0), cy = y + (values.get('J') ?? 0);
                     const radius = Math.hypot(x - cx, y - cy), targetRadius = Math.hypot(nextX - cx, nextY - cy);
@@ -122,12 +122,12 @@ export function analyzeGCode(source: string): GCodeAnalysis {
                             const py = step === steps ? nextY : cy + radius * Math.sin(angle);
                             const previous = points[points.length - 1]!;
                             distance += Math.hypot(px - previous.x, py - previous.y);
-                            points.push({ x: px, y: py, rapid: false, line: lineNumber });
+                            points.push({ x: px, y: py, z: z + (nextZ - z) * step / steps, spindleActive: spindle !== 'off' && spindleSpeed > 0, xyKnown: hasXYPosition, rapid: false, line: lineNumber });
                         }
                     } else { suspended = true; issues.push({ line: lineNumber, level: 'error', message: 'Arc radius does not match endpoint; subsequent path is suspended.' }); }
                 } else if (motion <= 1) {
                     distance += Math.hypot(nextX - x, nextY - y);
-                    points.push({ x: nextX, y: nextY, rapid: motion === 0, line: lineNumber });
+                    points.push({ x: nextX, y: nextY, z: nextZ, spindleActive: spindle !== 'off' && spindleSpeed > 0, xyKnown: hasXYPosition, rapid: motion === 0, line: lineNumber });
                 } else { suspended = true; issues.push({ line: lineNumber, level: 'warning', message: 'Arc needs I/J center offsets; subsequent path is suspended.' }); }
             }
             x = nextX; y = nextY; z = nextZ;
