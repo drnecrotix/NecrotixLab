@@ -156,7 +156,9 @@ test('G-code dual projections classify depth and share one export action', async
   const xy = page.getByRole('img', { name: 'G-code XY simulation', exact: true });
   const xz = page.getByRole('img', { name: 'G-code XZ simulation', exact: true });
   const code = 'G21 G90 G17\nG0 X0 Y0\nG0 Z5\nM3 S12000\nG1 Z-2 F100\nG1 X20\nG0 Z5\nM30';
+  await expect(editor).toBeEnabled();
   await editor.fill(code);
+  await expect(editor).toHaveValue(code);
   await expect(xy).toBeVisible(); await expect(xz).toBeVisible();
   await page.getByLabel('Show planned path').check();
   await expect(xy.locator('path')).toHaveCount(1);
