@@ -1,6 +1,6 @@
 {
     "name": "necrotixlab",
-    "version": "1.3.81",
+    "version": "1.3.82",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -63,9 +63,11 @@
         "clsx": "^2.1.1",
         "date-fns": "^4.1.0",
         "exifr": "^7.1.3",
+        "fflate": "^0.8.3",
         "framer-motion": "^11.0.0",
         "gl-matrix": "^3.4.4",
         "gsap": "^3.14.2",
+        "leaflet": "^1.9.4",
         "lenis": "^1.3.23",
         "lucide-react": "^0.309.0",
         "matter-js": "^0.20.0",
@@ -95,13 +97,14 @@
         "tailwindcss-animate": "^1.0.7",
         "three": "^0.170.0",
         "three-globe": "^2.45.0",
+        "tldts": "^7.4.16",
         "tsparticles": "^3.9.1",
-        "zod": "^4.1.8",
-        "fflate": "^0.8.3"
+        "zod": "^4.1.8"
     },
     "devDependencies": {
         "@playwright/test": "^1.55.0",
         "@types/aos": "^3.0.7",
+        "@types/leaflet": "^1.9.22",
         "@types/node": "^20.10.0",
         "@types/nodemailer": "^7.0.11",
         "@types/piexifjs": "^1.0.0",
