@@ -13,18 +13,18 @@ class DiscordApiError extends Error {
 }
 function object(value: unknown): Data { return value && typeof value === 'object' && !Array.isArray(value) ? value as Data : {}; }
 function cdnAvatar(id: string, hash: string, kind: 'avatars' | 'icons' | 'banners') {
-    return id && /^[a-f0-9_]{1,128}$/i.test(hash) ? `https://cdn.discordapp.com/${kind}/${id}/${hash}.${hash.startsWith('a_') ? 'gif' : 'png'}?size=256` : null;
+    return id && /^[a-f0-9_]{1,128}$/i.test(hash) ? `https://cdn.discordapp.com/${kind}/${id}/${hash}.${hash.startsWith('a_') ? 'gif' : 'png'}?size=1024` : null;
 }
 function cdnAsset(id: string, hash: string, kind: 'splashes' | 'discovery-splashes' | 'avatar-decorations') {
     return id && /^[a-f0-9_]{1,128}$/i.test(hash) ? `https://cdn.discordapp.com/${kind}/${id}/${hash}.png?size=512` : null;
 }
 function memberImage(guildId: string, userId: string, hash: string, kind: 'avatars' | 'banners') {
-    return /^[a-f0-9_]{1,128}$/i.test(hash) ? `https://cdn.discordapp.com/guilds/${guildId}/users/${userId}/${kind}/${hash}.${hash.startsWith('a_') ? 'gif' : 'png'}?size=256` : null;
+    return /^[a-f0-9_]{1,128}$/i.test(hash) ? `https://cdn.discordapp.com/guilds/${guildId}/users/${userId}/${kind}/${hash}.${hash.startsWith('a_') ? 'gif' : 'png'}?size=1024` : null;
 }
 function userResult(id: string, data: Data, note: string, member: Data = {}, guildId = '') {
     const decoration = object(data.avatar_decoration_data), primaryGuild = object(data.primary_guild);
     const discriminator = text(data.discriminator);
-    return { kind: 'user', user: { id, username: text(data.username), displayName: text(data.global_name), nickname: text(member.nick), discriminator: discriminator === '0' ? null : discriminator, avatarUrl: memberImage(guildId, id, text(member.avatar), 'avatars') || cdnAvatar(id, text(data.avatar), 'avatars') || `https://cdn.discordapp.com/embed/avatars/${discriminator && discriminator !== '0' ? Number(discriminator) % 5 : Number(BigInt(id) >> 22n) % 6}.png`, hasCustomAvatar: Boolean(member.avatar || data.avatar), bannerUrl: memberImage(guildId, id, text(member.banner), 'banners') || cdnAvatar(id, text(data.banner), 'banners'), decorationAsset: text(decoration.asset), accentColor: number(data.accent_color), bot: data.bot === true, system: data.system === true, publicFlags: number(data.public_flags), primaryGuildTag: text(primaryGuild.tag), primaryGuildId: text(primaryGuild.identity_guild_id), created: snowflakeDate(id), guildJoinedAt: text(member.joined_at) }, note, profileUrl: `https://discord.com/users/${id}` };
+    return { kind: 'user', user: { id, username: text(data.username), displayName: text(data.global_name), nickname: text(member.nick), discriminator: discriminator === '0' ? null : discriminator, guildAvatarUrl: memberImage(guildId, id, text(member.avatar), 'avatars'), guildBannerUrl: memberImage(guildId, id, text(member.banner), 'banners'), guildId: guildId || null, guildPremiumSince: text(member.premium_since), pending: typeof member.pending === 'boolean' ? member.pending : null, roles: Array.isArray(member.roles) ? member.roles.filter(v => typeof v === 'string').slice(0, 100) : [], avatarUrl: cdnAvatar(id, text(data.avatar), 'avatars') || `https://cdn.discordapp.com/embed/avatars/${discriminator && discriminator !== '0' ? Number(discriminator) % 5 : Number(BigInt(id) >> 22n) % 6}.png`, hasCustomAvatar: Boolean(data.avatar), bannerUrl: cdnAvatar(id, text(data.banner), 'banners'), decorationAsset: text(decoration.asset), accentColor: number(data.accent_color), bot: data.bot === true, system: data.system === true, publicFlags: number(data.public_flags), primaryGuildTag: text(primaryGuild.tag), primaryGuildId: text(primaryGuild.identity_guild_id), created: snowflakeDate(id), guildJoinedAt: text(member.joined_at) }, note, profileUrl: `https://discord.com/users/${id}` };
 }
 async function lanyardUser(id: string): Promise<Data> {
     try {
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
             let widget: Data = {};
             try { widget = await discord(`/guilds/${query}/widget.json`); } catch { /* Widget requires the server to enable it. */ }
             if (!text(preview.id) && !text(widget.id)) throw new Error('This server has no public preview or enabled widget. Use a public invite link for its profile.');
-            return NextResponse.json({ kind, server: { id: query, name: text(preview.name) || text(widget.name), description: text(preview.description), iconUrl: cdnAvatar(query, text(preview.icon), 'icons'), splashUrl: cdnAsset(query, text(preview.splash), 'splashes'), discoverySplashUrl: cdnAsset(query, text(preview.discovery_splash), 'discovery-splashes'), widgetUrl: text(widget.id) ? `https://discord.com/api/guilds/${query}/widget.png?style=banner2` : null, online: number(preview.approximate_presence_count) ?? number(widget.presence_count), members: number(preview.approximate_member_count), features: Array.isArray(preview.features) ? preview.features.filter((v): v is string => typeof v === 'string').slice(0, 30) : [], created: snowflakeDate(query), invite: text(widget.instant_invite), channels: Array.isArray(widget.channels) ? widget.channels.length : null }, note: text(preview.id) ? 'Public Discovery preview. Member counts are approximate.' : 'Only the public widget is available. It shows a server badge, not the original icon or banner.' }, { headers: { 'Cache-Control': 'no-store' } });
+            return NextResponse.json({ kind, server: { id: query, name: text(preview.name) || text(widget.name), description: text(preview.description), iconUrl: cdnAvatar(query, text(preview.icon), 'icons'), bannerUrl: cdnAvatar(query, text(preview.banner), 'banners'), emojiCount: Array.isArray(preview.emojis) ? preview.emojis.length : null, stickerCount: Array.isArray(preview.stickers) ? preview.stickers.length : null, splashUrl: cdnAsset(query, text(preview.splash), 'splashes'), discoverySplashUrl: cdnAsset(query, text(preview.discovery_splash), 'discovery-splashes'), widgetUrl: text(widget.id) ? `https://discord.com/api/guilds/${query}/widget.png?style=banner2` : null, online: number(preview.approximate_presence_count) ?? number(widget.presence_count), members: number(preview.approximate_member_count), features: Array.isArray(preview.features) ? preview.features.filter((v): v is string => typeof v === 'string').slice(0, 30) : [], created: snowflakeDate(query), invite: text(widget.instant_invite), channels: Array.isArray(widget.channels) ? widget.channels.length : null }, note: text(preview.id) ? 'Public Discovery preview. Member counts are approximate.' : 'Only the public widget is available. It shows a server badge, not the original icon or banner.' }, { headers: { 'Cache-Control': 'no-store' } });
         }
         const { token: botToken, guildId } = await getDiscordLookupCredentials();
         if (!botToken) {
@@ -73,7 +73,12 @@ export async function GET(request: NextRequest) {
         }
         try {
             const data = await discord(`/users/${query}`, botToken);
-            return NextResponse.json(userResult(query, data, 'Profile fields returned by the configured Discord bot. A personal banner or server nickname may not be available.'), { headers: { 'Cache-Control': 'no-store' } });
+            let member: Data = {};
+            if (/^\d{17,20}$/.test(guildId)) {
+                try { member = await discord(`/guilds/${guildId}/members/${query}`, botToken); }
+                catch { /* Optional member enrichment must not hide a valid global profile. */ }
+            }
+            return NextResponse.json(userResult(query, data, 'Official Discord profile. Server-specific images and membership fields are shown separately when available.', member, text(object(member.user).id) === query ? guildId : ''), { headers: { 'Cache-Control': 'no-store' } });
         }
         catch (error) {
             if (!(error instanceof DiscordApiError) || error.status !== 404) throw error;

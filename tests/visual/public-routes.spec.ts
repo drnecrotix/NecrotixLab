@@ -123,6 +123,7 @@ for (const theme of themes) {
 
 test('G-code editor keeps code beside the preview and follows edited motion', async ({ page }, testInfo) => {
   await gotoWithTheme(page, '/tools/gcode-editor', 'dark');
+  await page.getByRole('button', { name: 'Both views', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'G-Code program', exact: true });
   const preview = page.getByRole('img', { name: 'G-code XY simulation' });
   await expect(editor).toBeVisible();
@@ -152,6 +153,7 @@ test('G-code editor keeps code beside the preview and follows edited motion', as
 
 test('G-code dual projections classify depth and share one export action', async ({ page }) => {
   await gotoWithTheme(page, '/tools/gcode-editor', 'dark');
+  await page.getByRole('button', { name: 'Both views', exact: true }).click();
   const editor = page.getByRole('textbox', { name: 'G-Code program', exact: true });
   const xy = page.getByRole('img', { name: 'G-code XY simulation', exact: true });
   const xz = page.getByRole('img', { name: 'G-code XZ simulation', exact: true });
