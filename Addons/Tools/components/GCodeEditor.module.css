@@ -69,9 +69,14 @@
 .previewOptions label { display: inline-flex; gap: 6px; align-items: center; }
 .previewOptions input[type="number"] { width: 64px; min-height: 32px; padding: 4px 6px; border: 1px solid hsl(var(--border)); border-radius: 5px; background: hsl(var(--background)); }
 .surfaceHint { font-size: 10px; line-height: 1.6; color: hsl(var(--muted-foreground)); }
-.readouts { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 8px; border-top: 1px solid hsl(var(--border)); margin-top: 10px; padding-top: 10px; }
+.readouts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; border-top: 1px solid hsl(var(--border)); margin-top: 10px; padding-top: 10px; }
 .readouts span { display: block; font-size: 10px; color: hsl(var(--muted-foreground)); }
 .readouts strong { display: block; margin-top: 3px; font: 10px var(--font-jetbrains, monospace); overflow-wrap: anywhere; }
 .shortcuts { font-size: 10px; color: hsl(var(--muted-foreground)); }
 @media (min-width: 900px) { .simulation { border-top: 0; border-left: 1px solid hsl(var(--border)); } .editorSurface { height: clamp(440px, 62vh, 700px); } }
 @media (max-width: 599px) { .editorHeader, .simulation { padding: 12px; } .editorSurface { height: 340px; } .preview { height: 185px; } .expandedPreview { height: 300px; } .readouts { grid-template-columns: 1fr; } .fileActions { width: 100%; } .fileActions .primaryButton { flex: 1; } }
+
+.machinePreview { height: 340px; background: radial-gradient(ellipse at center, hsl(var(--foreground) / .04), transparent); }
+.spinningTool { animation: flutePulse .12s linear infinite; }
+@keyframes flutePulse { 50% { opacity: .4; } }
+@media (prefers-reduced-motion: reduce) { .spinningTool { animation: none; } }
