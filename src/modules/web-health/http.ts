@@ -36,6 +36,8 @@ type RequestOptions = {
     method?: 'GET' | 'HEAD';
     accept?: string;
     allowedOrigin?: string;
+    addressFilter?: (address: string) => boolean;
+    signal?: AbortSignal;
 };
 
 function normalizedHostname(url: URL) {
@@ -140,6 +142,8 @@ export async function requestPublicPage(initialUrl: URL, options: RequestOptions
 
     async function follow(url: URL, redirects: SafeRedirectHop[]): Promise<PublicPageResponse> {
         validatePublicTarget(url);
+        const literal = normalizedHostname(url);
+        if (isIP(literal) && options.addressFilter && !options.addressFilter(literal)) throw new WebHealthError('Target address is not eligible for this check.');
         if (options.allowedOrigin && url.origin !== options.allowedOrigin) throw new WebHealthError('Cross-origin crawl redirects are not followed.', 422);
         if (redirects.length > maxRedirects) throw new WebHealthError('The website redirected too many times.', 422);
 
@@ -152,7 +156,11 @@ export async function requestPublicPage(initialUrl: URL, options: RequestOptions
 
             const req = requester(url, {
                 method,
-                lookup: safeLookup,
+                lookup: options.addressFilter ? (hostname, lookupOptions, callback) => safeLookup(hostname, lookupOptions, (error, address, family) => {
+                    if (!error && (typeof address !== 'string' || !options.addressFilter!(address))) return callback(Object.assign(new Error('Target address is not eligible for this check.'), { code: 'EACCES' }), '', family);
+                    callback(error, address, family);
+                }) : safeLookup,
+                signal: options.signal,
                 autoSelectFamily: false,
                 headers: {
                     Accept: options.accept ?? 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.2',
@@ -173,7 +181,11 @@ export async function requestPublicPage(initialUrl: URL, options: RequestOptions
                         reject(new WebHealthError('The website returned an invalid redirect.', 422));
                         return;
                     }
-                    validatePublicTarget(next);
+                    try { validatePublicTarget(next); } catch (error) {
+                        settled = true;
+                        reject(error);
+                        return;
+                    }
                     if (options.allowedOrigin && next.origin !== options.allowedOrigin) {
                         settled = true;
                         reject(new WebHealthError('Cross-origin crawl redirects are not followed.', 422));
