@@ -21,3 +21,9 @@ export function parseBookingEvent(value: unknown) {
             title: text(payload.title, 200), customerName: text(attendee.name, 160), email: text(attendee.email, 254), timeZone: text(attendee.timeZone, 100), startTime, endTime,
             notes: text(payload.description, 3000), reason: text(payload.cancellationReason || payload.reschedulingReason || payload.rejectionReason, 1000), eventAt } };
 }
+
+export function validBookingCronAuthorization(header: string | null, secret: string | undefined) {
+    if (!secret || secret.length < 32 || !header?.startsWith('Bearer ') || header.length > 4096) return false;
+    const supplied = Buffer.from(header.slice(7)); const expected = Buffer.from(secret);
+    return supplied.length === expected.length && timingSafeEqual(supplied, expected);
+}

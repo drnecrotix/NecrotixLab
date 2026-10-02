@@ -30,7 +30,7 @@ export async function saveBookingSettings(form: FormData) {
     if (!current.installed) throw new Error('Install Booking first');
     const services = Array.from({ length: 8 }, (_, index) => ({ title: form.get(`title-${index}`), description: form.get(`description-${index}`), duration: form.get(`duration-${index}`), path: form.get(`path-${index}`) }));
     const filled = services.filter(item => String(item.path || '').trim());
-    const config = normalizeBookingConfig({ ...current, title: form.get('title'), description: form.get('description'), services: filled });
+    const config = normalizeBookingConfig({ ...current, title: form.get('title'), description: form.get('description'), reminderHours: form.get('reminderHours'), autoProject: form.get('autoProject') === 'on', services: filled });
     if (config.services.length !== filled.length) redirect('/admin/addons/booking?error=Use+a+Cal.diy+path+like+username%2Fconsultation');
     await persist(config); redirect('/admin/addons/booking?saved=1');
 }

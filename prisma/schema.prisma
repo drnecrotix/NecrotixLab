@@ -627,7 +627,42 @@ model BookingReservation {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  internalNotes String @default("")
+  project BookingProject?
+  reminders BookingReminder[]
+
+  @@index([email])
   @@index([rescheduledFromUid])
   @@index([status, startTime])
   @@index([createdAt])
+}
+
+// Private booking work, intentionally separate from the public portfolio.
+model BookingProject {
+  id String @id @default(cuid())
+  reservationId String @unique
+  reservation BookingReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  title String
+  status String @default("PLANNED")
+  notes String @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BookingReminder {
+  id String @id @default(cuid())
+  reservationId String
+  reservation BookingReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  startTime DateTime
+  hours Int
+  dueAt DateTime
+  status String @default("PENDING")
+  attempts Int @default(0)
+  lockedUntil DateTime?
+  sentAt DateTime?
+  lastError String @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([reservationId, startTime, hours])
+  @@index([status, dueAt])
 }

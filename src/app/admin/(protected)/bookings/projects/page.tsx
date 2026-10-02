@@ -1,0 +1,14 @@
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { auth } from '@/auth';
+import { prisma } from '@/lib/prisma';
+import { BOOKING_PROJECT_STATUSES } from '@addons/Booking/workflow-policy';
+export const dynamic = 'force-dynamic';
+export default async function BookingProjects({ searchParams }: { searchParams: Promise<{ status?: string; page?: string }> }) {
+    const session = await auth(); if (!session?.user || !['OWNER', 'ADMIN'].includes(session.user.role)) redirect('/admin');
+    const params = await searchParams;
+    const status = BOOKING_PROJECT_STATUSES.find(value => value === params.status);
+    const page = Math.min(10000, Math.max(1, Number.parseInt(params.page || '1', 10) || 1));
+    const projects = await prisma.bookingProject.findMany({ where: status ? { status } : {}, include: { reservation: { select: { customerName: true, email: true, status: true } } }, orderBy: { updatedAt: 'desc' }, take: 31, skip: (page - 1) * 30 });
+    return <div className="mx-auto max-w-5xl space-y-6"><Link href="/admin/bookings" className="text-sm underline">Back to reservations</Link><header><h1 className="text-3xl font-bold tracking-tight">Booking projects</h1><p className="mt-3 text-sm text-muted-foreground">Private project work linked to reservations. Update project progress from the booking details.</p></header><nav aria-label="Project status" className="flex flex-wrap gap-2"><Link href="/admin/bookings/projects" className="min-h-10 rounded-lg border border-border px-3 py-2 text-xs">All</Link>{BOOKING_PROJECT_STATUSES.map(item => <Link key={item} href={`?status=${item}`} aria-current={item === status ? 'page' : undefined} className={`min-h-10 rounded-lg border px-3 py-2 text-xs ${item === status ? 'border-foreground bg-muted' : 'border-border'}`}>{item.toLowerCase().replaceAll('_', ' ')}</Link>)}</nav><div className="divide-y divide-border overflow-hidden rounded-xl border border-border">{projects.slice(0, 30).map(project => <article key={project.id} className="flex flex-wrap items-start justify-between gap-4 p-5"><div><Link href={`/admin/bookings/${project.reservationId}`} className="font-semibold hover:underline">{project.title}</Link><p className="mt-2 break-all text-sm text-muted-foreground">{project.reservation.customerName} · {project.reservation.email}</p></div><div className="text-xs"><p>{project.status.replaceAll('_', ' ')}</p><p className="mt-2 text-muted-foreground">Booking: {project.reservation.status}</p></div></article>)}{projects.length === 0 && <p className="p-8 text-sm text-muted-foreground">No matching projects.</p>}</div><nav aria-label="Project pages" className="flex justify-between text-sm">{page > 1 && <Link href={`?page=${page - 1}&status=${status || ''}`} className="underline">Previous</Link>}{projects.length > 30 && <Link href={`?page=${page + 1}&status=${status || ''}`} className="ml-auto underline">Next</Link>}</nav></div>;
+}

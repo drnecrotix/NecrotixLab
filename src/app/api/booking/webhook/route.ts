@@ -1,9 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { bookingAddonConfig } from '@addons/Booking/server';
 import { parseBookingEvent, validBookingSignature } from '@addons/Booking/webhook';
+import { synchronizeBookingWorkflows } from '@addons/Booking/workflows';
 export const runtime = 'nodejs';
 export async function POST(request: Request) {
-    if (!(await bookingAddonConfig()).installed) return new Response('Booking not installed', { status: 503 });
+    const config = await bookingAddonConfig();
+    if (!config.installed) return new Response('Booking not installed', { status: 503 });
     if (!process.env.CALDIY_WEBHOOK_SECRET || process.env.CALDIY_WEBHOOK_SECRET.length < 32) return new Response('Webhook not configured', { status: 503 });
     if (Number(request.headers.get('content-length')) > 65536) return new Response('Too large', { status: 413 });
     if (!request.body) return new Response('Empty body', { status: 400 });
@@ -27,11 +29,18 @@ export async function POST(request: Request) {
             const successor = await tx.bookingReservation.findFirst({ where: { rescheduledFromUid: booking.uid }, select: { id: true } });
             const data = { ...booking.data, status: successor ? 'RESCHEDULED' : booking.data.status,
                 customerName: booking.data.customerName || existing?.customerName || '',
-                email: booking.data.email || existing?.email || '', timeZone: booking.data.timeZone || existing?.timeZone || '',
+                email: (booking.data.email || existing?.email || '').trim().toLowerCase(), timeZone: booking.data.timeZone || existing?.timeZone || '',
                 notes: booking.data.notes || existing?.notes || '',
                 ...(booking.previousUid ? { rescheduledFromUid: booking.previousUid } : {}) };
-            await tx.bookingReservation.upsert({ where: { calUid: booking.uid }, create: { calUid: booking.uid, ...data }, update: data });
+            const reservation = await tx.bookingReservation.upsert({ where: { calUid: booking.uid }, create: { calUid: booking.uid, ...data }, update: data });
             if (booking.previousUid && booking.previousUid !== booking.uid) await tx.bookingReservation.updateMany({ where: { calUid: booking.previousUid, eventAt: { lt: booking.data.eventAt } }, data: { status: 'RESCHEDULED', eventAt: booking.data.eventAt } });
+            if (booking.previousUid && booking.previousUid !== booking.uid) {
+                const oldProject = await tx.bookingProject.findFirst({ where: { reservation: { calUid: booking.previousUid } } });
+                const newProject = await tx.bookingProject.findUnique({ where: { reservationId: reservation.id } });
+                if (oldProject && !newProject) await tx.bookingProject.update({ where: { id: oldProject.id }, data: { reservationId: reservation.id } });
+            }
+            await synchronizeBookingWorkflows(tx, reservation, config);
+            if (booking.previousUid) await tx.bookingReminder.updateMany({ where: { reservation: { calUid: booking.previousUid }, status: { in: ['PENDING', 'PROCESSING'] } }, data: { status: 'CANCELLED', lockedUntil: null } });
         });
     } catch { return new Response('Unable to record event; retry later', { status: 503 }); }
     return new Response('Recorded', { headers: { 'cache-control': 'no-store' } });
