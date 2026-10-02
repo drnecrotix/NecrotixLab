@@ -32,5 +32,5 @@ test('Booking package uses the existing validated addon archive format', () => {
     const parsed = parseAddonZip(zipSync({ 'Addons/Booking/manifest.json': manifest }));
     assert.equal(parsed.id, 'booking');
     assert.equal(parsed.directory, 'Booking');
-    assert.equal(parsed.version, '1.1.0');
+    assert.equal(parsed.version, '1.2.0');
 });

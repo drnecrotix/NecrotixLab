@@ -10,7 +10,7 @@ Cal.diy owns event types, availability, guest booking, timezones, conflict check
 
 Google and Outlook calendar connection buttons lead to the corresponding Cal.diy apps. OAuth tokens remain in Cal.diy. The addon does not report a connection as active merely because a setup button exists. Samsung Calendar displays the connected Google calendar on the phone; this is not a direct Samsung API integration.
 
-Not delivered: independent reminder workflows, a full CRM, project creation, payments/deposits, enterprise/team features. Cal.diy removed enterprise Workflows, so reminders must be implemented and tested separately rather than implied by the integration. Some booking features, translations or integrations may differ by the deployed Cal.diy release.
+Booking 1.2 adds native email reminders, customer history and private project tracking. A full sales CRM, local payment/refund accounting, deposits and enterprise/team features remain outside this increment. Cal.diy remains the scheduling engine; its removed enterprise Workflows are not assumed to exist. Some booking features, translations or integrations may differ by the deployed Cal.diy release.
 
 ## Installation
 
@@ -66,3 +66,61 @@ Set a fresh random 32+ character `CALDIY_WEBHOOK_SECRET` in the CMS environment 
 The endpoint validates HMAC SHA-256 against the raw body, limits the body to 64 KB, ignores duplicate/stale events and serializes database changes inside a PostgreSQL transaction. Rescheduled bookings preserve their old UID history. Record fields: UID, service title, attendee name/email/timezone, start/end, notes, reason and status. There is no public reservation-list API. `/admin/bookings` requires OWNER or ADMIN and provides status filters and pagination; the dashboard links to it. Approve/cancel/reschedule in Cal.diy, then its webhook updates the CMS.
 
 Deactivation of the public addon still allows synchronization while installed. Uninstall stops webhook ingestion but retains existing records. Existing reservations from before webhook setup are not automatically imported. Set up delivery retries in the selected Cal.diy release and test retry, out-of-order creation/reschedule, pending approval, cancellation and database outage. Do not treat a reservation as recorded locally until a signed delivery succeeds.
+
+## Native Booking workflows (1.2)
+
+Deploy CMS 1.3.93 and run `npm run db:deploy`. The new migration adds private notes, the `BookingProject` and `BookingReminder` tables, and indexes. Existing reservations are retained. These projects do not create public portfolio entries or send data to the external Workspace integration.
+
+Admin > Reservations now has Upcoming, Past and Unconfirmed views, search by customer/service, status filters and pagination. Details show private administrator notes, the latest 30 reservations for the same email, project progress and the latest 20 reminder records. Customers has email search and pagination. Projects has status filters and pagination. Only OWNER/ADMIN can read or modify these records. Customer identities are inferred from attendee email, not from a new account/verified CRM identity. New webhook emails are trimmed and lowercased; detail history matches legacy email casing too.
+
+In Booking Settings enable either workflow independently:
+
+- Email reminder: disabled, 1, 24 or 48 hours before the appointment. Only a confirmed booking with a valid attendee email and a future reminder time is queued. A booking confirmed after its reminder time does not immediately send a late reminder. Offsets represent elapsed hours, including daylight saving changes.
+- Automatic private project: create one project per confirmed reservation, idempotently. An administrator can also create a project manually from a confirmed/completed booking and update its title, notes and progress. Cancelling a reservation does not automatically cancel project work. On a UID-changing reschedule the previous project moves to the new reservation if it does not already have a project; existing project progress/notes survive.
+
+Workflows default to disabled, including configurations saved by older addon versions. Changes apply to subsequent webhook events; there is no automatic historical backfill. The worker pauses when the addon is deactivated/uninstalled or reminders are disabled. Existing settings and records stay available.
+
+### Reminder worker
+
+1. Configure CMS SMTP under API Integrations or via the existing EMAIL_USER/EMAIL_APP_PASSWORD/SMTP_* variables.
+2. Set an independent random `BOOKING_CRON_SECRET` of at least 32 characters in the CMS environment. Do not reuse the webhook secret. Restart the CMS.
+3. Configure your server scheduler to POST the actual HTTPS CMS `/api/booking/reminders` every five minutes, with `Authorization: Bearer <BOOKING_CRON_SECRET>`. Store the secret in the scheduler's secret store, not in a public URL or GitHub. This PR does not create a hosted scheduler.
+4. Enable the reminder interval. Send a test signed confirmation for a disposable attendee with a sufficiently distant appointment. Inspect the queued record from the administrator detail page. Invoke the worker at the due time and confirm delivery.
+
+Each call handles at most ten due records. Atomic compare-and-set claims and a ten-minute lease prevent simultaneous workers claiming the same job. SMTP failure retries after five/ten minutes, with three total attempts. Expired leases are recoverable; an expired final attempt is marked FAILED. A stable Message-ID aids mail-provider deduplication but does not guarantee it. Delivery is at least once: a crash after SMTP acceptance and before the SENT database update can produce a duplicate. Check mailbox/provider logs before manually retrying a failed/uncertain job. There is no retry button in this increment.
+
+A cancellation or reschedule cancels queued/in-progress old reminders; the worker checks the current booking, start time and configured interval again before sending. A message already in SMTP transmission cannot be recalled. Enable either Cal.diy reminders or addon reminders for the same event type to avoid duplicates. Google/Microsoft/Samsung calendar synchronization remains owned by Cal.diy and is unaffected by this worker.
+
+### Payments and next increments
+
+The Settings payment link opens Cal.diy's `stripe` app, verified against upstream `packages/app-store/stripepayment/_metadata.ts`. Connect Stripe and configure the actual event type in your pinned Cal.diy deployment. Checkout, charges and refunds are not performed by this addon. CMS reservation status is not proof that a payment succeeded. No credit-card data is stored here.
+
+Next increments: verified payment-event ingestion and reconciliation, deposit/quote rules, client portal with authenticated access, richer CRM follow-ups, Workspace project synchronization and reminder templates. Each needs its own tested provider contract; do not represent setup links as active payment processing.
+
+### Workflow acceptance checks
+
+- Existing addon configuration leaves both workflows off.
+- Confirm a future reservation twice: one private project and one reminder key.
+- Pending/rejected/cancelled bookings produce no new project or reminder.
+- Reschedule to a new UID: old reminder cancels, current reminder gets the new time, project notes survive.
+- Update private/project notes, reload, and ensure public `/projects` does not expose them.
+- Run concurrent cron requests: only one worker claims the job; SMTP failure retries and then shows FAILED.
+- Cancel before delivery: no new message; verify the in-flight limitation above.
+- Deactivate/uninstall: worker returns disabled and sends nothing.
+- Test narrow/desktop screens, light/dark, keyboard focus and reduced-motion behavior.
+
+Architecture follows Cal.diy's event-type/booking separation: settings and public embed are presentation, webhook is the scheduling boundary, pure workflow policy defines eligibility, and the CMS owns its private project/reminder persistence. Public scheduling still renders the real Cal.diy booker; native admin views use tabs, compact divided rows, understated borders, theme tokens and small reduced-motion-aware hover effects. No upstream source has been copied into the addon.
+
+## Add to calendar
+
+Confirmed/completed reservations show Google Calendar, Outlook personal, Microsoft 365 and .ics export in the administrator detail view. The .ics file can be opened/imported by supported calendar apps, including Apple Calendar and Samsung where the device supports .ics import. For Samsung, syncing the same Google account remains the reliable fallback.
+
+Exports include only the appointment title, UTC start/end and a generic confirmation instruction. Attendee email/name, attendee notes, private notes and project details are excluded. RFC 5545 escaping, CRLF lines and UTF-8 octet-aware line folding prevent content-line injection and preserve non-English text.
+
+An administrator can open a private customer calendar link and share it with that attendee. Native reminder emails include that link when AUTH_SECRET has at least 32 characters and the configured public site URL is correct. The signed page at `/booking/calendar/[id]?token=...` offers the same providers and .ics download without an account. It displays only the appointment title/time. The token is bound to the booking ID, attendee email, event version and time range; webhook changes invalidate it, and it expires 30 days after the appointment ends. Anyone holding the link can access these limited details. Never publish it. Do not rotate a valid AUTH_SECRET merely to enable this feature; rotation invalidates sessions and existing private links.
+
+The .ics endpoint `/api/booking/calendar/[id]` requires OWNER/ADMIN authentication or the matching private token. Pending/cancelled/rejected/superseded reservations cannot be exported. Calendar pages and downloads are no-store, noindex and no-referrer; calendar pages are excluded from the PWA offline cache and traffic pageview tracking.
+
+This is a one-time calendar copy, not a subscribed calendar or OAuth synchronization. Save the event in the provider's confirmation form. Later cancellation/rescheduling does not automatically modify a manually added copy. Repeated imports can create duplicates even with a stable .ics UID. If Cal.diy already synchronized the appointment, avoid adding another copy.
+
+Sources: https://www.rfc-editor.org/rfc/rfc5545 ; https://developers.google.com/workspace/calendar/api/concepts/inviting-attendees-to-events ; https://learn.microsoft.com/en-gb/answers/questions/1008125/is-it-possible-to-launch-the-outlook-app%28calendar%29

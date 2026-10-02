@@ -9,7 +9,7 @@ export function TrafficAnalyticsTracker() {
     const pathname = usePathname();
 
     useEffect(() => {
-        if (!pathname || pathname.startsWith('/admin') || pathname.startsWith('/api') || pathname === '/site-status') return;
+        if (!pathname || pathname.startsWith('/booking/calendar/') || pathname.startsWith('/admin') || pathname.startsWith('/api') || pathname === '/site-status') return;
         if (typeof navigator !== 'undefined' && navigator.doNotTrack === '1') return;
 
         const controller = new AbortController();

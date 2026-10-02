@@ -1,7 +1,7 @@
 /* Opt-in NecrotixLab service worker. Registered only from NativePwaLayer
    when Admin → PWA App enables it. Never caches /admin or /api.
    APP_VERSION must match package.json so a release always produces a new worker. */
-const APP_VERSION = '1.3.92';
+const APP_VERSION = '1.3.93';
 const VERSION = `necrotix-pwa-v${APP_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 const enableOffline = new URL(self.location.href).searchParams.get('offline') === '1';
@@ -39,7 +39,7 @@ self.addEventListener('message', (event) => {
 });
 
 function isPrivatePath(pathname) {
-    return pathname.startsWith('/admin') || pathname.startsWith('/api') || pathname === '/pwa-sw.js' || pathname === '/manifest.webmanifest' || pathname.startsWith('/pwa/icon/') || pathname.startsWith('/pwa/apple-splash/');
+    return pathname.startsWith('/booking/calendar/') || pathname.startsWith('/admin') || pathname.startsWith('/api') || pathname === '/pwa-sw.js' || pathname === '/manifest.webmanifest' || pathname.startsWith('/pwa/icon/') || pathname.startsWith('/pwa/apple-splash/');
 }
 
 function isStaticAsset(pathname) {

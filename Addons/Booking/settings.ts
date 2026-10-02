@@ -1,7 +1,7 @@
 export const BOOKING_CONFIG_SLUG = '_booking-addon-config';
-export const BOOKING_ADDON_VERSION = '1.1.0';
+export const BOOKING_ADDON_VERSION = '1.2.0';
 export type BookingService = { id: string; title: string; description: string; duration: number; path: string };
-export type BookingConfig = { installed: boolean; active: boolean; packageVersion: string; title: string; description: string; services: BookingService[] };
+export type BookingConfig = { installed: boolean; active: boolean; packageVersion: string; title: string; description: string; services: BookingService[]; reminderHours: number; autoProject: boolean };
 export function calOrigin(value: string | undefined): string | null {
     try {
         const url = new URL(value?.trim() || '');
@@ -24,7 +24,7 @@ export function normalizeBookingConfig(value: unknown): BookingConfig {
     }) : [];
     return { installed: raw.installed === true, active: raw.active === true && raw.installed === true,
         packageVersion: text(raw.packageVersion, BOOKING_ADDON_VERSION, 20),
-        title: text(raw.title, 'Let’s find a time.', 120), description: text(raw.description, 'Choose a consultation, select an available time and tell me about your project.', 600), services };
+        title: text(raw.title, 'Let’s find a time.', 120), description: text(raw.description, 'Choose a consultation, select an available time and tell me about your project.', 600), services, reminderHours: [1, 24, 48].includes(Number(raw.reminderHours)) ? Number(raw.reminderHours) : 0, autoProject: raw.autoProject === true };
 }
 export function bookingReady(config: BookingConfig, origin: string | null) {
     return config.installed && config.active && Boolean(origin) && config.services.length > 0;
