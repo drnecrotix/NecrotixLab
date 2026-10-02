@@ -8,6 +8,9 @@ import { AddonSubmitButton } from '@/components/admin/AddonSubmitButton';
 import { catalogueRepo, githubAddonCatalogue, type MarketplaceAddon } from '@/lib/addon-marketplace.server';
 import { ADDONS_REGISTRY_SLUG, stagedAddons } from '@/lib/addon-staging.server';
 import { compareVersions } from '@/modules/addons/package';
+import bookingManifest from '@addons/Booking/manifest.json';
+import { bookingAddonConfig } from '@addons/Booking/server';
+import { setBookingAddonState } from './booking/actions';
 import { normalizeServiceToolsConfig, SERVICE_TOOLS_CONFIG_SLUG, TOOLS_ADDON_VERSION } from '@addons/Tools/settings';
 import { installGithubAddon, removeStagedAddon, setToolsAddonState, uploadAddon } from './actions';
 
@@ -33,11 +36,13 @@ export default async function AddonsPage({ searchParams }: { searchParams: Promi
         githubAddonCatalogue(refreshRequested),
     ]);
     const config = normalizeServiceToolsConfig(record?.content);
-    const staged = stagedAddons(registry?.content);
+    const booking = await bookingAddonConfig();
+    const staged = stagedAddons(registry?.content).filter(item => item.id !== 'booking');
     const tab: Tab = params.tab === 'installed' || params.tab === 'add-new' ? params.tab : 'available';
     const query = (params.q || '').trim().slice(0, 80).toLowerCase();
     const publishedTools = marketplace.addons.find((item) => item.id === 'tools');
-    const catalogue = (publishedTools ? marketplace.addons : [bundledTools, ...marketplace.addons]);
+    const baseCatalogue = (publishedTools ? marketplace.addons : [bundledTools, ...marketplace.addons]);
+    const catalogue = baseCatalogue.some(item => item.id === 'booking') ? baseCatalogue : [...baseCatalogue, { ...bookingManifest, directory: 'Booking' }];
     const available = catalogue.filter((item) => !query || `${item.name} ${item.description} ${item.id}`.toLowerCase().includes(query));
     const toolsGithubAhead = Boolean(publishedTools && compareVersions(publishedTools.version, config.packageVersion) > 0);
     const toolsCmsAhead = compareVersions(TOOLS_ADDON_VERSION, config.packageVersion) > 0;
@@ -48,7 +53,7 @@ export default async function AddonsPage({ searchParams }: { searchParams: Promi
         return Boolean(remote && compareVersions(remote.version, item.version) > 0);
     });
     const updatesCount = (config.installed && (toolsUpdateReady || toolsGithubAhead) ? 1 : 0) + stagedUpdates.length;
-    const installedCount = (config.installed ? 1 : 0) + staged.length;
+    const installedCount = (config.installed ? 1 : 0) + (booking.installed ? 1 : 0) + staged.length;
     const toastMessage = params.error
         || (params.imported ? 'Plugin package received.' : undefined)
         || (params.saved === 'updated' ? 'Tools updated to the version included in this CMS.' : undefined)
@@ -108,11 +113,12 @@ export default async function AddonsPage({ searchParams }: { searchParams: Promi
                 <div className="mt-6 divide-y divide-border border-y border-border">
                     {available.map((item) => {
                         const isTools = item.id === 'tools';
+                        const isBooking = item.id === 'booking';
                         const stagedPackage = staged.find((addon) => addon.id === item.id);
-                        const installed = isTools ? config.installed : Boolean(stagedPackage);
-                        const installedVersion = isTools && config.installed ? config.packageVersion : stagedPackage?.version;
+                        const installed = isBooking ? booking.installed : isTools ? config.installed : Boolean(stagedPackage);
+                        const installedVersion = isBooking && booking.installed ? booking.packageVersion : isTools && config.installed ? config.packageVersion : stagedPackage?.version;
                         const newer = Boolean(installedVersion && compareVersions(item.version, installedVersion) > 0);
-                        const needsCms = isTools && compareVersions(item.version, TOOLS_ADDON_VERSION) > 0;
+                        const needsCms = isBooking ? compareVersions(item.version, bookingManifest.version) > 0 : isTools && compareVersions(item.version, TOOLS_ADDON_VERSION) > 0;
                         return <article key={item.id} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex min-w-0 flex-wrap items-center gap-3">
                                 <span className="grid size-9 shrink-0 place-items-center text-cyan-500"><PackagePlus className="size-5" /></span>
@@ -125,6 +131,7 @@ export default async function AddonsPage({ searchParams }: { searchParams: Promi
                             <p className="min-w-0 flex-1 text-sm leading-6 text-muted-foreground sm:px-4">{item.description}</p>
                             <div className="flex shrink-0 flex-wrap items-center gap-3">
                                 {needsCms ? <span className="text-xs font-semibold text-amber-500">Update CMS before installing</span>
+                                    : isBooking ? booking.installed ? <Link href="/admin/addons/booking" className="text-sm font-semibold text-cyan-500 hover:underline">Settings</Link> : <form action={setBookingAddonState}><input type="hidden" name="operation" value="install" /><AddonSubmitButton pendingLabel="Installing..." className="min-h-10 rounded-lg bg-cyan-600 px-4 text-sm font-bold text-white">Install</AddonSubmitButton></form>
                                     : isTools && !config.installed ? <form action={setToolsAddonState}><input type="hidden" name="operation" value="install" /><AddonSubmitButton pendingLabel="Installing..." className="min-h-10 rounded-lg bg-cyan-600 px-4 text-sm font-bold text-white">Install</AddonSubmitButton></form>
                                     : isTools && toolsUpdateReady ? <form action={setToolsAddonState}><input type="hidden" name="operation" value="update" /><AddonSubmitButton pendingLabel="Updating..." className="min-h-10 rounded-lg bg-cyan-600 px-4 text-sm font-bold text-white">Update</AddonSubmitButton></form>
                                     : isTools && config.installed ? <Link href="/admin/addons?tab=installed" className="text-sm font-semibold text-cyan-500 hover:underline">View installed</Link>
@@ -160,6 +167,7 @@ export default async function AddonsPage({ searchParams }: { searchParams: Promi
                             {!config.active && <form action={setToolsAddonState}><input type="hidden" name="operation" value="uninstall" /><button className="text-sm font-semibold text-rose-500 hover:underline">Uninstall</button></form>}
                         </div>
                     </article>}
+                    {booking.installed && <article className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-lg font-bold">Booking</h3><p className="mt-2 text-xs text-muted-foreground">v{booking.packageVersion} · {booking.active ? 'Active' : 'Inactive'} · Cal.diy</p></div><div className="flex flex-wrap items-center gap-4"><form action={setBookingAddonState}><input type="hidden" name="operation" value={booking.active ? 'deactivate' : 'activate'} /><button className="text-sm text-cyan-500 underline">{booking.active ? 'Deactivate' : 'Activate'}</button></form><Link href="/admin/addons/booking" className="text-sm text-cyan-500 underline">Settings</Link><a href="/api/admin/addons/booking/download" className="text-sm text-cyan-500 underline">ZIP</a>{booking.packageVersion !== bookingManifest.version && <form action={setBookingAddonState}><input type="hidden" name="operation" value="update" /><button className="text-sm underline">Update</button></form>}{!booking.active && <form action={setBookingAddonState}><input type="hidden" name="operation" value="uninstall" /><button className="text-sm text-rose-500 underline">Uninstall</button></form>}</div></article>}
                     {staged.map((item) => {
                         const remote = catalogue.find((addon) => addon.id === item.id);
                         const newer = Boolean(remote && compareVersions(remote.version, item.version) > 0);
