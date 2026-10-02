@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { BackToLabLink } from '@/components/services/BackToLabLink';
 import { toolsPackageActive } from '@/lib/addons.server';
+import { bookingDestination } from '@/lib/booking';
 
 export const metadata: Metadata = {
     title: 'Lab Services',
@@ -34,6 +35,7 @@ const engineeringServices = [
 
 export default async function ServicesPage() {
     const showTools = await toolsPackageActive();
+    const bookingEnabled = Boolean(bookingDestination(process.env.BOOKING_URL));
     return (
         <main className="min-h-screen bg-background px-5 pb-24 pt-28 text-foreground sm:px-8 lg:pt-36">
             <div className="mx-auto max-w-6xl">
@@ -42,6 +44,7 @@ export default async function ServicesPage() {
                     <div className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-sky-500">Kreatrics / Services</div>
                     <h1 className="mt-5 text-4xl font-black tracking-[-0.055em] sm:text-5xl">Lab Services</h1>
                     <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">Website services and developing CAD and CNC capabilities. Free utilities have their own Tools page.</p>
+                    {bookingEnabled && <Link href="/booking" className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-foreground px-5 text-sm font-bold text-background">Book a consultation <ArrowRight className="size-4" /></Link>}
                 </header>
                 <section className="mt-10 grid border-t border-border/80 md:grid-cols-2 xl:grid-cols-3">
                     {services.map(({ href, icon: Icon, eyebrow, title, description, accent, ...service }) => service.comingSoon ? (
