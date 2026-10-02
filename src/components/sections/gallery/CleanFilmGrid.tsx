@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArtDiscoveryGrid } from './ArtDiscoveryGrid';
 import { motion } from 'framer-motion';
 import { GalleryImage as Image } from './GalleryImage';
 import Link from 'next/link';
@@ -32,7 +33,7 @@ type GalleryItem = {
 function galleryAspectRatio(width: number, height: number, type: GalleryItem['type']) {
     if (type === 'video') return 16 / 9;
     if (!width || !height) return 4 / 3;
-    return Math.max(0.68, Math.min(1.8, width / height));
+    return Math.max(0.4, Math.min(3, width / height));
 }
 
 function GalleryPreview({ item, sizes, className, fit = 'cover' }: { item: GalleryItem; sizes: string; className?: string; fit?: 'cover' | 'contain' }) {
@@ -216,7 +217,7 @@ export default function CleanFilmGrid({ isLowPowerMode, content }: { isLowPowerM
     }, [viewMode]);
 
     return (
-        <section className="relative min-h-screen px-4 py-20 sm:px-6 md:px-10 lg:px-14 xl:px-16">
+        <section className={cn('relative min-h-screen py-20', viewMode === 'grid' ? 'px-3 sm:px-4 lg:px-5' : 'px-4 sm:px-6 md:px-10 lg:px-14 xl:px-16')}>
             <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-96 bg-gradient-to-b from-transparent to-background" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 top-96 z-0 bg-background" />
 
@@ -227,10 +228,10 @@ export default function CleanFilmGrid({ isLowPowerMode, content }: { isLowPowerM
                 </div>
 
                 <div className="flex w-full flex-col gap-3 md:w-auto md:items-end">
-                    <div className="flex max-w-full gap-1 overflow-x-auto rounded-full border border-black/5 bg-black/5 p-1 shadow-inner backdrop-blur-md scrollbar-hide dark:border-white/5 dark:bg-white/5">
-                        <button onClick={() => changeFilter('all')} className={cn('shrink-0 rounded-full px-4 py-2 text-xs font-medium transition', filter === 'all' ? 'bg-white text-foreground shadow-md ring-1 ring-black/5 dark:bg-neutral-800 dark:ring-white/10' : 'text-muted-foreground hover:bg-white/50 hover:text-foreground dark:hover:bg-white/10')}>{content.filterAll}</button>
+                    <div className={cn('flex max-w-full overflow-x-auto scrollbar-hide', viewMode === 'grid' ? 'gap-2' : 'gap-1 rounded-full border border-black/5 bg-black/5 p-1 shadow-inner backdrop-blur-md dark:border-white/5 dark:bg-white/5')}>
+                        <button onClick={() => changeFilter('all')} className={cn(viewMode === 'grid' ? 'shrink-0 rounded-sm border border-border bg-muted/50 px-3 py-2.5 text-xs font-semibold transition' : 'shrink-0 rounded-full px-4 py-2 text-xs font-medium transition', filter === 'all' && viewMode === 'grid' ? 'border-primary text-foreground ring-1 ring-primary/30' : filter === 'all' ? 'bg-white text-foreground shadow-md ring-1 ring-black/5 dark:bg-neutral-800 dark:ring-white/10' : 'text-muted-foreground hover:bg-white/50 hover:text-foreground dark:hover:bg-white/10')}>{content.filterAll}</button>
                         {availableTypes.map((option) => (
-                            <button key={option.value} onClick={() => changeFilter(option.value)} className={cn('shrink-0 rounded-full px-4 py-2 text-xs font-medium transition', filter === option.value ? 'bg-white text-foreground shadow-md ring-1 ring-black/5 dark:bg-neutral-800 dark:ring-white/10' : 'text-muted-foreground hover:bg-white/50 hover:text-foreground dark:hover:bg-white/10')}>{option.label}</button>
+                            <button key={option.value} onClick={() => changeFilter(option.value)} className={cn(viewMode === 'grid' ? 'shrink-0 rounded-sm border border-border bg-muted/50 px-3 py-2.5 text-xs font-semibold transition' : 'shrink-0 rounded-full px-4 py-2 text-xs font-medium transition', filter === option.value && viewMode === 'grid' ? 'border-primary text-foreground ring-1 ring-primary/30' : filter === option.value ? 'bg-white text-foreground shadow-md ring-1 ring-black/5 dark:bg-neutral-800 dark:ring-white/10' : 'text-muted-foreground hover:bg-white/50 hover:text-foreground dark:hover:bg-white/10')}>{option.label}</button>
                         ))}
                     </div>
 
@@ -283,19 +284,7 @@ export default function CleanFilmGrid({ isLowPowerMode, content }: { isLowPowerM
 
                     {viewMode === 'grid' && (
                         <div className="space-y-10">
-                            <div className="columns-1 gap-3 sm:columns-2 lg:columns-3 2xl:columns-4">
-                                {visibleItems.map((item, index) => (
-                                    <motion.div key={item.id} initial={isLowPowerMode ? { opacity: 0 } : { opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-8%' }} transition={{ duration: 0.35, delay: isLowPowerMode ? 0 : Math.min(index, 10) * 0.035 }} className="mb-3 break-inside-avoid">
-                                        <Link href={item.detailUrl} style={{ aspectRatio: item.aspectRatio }} className="group relative block overflow-hidden rounded-xl bg-muted">
-                                            <GalleryPreview item={item} sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1535px) 33vw, 25vw" className={cn('transition-transform duration-700', !item.isNsfw && 'group-hover:scale-[1.035]')} />
-                                            <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-                                            <div className="absolute left-3 top-3 z-10 rounded-full bg-black/45 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/80 backdrop-blur-sm">{galleryCreativeTypeLabel(item.creativeType)}</div>
-                                            <span className="absolute right-3 top-3 z-10 rounded-full bg-black/45 p-2 text-white/80 opacity-0 transition-opacity group-hover:opacity-100">{item.type === 'video' ? <Play className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}</span>
-                                            <div className="absolute bottom-3 left-3 right-3 z-10"><p className="line-clamp-2 text-sm font-medium text-white sm:text-base">{item.title}</p></div>
-                                        </Link>
-                                    </motion.div>
-                                ))}
-                            </div>
+                            <ArtDiscoveryGrid items={visibleItems} />
                             {visibleCount < filteredItems.length && (
                                 <div className="flex justify-center"><button onClick={() => setVisibleCount((count) => count + 18)} className="rounded-full border border-foreground/10 px-5 py-2.5 text-xs font-medium text-muted-foreground transition hover:text-foreground">{content.loadMoreLabel}</button></div>
                             )}
