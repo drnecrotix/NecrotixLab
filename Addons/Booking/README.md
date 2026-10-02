@@ -1,16 +1,16 @@
-# Booking Addon 1.0.0
+# Booking Addon 1.1.0
 
-Cal.diy booking surface for NecrotixLab. Requires CMS 1.3.91 or later with the matching compiled wrappers.
+Cal.diy booking surface for NecrotixLab. Requires CMS 1.3.92 or later with the matching compiled wrappers.
 
 ## Architecture and delivered features
 
 Cal.diy runs separately, preferably at `https://booking.necrotixlab.com`, with its own PostgreSQL database. NecrotixLab does not embed the Cal.diy monorepo into its build and does not copy its database. The addon provides install/activate/deactivate/uninstall, an administrator-only service editor (up to eight services), responsive light/dark presentation, BG/EN surrounding interface, an embedded calendar and an always-visible direct-link fallback.
 
-Cal.diy owns event types, availability, guest booking, timezones, conflict checks, approval, confirmations, cancellation and rescheduling. Configure and test these in the selected Cal.diy release. Changing the addon’s duration label does not change the actual event type. No clients or appointment records are copied to the CMS.
+Cal.diy owns event types, availability, guest booking, timezones, conflict checks, approval, confirmations, cancellation and rescheduling. Configure and test these in the selected Cal.diy release. Changing the addon’s duration label does not change the actual event type. A signed webhook copies bounded reservation details into a dedicated CMS database table for administrator review. Calendar OAuth tokens stay in Cal.diy.
 
 Google and Outlook calendar connection buttons lead to the corresponding Cal.diy apps. OAuth tokens remain in Cal.diy. The addon does not report a connection as active merely because a setup button exists. Samsung Calendar displays the connected Google calendar on the phone; this is not a direct Samsung API integration.
 
-Not delivered: independent reminder workflows, CRM history in the CMS, project creation, payments/deposits, enterprise/team features. Cal.diy removed enterprise Workflows, so reminders must be implemented and tested separately rather than implied by the integration. Some booking features, translations or integrations may differ by the deployed Cal.diy release.
+Not delivered: independent reminder workflows, a full CRM, project creation, payments/deposits, enterprise/team features. Cal.diy removed enterprise Workflows, so reminders must be implemented and tested separately rather than implied by the integration. Some booking features, translations or integrations may differ by the deployed Cal.diy release.
 
 ## Installation
 
@@ -56,3 +56,13 @@ Cal.diy upstream explicitly recommends personal/non-production use. Do not enabl
 - https://www.samsung.com/ph/support/mobile-devices/how-to-sync-your-google-calendar-on-your-samsung-galaxy-device/
 
 Addon source is MIT; no Cal.diy source is bundled in this package. Cal.diy must be installed separately under its own license and deployment requirements.
+
+## Reservation records in the CMS
+
+Deploy the included Prisma migration with `npm run db:deploy` before using `/admin/bookings`. The existing CMS self-updater also runs migrate deploy. Generate the Prisma client during the build. No existing table is dropped or rewritten.
+
+Set a fresh random 32+ character `CALDIY_WEBHOOK_SECRET` in the CMS environment and the identical secret in Cal.diy's webhook settings. Use the actual HTTPS CMS URL plus `/api/booking/webhook` as the subscriber URL. Use the default upstream JSON payload, not a custom template. Enable BOOKING_CREATED, BOOKING_REQUESTED, BOOKING_CONFIRMED, BOOKING_REJECTED, BOOKING_CANCELLED and BOOKING_RESCHEDULED. MEETING_ENDED is accepted when the payload supplies the booking UID and start/end times.
+
+The endpoint validates HMAC SHA-256 against the raw body, limits the body to 64 KB, ignores duplicate/stale events and serializes database changes inside a PostgreSQL transaction. Rescheduled bookings preserve their old UID history. Record fields: UID, service title, attendee name/email/timezone, start/end, notes, reason and status. There is no public reservation-list API. `/admin/bookings` requires OWNER or ADMIN and provides status filters and pagination; the dashboard links to it. Approve/cancel/reschedule in Cal.diy, then its webhook updates the CMS.
+
+Deactivation of the public addon still allows synchronization while installed. Uninstall stops webhook ingestion but retains existing records. Existing reservations from before webhook setup are not automatically imported. Set up delivery retries in the selected Cal.diy release and test retry, out-of-order creation/reschedule, pending approval, cancellation and database outage. Do not treat a reservation as recorded locally until a signed delivery succeeds.

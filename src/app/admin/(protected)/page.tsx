@@ -87,7 +87,7 @@ export default async function AdminDashboardPage() {
             {!databaseHealthy && <p className="rounded-xl border border-amber-500/30 p-3 text-xs text-amber-700 dark:text-amber-300">Content totals are unavailable because the database query failed.</p>}
 
             <nav aria-label="Quick actions" className="admin-dashboard-enter flex flex-wrap gap-2">
-                {[['Blog posts', '/admin/blog'], ['Projects', '/admin/projects'], ['Media library', '/admin/media'], ...(canManageAddons ? [['Addons', '/admin/addons'], ['Site health', '/admin/site-health']] : [])].map(([label, href]) => (
+                {[['Blog posts', '/admin/blog'], ['Projects', '/admin/projects'], ['Media library', '/admin/media'], ...(canManageAddons ? [['Addons', '/admin/addons'], ['Reservations', '/admin/bookings'], ['Site health', '/admin/site-health']] : [])].map(([label, href]) => (
                     <Link key={href} href={href} className="rounded-xl border border-border bg-card px-4 py-2.5 text-xs font-semibold transition-colors hover:border-cyan-500/50 hover:text-cyan-700 dark:hover:text-cyan-300">{label}</Link>
                 ))}
             </nav>

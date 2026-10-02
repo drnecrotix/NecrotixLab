@@ -609,3 +609,25 @@ model StoreCheckoutSession {
   @@index([productId, createdAt])
   @@index([expiresAt])
 }
+
+model BookingReservation {
+  id           String   @id @default(cuid())
+  calUid       String   @unique
+  rescheduledFromUid String?
+  status       String
+  title        String
+  customerName String
+  email        String
+  timeZone     String
+  startTime    DateTime
+  endTime      DateTime
+  notes        String   @default("")
+  reason       String   @default("")
+  eventAt      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([rescheduledFromUid])
+  @@index([status, startTime])
+  @@index([createdAt])
+}
