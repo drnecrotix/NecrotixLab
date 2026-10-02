@@ -1,3 +1,5 @@
+> Legacy alternative: the CMS now uses the Booking addon with Cal.diy. BOOKING_URL no longer enables booking. See ../../Addons/Booking/README.md. The remaining instructions apply only to a separate optional Easy!Appointments installation.
+
 # Easy!Appointments за NecrotixLab
 
 Подготовка за отделна PHP инсталация. В този PR има конфигурационен шаблон и връзка от NecrotixLab; самият booking engine се инсталира от официален release. Няма активирани реални резервации или плащания.

@@ -12,7 +12,9 @@ import {
 } from 'lucide-react';
 import { BackToLabLink } from '@/components/services/BackToLabLink';
 import { toolsPackageActive } from '@/lib/addons.server';
-import { bookingDestination } from '@/lib/booking';
+import { bookingAddonReady } from '@addons/Booking/server';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
     title: 'Lab Services',
@@ -35,7 +37,7 @@ const engineeringServices = [
 
 export default async function ServicesPage() {
     const showTools = await toolsPackageActive();
-    const bookingEnabled = Boolean(bookingDestination(process.env.BOOKING_URL));
+    const bookingEnabled = await bookingAddonReady();
     return (
         <main className="min-h-screen bg-background px-5 pb-24 pt-28 text-foreground sm:px-8 lg:pt-36">
             <div className="mx-auto max-w-6xl">

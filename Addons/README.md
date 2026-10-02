@@ -9,3 +9,7 @@ Current runtime contract: Next.js routes are compiled into the CMS build. Addon 
 ## Installing packages
 
 The catalogue reads every folder manifest from GitHub. Name the downloadable archive `necrotixlab-<id>-<version>.zip` in the same folder. Admin / Addons can fetch it from GitHub, or accept a custom ZIP with exactly one `Addons/<Name>/manifest.json`. The importer validates size, structure and metadata. Tools can activate only when its package matches the current CMS build. Other packages are retained privately in `storage/addons` as staged source until the CMS implements their route and extension contract. Deleting a staged package removes its archive and record.
+
+## Booking
+
+Booking is another bundled runtime contract. Install it from Available, configure services on `/admin/addons/booking`, and activate only after the separate Cal.diy instance is tested. Export a matching ZIP from Installed. See `Booking/README.md` for calendar setup and deployment requirements.

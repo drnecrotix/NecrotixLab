@@ -25,6 +25,7 @@ const nextConfig = {
     productionBrowserSourceMaps: false,
     outputFileTracingIncludes: {
         '/api/admin/addons/tools/download': ['./Addons/Tools/*.zip'],
+        '/api/admin/addons/booking/download': ['./Addons/Booking/*'],
     },
     transpilePackages: ['three'],
     // The self-updater builds into .next-update while the live .next tree stays in

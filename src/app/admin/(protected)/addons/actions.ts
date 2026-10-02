@@ -8,6 +8,8 @@ import { catalogueRepo, githubAddonCatalogue } from '@/lib/addon-marketplace.ser
 import { deleteStagedAddon, stageAddonZip } from '@/lib/addon-staging.server';
 import { MAX_ADDON_ZIP_BYTES, parseAddonZip } from '@/modules/addons/package';
 import manifest from '@addons/Tools/manifest.json';
+import bookingManifest from '@addons/Booking/manifest.json';
+import { BOOKING_CONFIG_SLUG, normalizeBookingConfig } from '@addons/Booking/settings';
 import { normalizeServiceToolsConfig, SERVICE_TOOLS_CONFIG_SLUG, TOOLS_ADDON_VERSION } from '@addons/Tools/settings';
 
 async function requireAdmin() {
@@ -34,6 +36,13 @@ async function installArchive(bytes: Uint8Array, source: 'github' | 'custom') {
     if (item.id === 'tools') {
         if (item.directory !== 'Tools' || item.version !== manifest.version || item.requiresCms !== manifest.requiresCms) throw new Error(`Tools ${item.version} needs a matching CMS build. This build supports ${TOOLS_ADDON_VERSION}.`);
         await activateTools();
+    } else if (item.id === 'booking') {
+        if (item.directory !== 'Booking' || item.version !== bookingManifest.version || item.requiresCms !== bookingManifest.requiresCms) throw new Error('Booking package needs a matching CMS build.');
+        const current = await prisma.page.findUnique({ where: { slug: BOOKING_CONFIG_SLUG }, select: { content: true } });
+        const config = normalizeBookingConfig(current?.content);
+        config.installed = true; config.packageVersion = bookingManifest.version;
+        await prisma.page.upsert({ where: { slug: BOOKING_CONFIG_SLUG }, create: { slug: BOOKING_CONFIG_SLUG, title: 'Booking addon settings', status: 'DRAFT', content: config }, update: { content: config } });
+        refresh();
     } else {
         await stageAddonZip(bytes, source);
         revalidatePath('/admin/addons');
