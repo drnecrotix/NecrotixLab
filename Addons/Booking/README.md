@@ -110,3 +110,17 @@ Next increments: verified payment-event ingestion and reconciliation, deposit/qu
 - Test narrow/desktop screens, light/dark, keyboard focus and reduced-motion behavior.
 
 Architecture follows Cal.diy's event-type/booking separation: settings and public embed are presentation, webhook is the scheduling boundary, pure workflow policy defines eligibility, and the CMS owns its private project/reminder persistence. Public scheduling still renders the real Cal.diy booker; native admin views use tabs, compact divided rows, understated borders, theme tokens and small reduced-motion-aware hover effects. No upstream source has been copied into the addon.
+
+## Add to calendar
+
+Confirmed/completed reservations show Google Calendar, Outlook personal, Microsoft 365 and .ics export in the administrator detail view. The .ics file can be opened/imported by supported calendar apps, including Apple Calendar and Samsung where the device supports .ics import. For Samsung, syncing the same Google account remains the reliable fallback.
+
+Exports include only the appointment title, UTC start/end and a generic confirmation instruction. Attendee email/name, attendee notes, private notes and project details are excluded. RFC 5545 escaping, CRLF lines and UTF-8 octet-aware line folding prevent content-line injection and preserve non-English text.
+
+An administrator can open a private customer calendar link and share it with that attendee. Native reminder emails include that link when AUTH_SECRET has at least 32 characters and the configured public site URL is correct. The signed page at `/booking/calendar/[id]?token=...` offers the same providers and .ics download without an account. It displays only the appointment title/time. The token is bound to the booking ID, attendee email, event version and time range; webhook changes invalidate it, and it expires 30 days after the appointment ends. Anyone holding the link can access these limited details. Never publish it. Do not rotate a valid AUTH_SECRET merely to enable this feature; rotation invalidates sessions and existing private links.
+
+The .ics endpoint `/api/booking/calendar/[id]` requires OWNER/ADMIN authentication or the matching private token. Pending/cancelled/rejected/superseded reservations cannot be exported. Calendar pages and downloads are no-store, noindex and no-referrer; calendar pages are excluded from the PWA offline cache and traffic pageview tracking.
+
+This is a one-time calendar copy, not a subscribed calendar or OAuth synchronization. Save the event in the provider's confirmation form. Later cancellation/rescheduling does not automatically modify a manually added copy. Repeated imports can create duplicates even with a stable .ics UID. If Cal.diy already synchronized the appointment, avoid adding another copy.
+
+Sources: https://www.rfc-editor.org/rfc/rfc5545 ; https://developers.google.com/workspace/calendar/api/concepts/inviting-attendees-to-events ; https://learn.microsoft.com/en-gb/answers/questions/1008125/is-it-possible-to-launch-the-outlook-app%28calendar%29

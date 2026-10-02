@@ -64,6 +64,14 @@ const nextConfig = {
                 headers: sharedSecurityHeaders,
             },
             {
+                source: '/booking/calendar/:path*',
+                headers: [
+                    { key: 'Cache-Control', value: 'private, no-store' },
+                    { key: 'Referrer-Policy', value: 'no-referrer' },
+                    { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive, nosnippet' },
+                ],
+            },
+            {
                 source: '/admin/:path*',
                 headers: [
                     { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive, nosnippet, noimageindex' },

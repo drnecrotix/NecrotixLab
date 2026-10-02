@@ -39,7 +39,7 @@ self.addEventListener('message', (event) => {
 });
 
 function isPrivatePath(pathname) {
-    return pathname.startsWith('/admin') || pathname.startsWith('/api') || pathname === '/pwa-sw.js' || pathname === '/manifest.webmanifest' || pathname.startsWith('/pwa/icon/') || pathname.startsWith('/pwa/apple-splash/');
+    return pathname.startsWith('/booking/calendar/') || pathname.startsWith('/admin') || pathname.startsWith('/api') || pathname === '/pwa-sw.js' || pathname === '/manifest.webmanifest' || pathname.startsWith('/pwa/icon/') || pathname.startsWith('/pwa/apple-splash/');
 }
 
 function isStaticAsset(pathname) {

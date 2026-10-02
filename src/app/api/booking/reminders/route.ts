@@ -4,6 +4,8 @@ import { getRuntimeSmtpConfig } from '@/lib/integration-runtime';
 import { bookingAddonConfig } from '@addons/Booking/server';
 import { reminderMessageTime } from '@addons/Booking/workflow-policy';
 import { validBookingCronAuthorization } from '@addons/Booking/webhook';
+import { bookingCalendarGuestPath } from '@addons/Booking/calendar-access';
+import { getPublicSiteUrl } from '@/lib/social-metadata';
 export const runtime = 'nodejs';
 export async function POST(request: Request) {
     const header = request.headers.get('authorization'); const secret = process.env.BOOKING_CRON_SECRET;
@@ -26,7 +28,9 @@ export async function POST(request: Request) {
         }
         try {
             const time = reminderMessageTime(booking.startTime, booking.timeZone);
-            await transporter.sendMail({ from: smtp.user, to: booking.email, subject: `Reminder: ${booking.title.replace(/[\r\n]/g, ' ')}`, messageId: `<booking-reminder-${job.id}@necrotixlab.com>`, text: `Hello ${booking.customerName},\n\nYour appointment: ${booking.title}\n${time}\n\nUse the links in your original Cal.diy confirmation to cancel or reschedule.\n\nNecrotixLab` });
+            const calendarPath = bookingCalendarGuestPath(booking, process.env.AUTH_SECRET);
+            const calendarLink = calendarPath ? `\nAdd to your calendar: ${getPublicSiteUrl()}${calendarPath}\n` : '';
+            await transporter.sendMail({ from: smtp.user, to: booking.email, subject: `Reminder: ${booking.title.replace(/[\r\n]/g, ' ')}`, messageId: `<booking-reminder-${job.id}@necrotixlab.com>`, text: `Hello ${booking.customerName},\n\nYour appointment: ${booking.title}\n${time}\n${calendarLink}\nUse the links in your original Cal.diy confirmation to cancel or reschedule.\n\nNecrotixLab` });
             await prisma.bookingReminder.updateMany({ where: { id: job.id, status: 'PROCESSING' }, data: { status: 'SENT', sentAt: new Date(), lockedUntil: null, lastError: '' } }); sent++;
         } catch {
             // Keep SMTP errors and recipient details out of the public cron response.

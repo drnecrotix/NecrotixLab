@@ -29,6 +29,8 @@ function fixture({ status = 'CONFIRMED', attempts = 0, fail = false, active = tr
         '@/lib/integration-runtime': { getRuntimeSmtpConfig: async () => ({ user: 'test@example.com', password: 'test' }) },
         '@addons/Booking/server': { bookingAddonConfig: async () => ({ installed: true, active, reminderHours: 24 }) },
         '@addons/Booking/workflow-policy': { reminderMessageTime },
+        '@addons/Booking/calendar-access': { bookingCalendarGuestPath: () => null },
+        '@/lib/social-metadata': { getPublicSiteUrl: () => 'https://example.com' },
         '@addons/Booking/webhook': { validBookingCronAuthorization },
     };
     const loaded = { exports: {} };
