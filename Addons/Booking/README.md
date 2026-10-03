@@ -1,6 +1,6 @@
-# Booking Addon 1.1.0
+# Booking Addon 1.2.1
 
-Cal.diy booking surface for NecrotixLab. Requires CMS 1.3.92 or later with the matching compiled wrappers.
+Cal.diy booking surface for NecrotixLab. Requires CMS 1.3.94 or later with the matching compiled wrappers.
 
 ## Architecture and delivered features
 
@@ -91,11 +91,13 @@ Each call handles at most ten due records. Atomic compare-and-set claims and a t
 
 A cancellation or reschedule cancels queued/in-progress old reminders; the worker checks the current booking, start time and configured interval again before sending. A message already in SMTP transmission cannot be recalled. Enable either Cal.diy reminders or addon reminders for the same event type to avoid duplicates. Google/Microsoft/Samsung calendar synchronization remains owned by Cal.diy and is unaffected by this worker.
 
-### Payments and next increments
+### Admin booking overview
 
-The Settings payment link opens Cal.diy's `stripe` app, verified against upstream `packages/app-store/stripepayment/_metadata.ts`. Connect Stripe and configure the actual event type in your pinned Cal.diy deployment. Checkout, charges and refunds are not performed by this addon. CMS reservation status is not proof that a payment succeeded. No credit-card data is stored here.
+The Dashboard shows pending approval totals, future confirmed appointments and the five latest requests for OWNER/ADMIN users only while Booking is installed and active. The Reservations navigation and dashboard shortcut follow the same activation rule. Inactive addons preserve reservation history for direct administrator access but hide the dashboard overview. Query failures show an unavailable message instead of zero totals. New records arrive through signed Cal.diy webhooks; this panel does not import historical provider bookings or approve requests locally.
 
-Next increments: verified payment-event ingestion and reconciliation, deposit/quote rules, client portal with authenticated access, richer CRM follow-ups, Workspace project synchronization and reminder templates. Each needs its own tested provider contract; do not represent setup links as active payment processing.
+Payment setup is excluded from this version. Configure Cal.diy event types without a payment requirement. No checkout, payment configuration or payment verification is implemented by this addon.
+
+Next increments: authenticated client access, CRM follow-ups, Workspace project synchronization and reminder templates.
 
 ### Workflow acceptance checks
 

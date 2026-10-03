@@ -1,5 +1,5 @@
 export const BOOKING_CONFIG_SLUG = '_booking-addon-config';
-export const BOOKING_ADDON_VERSION = '1.2.0';
+export const BOOKING_ADDON_VERSION = '1.2.1';
 export type BookingService = { id: string; title: string; description: string; duration: number; path: string };
 export type BookingConfig = { installed: boolean; active: boolean; packageVersion: string; title: string; description: string; services: BookingService[]; reminderHours: number; autoProject: boolean };
 export function calOrigin(value: string | undefined): string | null {
