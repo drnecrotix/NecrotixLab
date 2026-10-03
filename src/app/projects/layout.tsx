@@ -1,3 +1,4 @@
+import { FeatureInDevelopment } from '@/components/layout/FeatureInDevelopment';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { requireManagedPageAccess } from '@/lib/page-access';
@@ -10,6 +11,6 @@ export const metadata: Metadata = {
 };
 
 export default async function ProjectsLayout({ children }: { children: ReactNode }) {
-    await requireManagedPageAccess('projects');
+    if (!await requireManagedPageAccess('projects')) return <FeatureInDevelopment />;
     return children;
 }
