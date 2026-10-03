@@ -11,3 +11,9 @@ Deployment checks: actual shared SMTP delivery, organizer recipient email, meeti
 CI investigation: desktop and mobile failures were the native POST returning 403. Browser trace showed a legitimate Origin/Host pair; Next reconstructed an internal request hostname. The corrected same-origin policy checks browser-facing Host and forwarded protocol, with regression cases for internal rewriting, TLS proxying, hostile origins, credentials and wrong ports/schemes. Visual smoke now asserts the POST response before checking confirmation.
 
 Updater DOM checks verified one reload after an observed successful update and healthy matching runtime; historical success, failures and responses from the old runtime do not reload. The status API exposes its bundled runtime version to authenticated admins. Restart/network interruptions retain the current page and retry readiness checks.
+
+## CMS 1.3.98 / addon 1.4.1 appointment experience
+
+All 198 unit tests pass, including Monday-first month grids, leap years, Europe/Sofia spring/autumn month boundaries and monthly filtered CSV export. TypeScript, changed-source ESLint, production build and the client-boundary audit (234 components) pass. The production compiled DOM fixture exercises the four-step wizard, month calendar, contact preservation when editing, review before POST, and pending confirmation without iframe or browser contact storage.
+
+The Playwright native booking case now follows service, date/time, contact and review before asserting the real POST and database record. It remains for CI desktop/mobile execution; no local browser binary is available, so the DOM fixture is not a visual screenshot review. Existing SMTP and deployment checks above still apply.

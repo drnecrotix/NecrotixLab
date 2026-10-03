@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import { bookingMonthRange } from '../../Addons/Booking/calendar-view.ts';
 import { bookingDataCsv } from '../../Addons/Booking/export.mjs';
 import { bookingStatusFilter } from '../../Addons/Booking/status.mjs';
 const source = readFileSync(new URL('../../src/app/api/admin/bookings/export/route.ts', import.meta.url), 'utf8');
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 function fixture(role, count = 1) {
     const calls = []; const item = { id: 'one', title: 'Consultation', status: 'CONFIRMED', startTime: new Date(Date.now() + 86400000), endTime: new Date(Date.now() + 88200000), eventAt: new Date() };
-    const dependencies = { '@/auth': { auth: async () => role ? { user: { role } } : null }, '@/lib/prisma': { prisma: { bookingReservation: { findMany: async args => { calls.push(args); return Array(count).fill(item); } } } }, '@addons/Booking/export.mjs': { bookingDataCsv }, '@addons/Booking/status.mjs': { bookingStatusFilter } };
+    const dependencies = { '@addons/Booking/calendar-view': { bookingMonthRange }, '@/auth': { auth: async () => role ? { user: { role } } : null }, '@/lib/prisma': { prisma: { bookingReservation: { findMany: async args => { calls.push(args); return Array(count).fill(item); } } } }, '@addons/Booking/export.mjs': { bookingDataCsv }, '@addons/Booking/status.mjs': { bookingStatusFilter } };
     const loaded = { exports: {} }; new Function('exports', 'require', compiled)(loaded.exports, name => dependencies[name]);
     return { ...loaded.exports, calls };
 }
@@ -30,4 +31,11 @@ test('selected POST exports validate and deduplicate IDs without mutating reserv
     assert.equal((await f.POST(new Request('https://example.com/api/admin/bookings/export', { method: 'POST', body: form }))).status, 200);
     assert.deepEqual(f.calls[0].where.id.in, ['one']);
     const empty = fixture('ADMIN'); assert.equal((await empty.GET(new Request('https://example.com/api/admin/bookings/export?scope=selected'))).status, 400); assert.equal(empty.calls.length, 0);
+});
+test('calendar CSV exports retain exact month filters and reject invalid months', async () => {
+    const f = fixture('OWNER');
+    assert.equal((await f.GET(new Request('https://example.com/api/admin/bookings/export?scope=filtered&view=calendar&month=2026-10&status=PENDING'))).status, 200);
+    assert.equal(f.calls[0].where.AND[0].status, 'PENDING');
+    assert.equal(f.calls[0].where.AND[1].startTime.gte.toISOString(), '2026-09-30T21:00:00.000Z');
+    const invalid = fixture('ADMIN'); assert.equal((await invalid.GET(new Request('https://example.com/api/admin/bookings/export?scope=filtered&view=calendar&month=bad'))).status, 400); assert.equal(invalid.calls.length, 0);
 });
