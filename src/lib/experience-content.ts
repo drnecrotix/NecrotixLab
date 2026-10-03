@@ -28,6 +28,7 @@ export type PartnerLogo = {
 };
 
 export type ExperienceContent = {
+    displayStyle: 'cards' | 'timeline';
     pageEnabled: boolean;
     showHero: boolean;
     showDecorations: boolean;
@@ -117,6 +118,7 @@ function cloneExperiences(entries: Experience[]) {
 }
 
 export const defaultExperienceContent: ExperienceContent = {
+    displayStyle: 'cards',
     pageEnabled: true,
     showHero: true,
     showDecorations: true,
@@ -260,7 +262,7 @@ const experienceTypes: Experience['type'][] = ['full-time', 'part-time', 'contra
 function normalizeExperienceEntry(value: unknown, index: number): Experience | null {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
     const source = value as Partial<Experience>;
-    const company = optionalText(source.company, 200);
+    const company = optionalText(source.company, 200) || (['freelance', 'self-employed'].includes(source.type ?? '') ? 'Independent' : '');
     const position = optionalText(source.position, 200);
     if (!company || !position) return null;
     const responsibilities = list(source.responsibilities, 80, 500);
@@ -382,6 +384,7 @@ export function normalizeExperienceContent(value: unknown): ExperienceContent {
             experience: normalizeHighlight(source.highlights?.experience, defaultExperienceContent.highlights.experience),
         },
         educationEntries: normalizeEducationEntries(source.educationEntries, defaultExperienceContent.educationEntries),
+        displayStyle: source.displayStyle === 'timeline' ? 'timeline' : 'cards',
         journeyEntries: normalizeExperienceEntries(source.journeyEntries, defaultExperienceContent.journeyEntries),
         experienceEntries: normalizeExperienceEntries(source.experienceEntries, defaultExperienceContent.experienceEntries),
         partnerLogos: normalizePartnerLogos(source.partnerLogos, defaultExperienceContent.partnerLogos),

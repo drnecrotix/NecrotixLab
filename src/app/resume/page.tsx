@@ -1,3 +1,4 @@
+import { mergeBackgroundEntries } from '@/lib/background-entries';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CareerDossierPage } from '@/components/resume/CareerDossierPage';
@@ -41,11 +42,12 @@ export default async function ResumePage() {
 
     const content = normalizeExperienceContent(configPage?.content);
     const entryState = normalizeJourneyEntryState(entryStatePage?.content);
+    const background = mergeBackgroundEntries(content.experienceEntries, content.journeyEntries, entryState);
     const experience = {
         ...content,
         educationEntries: content.educationEntries.filter((item) => entryIsPublic(entryState, 'education', item.id)),
-        journeyEntries: content.journeyEntries.filter((item) => entryIsPublic(entryState, 'journey', item.id)),
-        experienceEntries: content.experienceEntries.filter((item) => entryIsPublic(entryState, 'experience', item.id)),
+        journeyEntries: background.entries.filter((item) => entryIsPublic(background.state, 'experience', item.id)),
+        experienceEntries: background.entries.filter((item) => entryIsPublic(background.state, 'experience', item.id)),
     };
     const homepage = normalizeHomepageContent(settings?.homepageContent);
     const identity = buildPublicIdentity(settings, homepage.profileImage);

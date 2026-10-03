@@ -26,6 +26,8 @@ test('thumbnail links allow media paths and web URLs, reject executable and ambi
 test('timeline preserves manual order including undated entries and repeated years',()=>{
  const entries = [{id:'a',startDate:'2018'}, {id:'b',startDate:''}, {id:'c',startDate:'2018'}, {id:'d',startDate:'',endDate:'2022'}];
  const groups = journeyTimelineGroups(entries);
- assert.deepEqual(groups.map(group=>group.title),['2018','Undated','2018','2022']);
+ assert.deepEqual(groups.map(group=>group.title),['2018','Other experience','2018','2022']);
  assert.deepEqual(groups.flatMap(group=>group.experiences.map(entry=>entry.id)), ['a','b','c','d']);
 });
+
+test('legacy placeholder dates are omitted',()=>{ assert.equal(journeyPeriod('--','--'), ''); assert.equal(journeyPeriod('--','2018'), '2018'); });

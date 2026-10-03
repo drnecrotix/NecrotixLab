@@ -1,3 +1,4 @@
+import { mergeBackgroundEntries } from '@/lib/background-entries';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { normalizeExperienceContent } from '@/lib/experience-content';
@@ -11,7 +12,7 @@ const LEGACY_PAGE_TITLE = 'Experience page configuration';
 export const revalidate = 60;
 
 function pageName(title?: string | null) {
-    return title && title !== LEGACY_PAGE_TITLE ? title : 'Journey';
+    return title && ![LEGACY_PAGE_TITLE, 'Journey', 'Experience'].includes(title) ? title : 'Background';
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -34,11 +35,12 @@ export default async function JourneyPage() {
 
     const content = normalizeExperienceContent(configPage?.content);
     const entryState = normalizeJourneyEntryState(entryStatePage?.content);
+    const background = mergeBackgroundEntries(content.experienceEntries, content.journeyEntries, entryState);
     const publicContent = {
         ...content,
         educationEntries: content.educationEntries.filter((item) => entryIsPublic(entryState, 'education', item.id)),
         journeyEntries: content.journeyEntries.filter((item) => entryIsPublic(entryState, 'journey', item.id)),
-        experienceEntries: content.experienceEntries.filter((item) => entryIsPublic(entryState, 'experience', item.id)),
+        experienceEntries: background.entries.filter((item) => entryIsPublic(background.state, 'experience', item.id)),
     };
 
     return <ExperiencePageClient content={publicContent} />;

@@ -65,7 +65,7 @@ export const Timeline = ({ data, isLowPowerMode }: { data: TimelineEntry[]; isLo
             whileHover={{ scale: 1.02, originX: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 10 }}
           >
-            Changelog from my journey
+            Background timeline
           </motion.h2>
           <motion.p
             className="text-neutral-600 dark:text-neutral-400 text-base md:text-xl max-w-2xl leading-relaxed"
@@ -93,7 +93,7 @@ export const Timeline = ({ data, isLowPowerMode }: { data: TimelineEntry[]; isLo
               </h3>
             </div>
 
-            <div className="relative pl-12 pr-4 md:pl-4 w-full">
+            <div className="relative min-w-0 pl-10 pr-2 md:pl-4 w-full">
               <h3 className="md:hidden block text-2xl mb-4 text-left font-bold text-neutral-500 dark:text-neutral-500">
                 {item.title}
               </h3>

@@ -35,8 +35,7 @@ const icons: Record<ExperienceTabId, typeof GraduationCap> = {
 function enabledTabs(content: ExperienceContent) {
     return [
         content.showEducation ? 'education' : null,
-        content.showJourney ? 'journey' : null,
-        content.showExperience ? 'experience' : null,
+        content.showJourney || content.showExperience ? 'experience' : null,
     ].filter(Boolean) as ExperienceTabId[];
 }
 
@@ -46,7 +45,8 @@ function linkIsExternal(url: string) {
 
 export function ExperiencePageClient({ content }: { content: ExperienceContent }) {
     const availableTabs = useMemo(() => enabledTabs(content), [content]);
-    const firstTab = availableTabs.includes(content.defaultTab) ? content.defaultTab : availableTabs[0] ?? 'journey';
+    const requestedTab = content.defaultTab === 'journey' ? 'experience' : content.defaultTab;
+    const firstTab = availableTabs.includes(requestedTab) ? requestedTab : availableTabs[0] ?? 'experience';
     const [activeTab, setActiveTab] = useState<ExperienceTabId>(firstTab);
 
     if (!content.pageEnabled) {
@@ -179,7 +179,7 @@ function TabNavigation({ content, availableTabs, activeTab, onChange }: { conten
     const copy: Record<ExperienceTabId, { label: string; description: string }> = {
         education: { label: content.educationLabel, description: content.educationDescription },
         journey: { label: content.journeyLabel, description: content.journeyDescription },
-        experience: { label: content.experienceLabel, description: content.experienceDescription },
+        experience: { label: 'Background', description: 'Work, projects, volunteering and practical experience.' },
     };
     const activeCopy = copy[activeTab];
 
@@ -227,7 +227,7 @@ function TabNavigation({ content, availableTabs, activeTab, onChange }: { conten
 }
 
 function EducationView({ content }: { content: ExperienceContent }) {
-    const [timeline, setTimeline] = useState(false);
+    const [timeline, setTimeline] = useState(content.displayStyle === 'timeline');
     return (
         <div>
             <TimelineToggle timeline={timeline} onChange={setTimeline} />
@@ -246,7 +246,7 @@ function EducationCard({ item }: { item: Education }) {
             <div className="flex items-start gap-4">
                 <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background"><GraduationCap className="size-6" /></div>
                 <div className="min-w-0 flex-1">
-                    <h3 className="text-xl font-bold md:text-2xl">{item.degree}</h3>
+                    <h3 className="break-words text-xl font-bold md:text-2xl">{item.degree}</h3>
                     <p className="mt-1 font-medium text-muted-foreground">{item.institution}</p>
                     <p className="mt-1 text-sm text-muted-foreground">{item.major}</p>
                 </div><EntryThumbnail src={item.thumbnail} label={item.degree} />
@@ -265,16 +265,18 @@ function EducationCard({ item }: { item: Education }) {
 }
 
 function JourneyView({ content }: { content: ExperienceContent }) {
+    const [timeline, setTimeline] = useState(content.displayStyle === 'timeline');
     return (
         <div>
-            <JourneyTimeline content={content} entries={content.journeyEntries} />
+            <TimelineToggle timeline={timeline} onChange={setTimeline} />
+            {timeline ? <JourneyTimeline content={content} entries={content.journeyEntries} /> : <div className="grid gap-5 lg:grid-cols-2">{content.journeyEntries.map((item) => <ExperienceCard key={item.id} item={item} content={content} />)}</div>}
             <Highlight content={content} id="journey" />
         </div>
     );
 }
 
 function ArchiveView({ content }: { content: ExperienceContent }) {
-    const [timeline, setTimeline] = useState(false);
+    const [timeline, setTimeline] = useState(content.displayStyle === 'timeline');
     const categories = content.categories.filter((category) => category.enabled);
     const [selected, setSelected] = useState(categories[0]?.id ?? '');
     const active = categories.find((category) => category.id === selected) ?? categories[0];
@@ -286,9 +288,9 @@ function ArchiveView({ content }: { content: ExperienceContent }) {
         <div>
             <div className="grid gap-10 lg:grid-cols-[.75fr_1.25fr]">
                 <aside className="lg:sticky lg:top-28 lg:self-start">
-                    <p className="text-xs font-bold uppercase tracking-[0.28em] text-muted-foreground">{content.archiveEyebrow}</p>
-                    <h2 className="mt-3 text-4xl font-black tracking-[-0.04em] md:text-5xl">{content.archiveTitle}</h2>
-                    <p className="mt-4 max-w-md leading-7 text-muted-foreground">{content.archiveDescription}</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.28em] text-muted-foreground">Work & experience</p>
+                    <h2 className="mt-3 text-4xl font-black tracking-[-0.04em] md:text-5xl">Background</h2>
+                    <p className="mt-4 max-w-md leading-7 text-muted-foreground">Explore my work and practical experience by category. Choose cards or a timeline.</p>
                     <div className="mt-7 space-y-2">
                         {categories.map((category) => (
                             <button key={category.id} type="button" onClick={() => setSelected(category.id)} className={cn('w-full rounded-2xl border px-4 py-4 text-left transition', active?.id === category.id ? 'border-foreground bg-foreground text-background' : 'border-border/60 bg-card/40 hover:bg-card')}>
@@ -298,7 +300,7 @@ function ArchiveView({ content }: { content: ExperienceContent }) {
                         ))}
                     </div>
                 </aside>
-                <div className="space-y-5"><TimelineToggle timeline={timeline} onChange={setTimeline} />
+                <div className="min-w-0 space-y-5"><TimelineToggle timeline={timeline} onChange={setTimeline} />
                     {timeline ? <JourneyTimeline content={content} entries={items} /> : items.length > 0 ? items.map((item) => <ExperienceCard key={item.id} item={item} content={content} />) : (
                         <div className="rounded-3xl border border-dashed border-border p-12 text-center text-muted-foreground">{content.emptyState}</div>
                     )}
@@ -314,19 +316,19 @@ function ExperienceCard({ item, content }: { item: Experience; content: Experien
     const hasDetails = (content.showResponsibilities && item.responsibilities?.length) || (content.showImpact && item.impact?.length) || (content.showKeyLearnings && item.keyLearnings?.length);
 
     return (
-        <article className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/50 transition hover:border-border hover:shadow-xl">
-            <button type="button" onClick={() => hasDetails && setExpanded((value) => !value)} className={cn('w-full p-6 text-left md:p-8', hasDetails && 'cursor-pointer')}>
-                <div className="flex gap-4 md:gap-6">
+        <article className="min-w-0 overflow-hidden rounded-[1.5rem] border border-border/60 bg-card/50 transition hover:border-border hover:shadow-md">
+            <div className="p-4 text-left sm:p-6 md:p-8">
+                <div className="flex flex-col gap-4 sm:flex-row md:gap-6">
                     <div className={cn('relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/60 md:size-16', item.logoBg || 'bg-background')}>
                         {item.logo ? <Image src={item.logo} alt="" fill className="object-contain p-2" unoptimized /> : <Briefcase className="size-6 text-muted-foreground" />}
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-4">
                             <div>
-                                <h3 className="text-xl font-bold md:text-2xl">{item.position}</h3>
-                                <p className="mt-1 font-medium text-muted-foreground">{item.company}</p>
+                                <h3 className="break-words text-xl font-bold md:text-2xl">{item.position}</h3>
+                                <p className="mt-1 font-medium text-muted-foreground">{!/^[-–—]+$/.test(item.company.trim()) ? item.company : ''}</p>
                             </div>
-                            {hasDetails && <ChevronDown className={cn('mt-1 size-5 shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')} />}
+                            {hasDetails && <button type="button" aria-expanded={expanded} aria-label={`Details for ${item.position}`} onClick={() => setExpanded((value) => !value)} className="shrink-0 rounded-lg border border-border p-2"><ChevronDown className={cn('size-5 text-muted-foreground transition-transform', expanded && 'rotate-180')} /></button>}
                         </div>
                         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-muted-foreground sm:text-sm">
                             <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" />{journeyPeriod(item.startDate ? journeyDate(item.startDate) : '', item.endDate ? journeyDate(item.endDate) : '', item.isOngoing) || 'Date not specified'}</span>
@@ -346,7 +348,7 @@ function ExperienceCard({ item, content }: { item: Experience; content: Experien
                         )}
                     </div>
                 </div>
-            </button>
+            </div>
 
             {item.thumbnail && <div className="px-6 pb-5 md:px-8"><EntryThumbnail src={item.thumbnail} label={item.position} /></div>}
             <AnimatePresence initial={false}>
