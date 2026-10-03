@@ -1,6 +1,6 @@
-# Booking Addon 1.3.0
+# Booking Addon 1.3.1
 
-Cal.diy booking surface for NecrotixLab. Requires CMS 1.3.95 or later with the matching compiled wrappers.
+Cal.diy booking surface for NecrotixLab. Requires CMS 1.3.96 or later with the matching compiled wrappers.
 
 ## Architecture and delivered features
 
@@ -147,3 +147,13 @@ Deploy the additive `20261003060000_booking_notifications` migration with `npm r
 Acceptance: submit missing/invalid fields through CMS and direct provider links; book each category/platform; receive pending email without invitation; approve and verify client/organizer invitation delivery under all and selected modes; test each recipient setting; test repeated webhooks and created/confirmed duplicates; reschedule without duplicate calendar event; cancel and check the same UID cancellation; disable addon before cron; test SMTP retry and delivery status. Confirm dates across DST and actual Zoom/Meet/Viber joining instructions. No payments are configured by this addon.
 
 Provider contracts reviewed: `calcom/cal.diy` `packages/features/bookings/lib/getBookingFields.ts`, `packages/features/bookings/Booker/hooks/useInitialFormValues.ts`, `packages/features/webhooks/lib/sendPayload.ts`, `packages/features/bookings/lib/getWebhookPayloadForBooking.ts` and `packages/types/Calendar.d.ts`.
+
+## Status, retention and export (CMS 1.3.96)
+
+Admin labels are Одобрен / Approved, В изчакване / Pending, Пренасочен / Rescheduled and Отказан / Declined. Cancelled and rejected provider events share the declined label. Confirmed bookings whose date changed keep the rescheduled label while remaining eligible for invitations and reminders. Completed bookings retain their existing status.
+
+CMS booking requests and history are retained for 30 days after meeting end, or after cancellation/rejection/supersession for terminal records. Future active appointments are retained. Cleanup deletes booking contact data, notes, reminder and notification jobs. Independent work projects are preserved and detached; their notes have their own lifetime. Cal.diy, backups, downloaded exports and external calendars require separate retention configuration. Signed webhook events older than 30 days are ignored to prevent old history being recreated.
+
+Schedule a daily authenticated POST to `/api/booking/retention` with `Authorization: Bearer <BOOKING_CRON_SECRET>`. The existing `/api/booking/notifications` cron also runs cleanup, even when the addon is disabled or SMTP is unavailable. Cleanup is not scheduled automatically by the application.
+
+OWNER/ADMIN can export all retained bookings, current filtered results, or 1-200 selected bookings as UTF-8 CSV. Exports include contact details, booking status, meeting information and private booking notes. All/filtered exports are capped at 5000 records and ask for narrower filters rather than silently truncating. Spreadsheet formula prefixes are neutralized. Keep downloaded files private.

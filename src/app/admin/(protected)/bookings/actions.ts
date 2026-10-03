@@ -67,3 +67,14 @@ export async function sendBookingCalendarInvitations(form: FormData) {
     after(async () => { try { await processBookingNotifications(sentIds); } catch { /* Scheduler retries persisted jobs. */ } });
     revalidatePath('/admin/bookings'); redirect('/admin/bookings?queued=1');
 }
+
+export async function saveDetachedBookingProject(id: string, form: FormData) {
+    await admin();
+    const project = await prisma.bookingProject.findUniqueOrThrow({ where: { id } });
+    if (project.reservationId) throw new Error('Use the linked reservation to edit this project.');
+    const status = String(form.get('status') || '');
+    const title = String(form.get('title') || '').trim().slice(0, 120);
+    if (!title || !BOOKING_PROJECT_STATUSES.some(value => value === status)) throw new Error('Invalid project fields');
+    await prisma.bookingProject.update({ where: { id }, data: { title, status, notes: String(form.get('notes') || '').trim().slice(0, 5000) } });
+    revalidatePath('/admin/bookings/projects');
+}

@@ -614,6 +614,7 @@ model BookingReservation {
   id           String   @id @default(cuid())
   calUid       String   @unique
   rescheduledFromUid String?
+  rescheduledAt DateTime?
   status       String
   title        String
   customerName String
@@ -651,8 +652,8 @@ model BookingReservation {
 // Private booking work, intentionally separate from the public portfolio.
 model BookingProject {
   id String @id @default(cuid())
-  reservationId String @unique
-  reservation BookingReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  reservationId String? @unique
+  reservation BookingReservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
   title String
   status String @default("PLANNED")
   notes String @default("")

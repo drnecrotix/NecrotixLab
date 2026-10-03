@@ -1,3 +1,5 @@
+import { withinBookingRetention } from '@addons/Booking/retention.mjs';
+import { bookingRescheduledAt } from '@addons/Booking/status.mjs';
 import { after } from 'next/server';
 import { bookingMeetingDetails } from '@addons/Booking/meeting';
 import { queueBookingNotifications, processBookingNotifications } from '@addons/Booking/notifications';
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
     if (!validBookingSignature(body, request.headers.get('x-cal-signature-256'), process.env.CALDIY_WEBHOOK_SECRET)) return new Response('Invalid signature', { status: 401 });
     let event;
     try { event = parseBookingEvent(JSON.parse(body)); } catch { return new Response('Invalid event', { status: 400 }); }
-    if (!event) return new Response('Ignored');
+    if (!event || !withinBookingRetention(event.data.eventAt)) return new Response('Ignored');
     const booking = event;
     try {
         await prisma.$transaction(async tx => {
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
                 calendarUid: previous?.calendarUid || existing?.calendarUid || meeting.calendarUid || `${booking.uid}@necrotixlab.com`,
                 calendarSequence: Math.max(existing?.calendarSequence || 0, previous?.calendarSequence || 0) + 1,
                 calendarSelected: existing?.calendarSelected ?? previous?.calendarSelected ?? false,
+                rescheduledAt: bookingRescheduledAt(booking, existing, previous),
                 status: successor ? 'RESCHEDULED' : booking.data.status,
                 customerName: booking.data.customerName || existing?.customerName || '',
                 email: (booking.data.email || existing?.email || '').trim().toLowerCase(), timeZone: booking.data.timeZone || existing?.timeZone || '',

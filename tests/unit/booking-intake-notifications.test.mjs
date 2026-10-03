@@ -37,7 +37,7 @@ test('calendar requests, updates and cancellations keep UID/sequence and meeting
 });
 test('emails communicate pending versus confirmed and include platform, time and joining details', () => {
     const confirmed = bookingNotificationText(booking); assert.ok(confirmed.includes('GOOGLE MEET')); assert.ok(confirmed.includes(booking.meetingUrl)); assert.ok(confirmed.includes('Europe/Sofia')); assert.ok(confirmed.includes('Engineering'));
-    const pending = bookingNotificationText({ ...booking, status: 'PENDING' }); assert.ok(pending.includes('Awaiting approval')); assert.ok(!pending.includes('Meeting link:'));
+    const pending = bookingNotificationText({ ...booking, status: 'PENDING' }); assert.ok(pending.includes('В изчакване / Pending')); assert.ok(!pending.includes('Meeting link:'));
     assert.ok(bookingNotificationText({ ...booking, timeZone: 'invalid' }).includes('Europe/Sofia'));
 });
 test('meeting details match services by event ID, parse required phone, and use real provider location', () => {

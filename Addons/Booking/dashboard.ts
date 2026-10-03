@@ -12,7 +12,7 @@ export async function bookingDashboardOverview(role: string | undefined, now = n
             prisma.bookingReservation.count({ where: { status: 'CONFIRMED', startTime: { gte: now } } }),
             prisma.bookingReservation.findMany({
                 orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 5,
-                select: { id: true, title: true, customerName: true, status: true, startTime: true },
+                select: { id: true, title: true, customerName: true, status: true, rescheduledAt: true, rescheduledFromUid: true, startTime: true },
             }),
         ]);
         return { available: true as const, pending, upcoming, recent };

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { getRuntimeSmtpConfig } from '@/lib/integration-runtime';
 import { getPublicSiteUrl } from '@/lib/social-metadata';
 import { bookingAddonConfig } from './server';
+import { bookingStatusLabel, bookingStatusCode } from './status.mjs';
 import type { BookingConfig } from './settings';
 import { bookingCalendarInvitation } from './calendar';
 import { bookingCalendarGuestPath } from './calendar-access';
@@ -21,7 +22,7 @@ export async function queueBookingNotifications(tx: Prisma.TransactionClient, bo
         const cancelled = ['CANCELLED', 'REJECTED'].includes(booking.status);
         const calendarAttached = cancelled ? Boolean(previousInvite) : booking.status === 'CONFIRMED' && calendarForRecipient(config, booking.calendarSelected, recipientRole);
         if (kind === 'CALENDAR' ? !calendarAttached : !config.confirmationEmails && !calendarAttached) continue;
-        const fingerprint = createHash('sha256').update(JSON.stringify([booking.status, booking.email, booking.customerName, +booking.startTime, +booking.endTime, booking.timeZone, booking.platform, booking.meetingUrl, booking.meetingInstructions, booking.category, calendarAttached])).digest('hex');
+        const fingerprint = createHash('sha256').update(JSON.stringify([bookingStatusCode(booking), booking.email, booking.customerName, +booking.startTime, +booking.endTime, booking.timeZone, booking.platform, booking.meetingUrl, booking.meetingInstructions, booking.category, calendarAttached])).digest('hex');
         const delivered = await tx.bookingNotification.findFirst({ where: { reservationId: booking.id, recipientRole, fingerprint, status: 'SENT' } });
         if (delivered) continue;
         if (kind === 'CALENDAR' && await tx.bookingNotification.findFirst({ where: { reservationId: booking.id, eventAt: booking.eventAt, recipientRole, calendarAttached: true, status: { in: ['PENDING', 'PROCESSING', 'SENT'] } } })) continue;
@@ -56,7 +57,7 @@ export async function processBookingNotifications(ids?: string[]) {
             try {
                 const guestPath = job.recipientRole === 'CLIENT' && calendarAttached && !cancellation ? bookingCalendarGuestPath(booking, process.env.AUTH_SECRET) : null;
                 const invitation = calendarAttached ? bookingCalendarInvitation(booking, booking.organizerEmail || smtp.user, booking.email) : null;
-                await transporter.sendMail({ from: smtp.user, to: job.recipientEmail, subject: `Booking ${booking.status.toLowerCase()}: ${booking.title.replace(/[\r\n]/g, ' ')}`, messageId: `<booking-notification-${job.id}@necrotixlab.com>`,
+                await transporter.sendMail({ from: smtp.user, to: job.recipientEmail, subject: `Booking ${bookingStatusLabel(booking)}: ${booking.title.replace(/[\r\n]/g, ' ')}`, messageId: `<booking-notification-${job.id}@necrotixlab.com>`,
                     text: bookingNotificationText(booking, guestPath ? `${getPublicSiteUrl()}${guestPath}` : ''),
                     ...(invitation ? { icalEvent: { method: cancellation ? 'CANCEL' : 'REQUEST', content: invitation } } : {}),
                 });

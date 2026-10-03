@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { bookingStatusLabel, bookingStatusCode } from '../../Addons/Booking/status.mjs';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
@@ -36,7 +37,7 @@ function fixture({ active = true, fail = false, status = 'CONFIRMED' } = {}) {
         '@/lib/prisma': { prisma: { bookingNotification: model } }, '@/lib/integration-runtime': { getRuntimeSmtpConfig: async () => ({ user: 'host@example.com', password: 'test' }) },
         '@/lib/social-metadata': { getPublicSiteUrl: () => 'https://example.com' }, './server': { bookingAddonConfig: async () => config },
         './calendar': { bookingCalendarInvitation }, './calendar-access': { bookingCalendarGuestPath: () => '/booking/calendar/one?token=test' },
-        './notification-policy': { bookingNotificationText, calendarForRecipient, validBookingEmail },
+        './status.mjs': { bookingStatusLabel, bookingStatusCode }, './notification-policy': { bookingNotificationText, calendarForRecipient, validBookingEmail },
     };
     const loaded = { exports: {} }; new Function('exports', 'require', compiled)(loaded.exports, name => { assert.ok(name in dependencies, name); return dependencies[name]; });
     return { ...loaded.exports, jobs, deliveries, booking, config, tx: { bookingNotification: model } };
@@ -52,7 +53,7 @@ test('notification transaction queues client and host idempotently and sends rea
 });
 test('pending requests send information emails without a confirmed calendar event', async () => {
     const f = fixture({ status: 'PENDING' }); await f.queueBookingNotifications(f.tx, f.booking, f.config); await f.processBookingNotifications();
-    assert.equal(f.deliveries.length, 2); assert.ok(f.deliveries[0].text.includes('Awaiting approval')); assert.equal(f.deliveries[0].icalEvent, undefined);
+    assert.equal(f.deliveries.length, 2); assert.ok(f.deliveries[0].text.includes('В изчакване / Pending')); assert.equal(f.deliveries[0].icalEvent, undefined);
 });
 test('inactive addon queues nothing, and changed selection suppresses calendar attachments', async () => {
     const inactive = fixture({ active: false }); await inactive.queueBookingNotifications(inactive.tx, inactive.booking, inactive.config); assert.equal(inactive.jobs.length, 0);

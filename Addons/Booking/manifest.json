@@ -2,7 +2,7 @@
   "format": "necrotixlab-addon-v1",
   "id": "booking",
   "name": "Booking",
-  "version": "1.3.0",
-  "requiresCms": "1.3.95",
+  "version": "1.3.1",
+  "requiresCms": "1.3.96",
   "description": "Cal.diy appointment booking with a responsive NecrotixLab service catalogue customer history, private projects and scheduled email reminders."
 }

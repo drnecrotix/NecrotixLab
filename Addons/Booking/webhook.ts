@@ -16,7 +16,7 @@ export function parseBookingEvent(value: unknown) {
     const eventAt = date(root.createdAt); const startTime = date(payload.startTime); const endTime = date(payload.endTime);
     if (!uid || !eventAt || !startTime || !endTime || endTime <= startTime) throw new Error('Invalid booking event');
     const attendee = record(Array.isArray(payload.attendees) ? payload.attendees[0] : null);
-    return { uid, payload, previousUid: trigger === 'BOOKING_RESCHEDULED' ? text(payload.rescheduleUid, 160) : '',
+    return { uid, payload, trigger, previousUid: trigger === 'BOOKING_RESCHEDULED' ? text(payload.rescheduleUid, 160) : '',
         data: { status: (payload.status === 'PENDING' || (payload.requiresConfirmation === true && payload.status !== 'ACCEPTED')) && ['BOOKING_CREATED', 'BOOKING_RESCHEDULED'].includes(trigger) ? 'PENDING' : status,
             title: text(payload.title, 200), customerName: text(attendee.name, 200), email: text(attendee.email, 254), timeZone: text(attendee.timeZone, 100), startTime, endTime,
             notes: text(payload.description, 3000), reason: text(payload.cancellationReason || payload.reschedulingReason || payload.rejectionReason, 1000), eventAt } };
