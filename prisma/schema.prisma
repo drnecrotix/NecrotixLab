@@ -627,6 +627,17 @@ model BookingReservation {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  phone String @default("")
+  servicePath String @default("")
+  category String @default("")
+  platform String @default("CALDIY")
+  meetingUrl String @default("")
+  meetingInstructions String @default("")
+  organizerEmail String @default("")
+  calendarUid String @default("")
+  calendarSequence Int @default(0)
+  calendarSelected Boolean @default(false)
+  notifications BookingNotification[]
   internalNotes String @default("")
   project BookingProject?
   reminders BookingReminder[]
@@ -664,5 +675,27 @@ model BookingReminder {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@unique([reservationId, startTime, hours])
+  @@index([status, dueAt])
+}
+
+
+model BookingNotification {
+  id String @id @default(cuid())
+  reservationId String
+  reservation BookingReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  eventAt DateTime
+  kind String @default("UPDATE")
+  recipientRole String
+  recipientEmail String
+  calendarAttached Boolean @default(false)
+  fingerprint String
+  dueAt DateTime @default(now())
+  status String @default("PENDING")
+  attempts Int @default(0)
+  lockedUntil DateTime?
+  sentAt DateTime?
+  lastError String @default("")
+  createdAt DateTime @default(now())
+  @@unique([reservationId, eventAt, kind, recipientRole])
   @@index([status, dueAt])
 }
