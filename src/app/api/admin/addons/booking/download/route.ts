@@ -10,7 +10,7 @@ export async function GET() {
     const root = path.join(process.cwd(), 'Addons', 'Booking');
     const entries: Record<string, Uint8Array> = {};
     for (const name of await readdir(root)) {
-        if (!/\.(tsx?|json|md)$/.test(name)) continue;
+        if (!/\.(tsx?|mjs|json|md)$/.test(name)) continue;
         entries[`Addons/Booking/${name}`] = new Uint8Array(await readFile(path.join(root, name)));
     }
     const zip = zipSync(entries);

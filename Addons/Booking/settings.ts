@@ -1,7 +1,17 @@
 export const BOOKING_CONFIG_SLUG = '_booking-addon-config';
-export const BOOKING_ADDON_VERSION = '1.2.0';
-export type BookingService = { id: string; title: string; description: string; duration: number; path: string };
-export type BookingConfig = { installed: boolean; active: boolean; packageVersion: string; title: string; description: string; services: BookingService[]; reminderHours: number; autoProject: boolean };
+export const BOOKING_ADDON_VERSION = '1.3.1';
+export const MEETING_PLATFORMS = ['CALDIY', 'ZOOM', 'GOOGLE_MEET', 'VIBER', 'TEAMS', 'PHONE', 'OTHER'] as const;
+export type MeetingPlatform = typeof MEETING_PLATFORMS[number];
+export const CALENDAR_RECIPIENTS = ['BOTH', 'CLIENT', 'HOST', 'NONE'] as const;
+export type CalendarRecipients = typeof CALENDAR_RECIPIENTS[number];
+export function meetingPlatform(value: unknown): MeetingPlatform { return MEETING_PLATFORMS.includes(value as MeetingPlatform) ? value as MeetingPlatform : 'CALDIY'; }
+export function calendarRecipients(value: unknown): CalendarRecipients { return CALENDAR_RECIPIENTS.includes(value as CalendarRecipients) ? value as CalendarRecipients : 'BOTH'; }
+export function safeMeetingUrl(value: unknown): string {
+    if (typeof value !== 'string' || value.length > 2000) return '';
+    try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password ? url.toString() : ''; } catch { return ''; }
+}
+export type BookingService = { id: string; title: string; description: string; duration: number; path: string; category: string; platform: MeetingPlatform; instructions: string; eventTypeId: number };
+export type BookingConfig = { installed: boolean; active: boolean; packageVersion: string; title: string; description: string; services: BookingService[]; reminderHours: number; autoProject: boolean; confirmationEmails: boolean; calendarMode: 'ALL' | 'SELECTED'; calendarRecipients: CalendarRecipients };
 export function calOrigin(value: string | undefined): string | null {
     try {
         const url = new URL(value?.trim() || '');
@@ -20,11 +30,11 @@ export function normalizeBookingConfig(value: unknown): BookingConfig {
         const service = item as Record<string, unknown>;
         const path = calBookingPath(service.path);
         if (!path) return [];
-        return [{ id: `service-${index}`, path, title: text(service.title, 'Consultation', 120), description: text(service.description, '', 400), duration: Math.max(5, Math.min(480, Number(service.duration) || 30)) }];
+        return [{ id: `service-${index}`, path, category: text(service.category, '', 120), platform: meetingPlatform(service.platform), instructions: text(service.instructions, '', 1000), eventTypeId: Number.isSafeInteger(Number(service.eventTypeId)) && Number(service.eventTypeId) > 0 ? Number(service.eventTypeId) : 0, title: text(service.title, 'Consultation', 120), description: text(service.description, '', 400), duration: Math.max(5, Math.min(480, Number(service.duration) || 30)) }];
     }) : [];
     return { installed: raw.installed === true, active: raw.active === true && raw.installed === true,
         packageVersion: text(raw.packageVersion, BOOKING_ADDON_VERSION, 20),
-        title: text(raw.title, 'Let’s find a time.', 120), description: text(raw.description, 'Choose a consultation, select an available time and tell me about your project.', 600), services, reminderHours: [1, 24, 48].includes(Number(raw.reminderHours)) ? Number(raw.reminderHours) : 0, autoProject: raw.autoProject === true };
+        title: text(raw.title, 'Let’s find a time.', 120), description: text(raw.description, 'Choose a consultation, select an available time and tell me about your project.', 600), services, reminderHours: [1, 24, 48].includes(Number(raw.reminderHours)) ? Number(raw.reminderHours) : 0, autoProject: raw.autoProject === true, confirmationEmails: raw.confirmationEmails !== false, calendarMode: raw.calendarMode === 'SELECTED' ? 'SELECTED' : 'ALL', calendarRecipients: calendarRecipients(raw.calendarRecipients) };
 }
 export function bookingReady(config: BookingConfig, origin: string | null) {
     return config.installed && config.active && Boolean(origin) && config.services.length > 0;

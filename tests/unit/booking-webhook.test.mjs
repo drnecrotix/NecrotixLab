@@ -24,3 +24,10 @@ test('webhook rejects malformed appointment ranges rather than storing invalid r
     for (const payload of [{ ...fixture.payload, uid: '' }, { ...fixture.payload, startTime: 'bad' }, { ...fixture.payload, endTime: '2026-10-03T09:00:00Z' }]) assert.throws(() => parseBookingEvent({ ...fixture, payload }));
     assert.throws(() => parseBookingEvent({ ...fixture, createdAt: 'bad' }));
 });
+
+test('approval-required creation is pending until the provider reports acceptance', () => {
+    const pending = parseBookingEvent({ ...fixture, payload: { ...fixture.payload, requiresConfirmation: true } });
+    assert.equal(pending.data.status, 'PENDING');
+    const confirmed = parseBookingEvent({ ...fixture, payload: { ...fixture.payload, requiresConfirmation: true, status: 'ACCEPTED' } });
+    assert.equal(confirmed.data.status, 'CONFIRMED');
+});

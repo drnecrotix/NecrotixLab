@@ -1,6 +1,6 @@
-# Booking Addon 1.1.0
+# Booking Addon 1.3.1
 
-Cal.diy booking surface for NecrotixLab. Requires CMS 1.3.92 or later with the matching compiled wrappers.
+Cal.diy booking surface for NecrotixLab. Requires CMS 1.3.96 or later with the matching compiled wrappers.
 
 ## Architecture and delivered features
 
@@ -91,11 +91,13 @@ Each call handles at most ten due records. Atomic compare-and-set claims and a t
 
 A cancellation or reschedule cancels queued/in-progress old reminders; the worker checks the current booking, start time and configured interval again before sending. A message already in SMTP transmission cannot be recalled. Enable either Cal.diy reminders or addon reminders for the same event type to avoid duplicates. Google/Microsoft/Samsung calendar synchronization remains owned by Cal.diy and is unaffected by this worker.
 
-### Payments and next increments
+### Admin booking overview
 
-The Settings payment link opens Cal.diy's `stripe` app, verified against upstream `packages/app-store/stripepayment/_metadata.ts`. Connect Stripe and configure the actual event type in your pinned Cal.diy deployment. Checkout, charges and refunds are not performed by this addon. CMS reservation status is not proof that a payment succeeded. No credit-card data is stored here.
+The Dashboard shows pending approval totals, future confirmed appointments and the five latest requests for OWNER/ADMIN users only while Booking is installed and active. The Reservations navigation and dashboard shortcut follow the same activation rule. Inactive addons preserve reservation history for direct administrator access but hide the dashboard overview. Query failures show an unavailable message instead of zero totals. New records arrive through signed Cal.diy webhooks; this panel does not import historical provider bookings or approve requests locally.
 
-Next increments: verified payment-event ingestion and reconciliation, deposit/quote rules, client portal with authenticated access, richer CRM follow-ups, Workspace project synchronization and reminder templates. Each needs its own tested provider contract; do not represent setup links as active payment processing.
+Payment setup is excluded from this version. Configure Cal.diy event types without a payment requirement. No checkout, payment configuration or payment verification is implemented by this addon.
+
+Next increments: authenticated client access, CRM follow-ups, Workspace project synchronization and reminder templates.
 
 ### Workflow acceptance checks
 
@@ -117,10 +119,41 @@ Confirmed/completed reservations show Google Calendar, Outlook personal, Microso
 
 Exports include only the appointment title, UTC start/end and a generic confirmation instruction. Attendee email/name, attendee notes, private notes and project details are excluded. RFC 5545 escaping, CRLF lines and UTF-8 octet-aware line folding prevent content-line injection and preserve non-English text.
 
-An administrator can open a private customer calendar link and share it with that attendee. Native reminder emails include that link when AUTH_SECRET has at least 32 characters and the configured public site URL is correct. The signed page at `/booking/calendar/[id]?token=...` offers the same providers and .ics download without an account. It displays only the appointment title/time. The token is bound to the booking ID, attendee email, event version and time range; webhook changes invalidate it, and it expires 30 days after the appointment ends. Anyone holding the link can access these limited details. Never publish it. Do not rotate a valid AUTH_SECRET merely to enable this feature; rotation invalidates sessions and existing private links.
+An administrator can open a private customer calendar link and share it with that attendee. Native reminder emails include that link when AUTH_SECRET has at least 32 characters and the configured public site URL is correct. The signed page at `/booking/calendar/[id]?token=...` offers the same providers and .ics download without an account. It displays the appointment title/time; calendar links and downloads also contain the platform and joining details. The token is bound to the booking ID, attendee email, event version and time range; webhook changes invalidate it, and it expires 30 days after the appointment ends. Anyone holding the link can access these appointment and joining details. Never publish it. Do not rotate a valid AUTH_SECRET merely to enable this feature; rotation invalidates sessions and existing private links.
 
 The .ics endpoint `/api/booking/calendar/[id]` requires OWNER/ADMIN authentication or the matching private token. Pending/cancelled/rejected/superseded reservations cannot be exported. Calendar pages and downloads are no-store, noindex and no-referrer; calendar pages are excluded from the PWA offline cache and traffic pageview tracking.
 
 This is a one-time calendar copy, not a subscribed calendar or OAuth synchronization. Save the event in the provider's confirmation form. Later cancellation/rescheduling does not automatically modify a manually added copy. Repeated imports can create duplicates even with a stable .ics UID. If Cal.diy already synchronized the appointment, avoid adding another copy.
 
 Sources: https://www.rfc-editor.org/rfc/rfc5545 ; https://developers.google.com/workspace/calendar/api/concepts/inviting-attendees-to-events ; https://learn.microsoft.com/en-gb/answers/questions/1008125/is-it-possible-to-launch-the-outlook-app%28calendar%29
+
+
+## Contact form, meeting platforms and calendar invitations (1.3)
+
+CMS 1.3.95 / addon 1.3.0 adds a client-side first step with separate first and last name, email, international telephone number and an explicit service selection. Categories come from the configured service catalogue, not from an invented static list. The selected event type's Cal.diy calendar is opened only after these fields validate. The names, email and `attendeePhoneNumber` are prefilled through Cal.diy's supported query parameters. These values remain in memory on the CMS page; they are not written to browser storage. They are necessarily visible to the external booking server and may appear in its access logs. Set appropriate logging and retention there.
+
+**Provider configuration is required:** on every Cal.diy event type set name to separate required first/last fields, require email, and make `attendeePhoneNumber` visible and required. The CMS's preliminary form cannot enforce Cal.diy's independent direct links or API. Test both the CMS and direct provider paths before enabling real bookings. This release does not remotely modify Cal.diy event-type settings or deploy Cal.diy.
+
+Booking settings add category, meeting platform (Cal.diy, Zoom, Google Meet, Viber, Teams, phone or other), joining instructions and optional numeric Cal.diy event type ID per service. Use the numeric ID to match webhooks reliably; the fallback matches the Cal.diy event title exactly. The platform must match the provider's actual event location. Connect Google Meet/Zoom/Teams in Cal.diy so it can create the conference URL. For Viber supply the organizer's contact instructions. Merely choosing a label does not create a conference. Signed webhooks read attendee phone, organizer email, actual video URL/location and provider iCal UID. Real provider location takes precedence over a configured display label. Missing meeting links are explicitly described as awaiting organizer joining details.
+
+The webhook transaction persists a `BookingNotification` outbox record for each valid client/organizer recipient. After responding, Next's `after()` handler attempts delivery with the configured CMS SMTP account. Booking information emails are enabled by default; they show pending/confirmed/cancelled/rejected status, category/service, date/time, timezone, platform and joining details. Pending requests never receive a new calendar invitation. No real email is sent until a signed provider event arrives on an active installation with working SMTP. Organizer recipients come from the signed provider payload, not from public visitor input. Notifications are supplementary to Cal.diy scheduling messages; retain the original provider message for cancellation/reschedule links.
+
+Admin > Booking Settings provides calendar scope **All confirmed bookings** or **Only individually selected bookings**, and recipients **Client and organizer / Client only / Organizer only / None**. Calendar invitations are independent of the informational email checkbox: invitation delivery necessarily uses email even when informational emails are off. Existing external events are not removed by changing these preferences. Pending/unconfirmed events cannot create invitations. In reservation details, set the per-booking selection or send one invitation; in the list, select rows or send for all upcoming confirmed reservations, capped at 200. A manual send selects that booking in individual mode. Already delivered or queued identical invites are not sent again. Delivery status appears in reservation details. Read-only .ics downloads support selected/all upcoming confirmed bookings, also capped at 200, and require OWNER/ADMIN.
+
+Invitations are RFC 5545/5546 `METHOD:REQUEST`; supported clients offer acceptance into the recipient's calendar. They do not silently write into arbitrary Google/Outlook/Samsung accounts. Cal.diy remains responsible for OAuth-connected organizer calendars. Keep one system responsible for calendar invitations: if Cal.diy already sends them, choose **None** for addon invitations to avoid duplicates. Use an SMTP identity authorized to send for the organizer. Provider UID is preserved where available; on a UID-changing reschedule the previous local calendar UID is retained and the sequence is incremented. Cancelled/rejected events send `METHOD:CANCEL` when a previous addon invitation was delivered. Calendar applications still determine how invitation updates and cancellation are handled. Manually imported .ics events may require manual updating; downloads are not a live subscription.
+
+Deploy the additive `20261003060000_booking_notifications` migration with `npm run db:deploy`; existing reservation history remains. Schedule POST `/api/booking/notifications` every five minutes with `Authorization: Bearer BOOKING_CRON_SECRET` (32+ characters). This is separate from the existing reminder endpoint and works with reminders disabled. The worker handles ten records, uses compare-and-set claims and ten-minute leases, retries with five/ten-minute delays and stops after three attempts. Stale booking versions are skipped. A state/content fingerprint suppresses duplicate provider messages describing an already-delivered identical booking. SMTP acceptance followed by a process crash can still duplicate delivery; stable Message-ID/UID help deduplication but do not guarantee it. Verify mailbox logs before retrying an uncertain delivery.
+
+Acceptance: submit missing/invalid fields through CMS and direct provider links; book each category/platform; receive pending email without invitation; approve and verify client/organizer invitation delivery under all and selected modes; test each recipient setting; test repeated webhooks and created/confirmed duplicates; reschedule without duplicate calendar event; cancel and check the same UID cancellation; disable addon before cron; test SMTP retry and delivery status. Confirm dates across DST and actual Zoom/Meet/Viber joining instructions. No payments are configured by this addon.
+
+Provider contracts reviewed: `calcom/cal.diy` `packages/features/bookings/lib/getBookingFields.ts`, `packages/features/bookings/Booker/hooks/useInitialFormValues.ts`, `packages/features/webhooks/lib/sendPayload.ts`, `packages/features/bookings/lib/getWebhookPayloadForBooking.ts` and `packages/types/Calendar.d.ts`.
+
+## Status, retention and export (CMS 1.3.96)
+
+Admin labels are Одобрен / Approved, В изчакване / Pending, Пренасочен / Rescheduled and Отказан / Declined. Cancelled and rejected provider events share the declined label. Confirmed bookings whose date changed keep the rescheduled label while remaining eligible for invitations and reminders. Completed bookings retain their existing status.
+
+CMS booking requests and history are retained for 30 days after meeting end, or after cancellation/rejection/supersession for terminal records. Future active appointments are retained. Cleanup deletes booking contact data, notes, reminder and notification jobs. Independent work projects are preserved and detached; their notes have their own lifetime. Cal.diy, backups, downloaded exports and external calendars require separate retention configuration. Signed webhook events older than 30 days are ignored to prevent old history being recreated.
+
+Schedule a daily authenticated POST to `/api/booking/retention` with `Authorization: Bearer <BOOKING_CRON_SECRET>`. The existing `/api/booking/notifications` cron also runs cleanup, even when the addon is disabled or SMTP is unavailable. Cleanup is not scheduled automatically by the application.
+
+OWNER/ADMIN can export all retained bookings, current filtered results, or 1-200 selected bookings as UTF-8 CSV. Exports include contact details, booking status, meeting information and private booking notes. All/filtered exports are capped at 5000 records and ask for narrower filters rather than silently truncating. Spreadsheet formula prefixes are neutralized. Keep downloaded files private.

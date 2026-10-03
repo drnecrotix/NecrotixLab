@@ -614,6 +614,7 @@ model BookingReservation {
   id           String   @id @default(cuid())
   calUid       String   @unique
   rescheduledFromUid String?
+  rescheduledAt DateTime?
   status       String
   title        String
   customerName String
@@ -627,6 +628,17 @@ model BookingReservation {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  phone String @default("")
+  servicePath String @default("")
+  category String @default("")
+  platform String @default("CALDIY")
+  meetingUrl String @default("")
+  meetingInstructions String @default("")
+  organizerEmail String @default("")
+  calendarUid String @default("")
+  calendarSequence Int @default(0)
+  calendarSelected Boolean @default(false)
+  notifications BookingNotification[]
   internalNotes String @default("")
   project BookingProject?
   reminders BookingReminder[]
@@ -640,8 +652,8 @@ model BookingReservation {
 // Private booking work, intentionally separate from the public portfolio.
 model BookingProject {
   id String @id @default(cuid())
-  reservationId String @unique
-  reservation BookingReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  reservationId String? @unique
+  reservation BookingReservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
   title String
   status String @default("PLANNED")
   notes String @default("")
@@ -664,5 +676,27 @@ model BookingReminder {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@unique([reservationId, startTime, hours])
+  @@index([status, dueAt])
+}
+
+
+model BookingNotification {
+  id String @id @default(cuid())
+  reservationId String
+  reservation BookingReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  eventAt DateTime
+  kind String @default("UPDATE")
+  recipientRole String
+  recipientEmail String
+  calendarAttached Boolean @default(false)
+  fingerprint String
+  dueAt DateTime @default(now())
+  status String @default("PENDING")
+  attempts Int @default(0)
+  lockedUntil DateTime?
+  sentAt DateTime?
+  lastError String @default("")
+  createdAt DateTime @default(now())
+  @@unique([reservationId, eventAt, kind, recipientRole])
   @@index([status, dueAt])
 }

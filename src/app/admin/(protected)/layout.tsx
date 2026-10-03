@@ -2,6 +2,7 @@ import './admin.css';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { auth, signOut } from '@/auth';
+import { bookingAddonConfig } from '@addons/Booking/server';
 import { prisma } from '@/lib/prisma';
 import { AdminDesktopNavigation } from '@/components/admin/AdminDesktopNavigation';
 import { AdminWorkspaceHeader } from '@/components/admin/AdminWorkspaceHeader';
@@ -76,9 +77,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     const siteName = settings?.siteName ?? 'NecrotixLab';
     const journeyPageName = journeyPage?.title && journeyPage.title !== LEGACY_JOURNEY_TITLE ? journeyPage.title : 'Journey';
     const canManageSensitiveTools = session.user.role === 'OWNER' || session.user.role === 'ADMIN';
+    const booking = canManageSensitiveTools ? await bookingAddonConfig() : null;
+    const bookingActive = Boolean(booking?.installed && booking.active);
     const visibleNavGroups: AdminNavGroup[] = navGroups.map(([groupLabel, items]) => [
         groupLabel,
         items
+            .filter(([, href]) => href !== '/admin/bookings' || bookingActive)
             .filter(([label]) => label !== 'Comments' || canManageSensitiveTools)
             .filter(([label]) => !['Site Health', 'Security', 'API & Tokens', 'Audience & traffic', 'Service Requests', 'Reservations', 'Service Pricing', 'Service Tools', 'Service Monitoring', 'Addons'].includes(label) || canManageSensitiveTools)
             .map(([label, href]) => [href === '/admin/experience' ? journeyPageName : label, href] as const),
