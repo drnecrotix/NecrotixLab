@@ -2,22 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition, type DragEvent, type FormEvent, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { AlertCircle, Archive, Briefcase, CheckCircle2, ChevronDown, Eye, EyeOff, GraduationCap, GripVertical, HeartHandshake, Pencil, Plus, Route, Save, Search, Settings2, Trash2 } from 'lucide-react';
+import { AlertCircle, Archive, Briefcase, CheckCircle2, ChevronDown, Eye, EyeOff, GraduationCap, GripVertical, HeartHandshake, Pencil, Plus, Save, Search, Settings2, Trash2 } from 'lucide-react';
 import type { Education, Experience } from '@/types';
 import type { ExperienceContent, ExperienceTabId, PartnerLogo, ExperienceCategory } from '@/lib/experience-content';
 import type { JourneyEntryList, JourneyEntryState } from '@/lib/journey-entry-state';
 import type { ExperienceSaveResult } from '@/app/admin/(protected)/experience/actions';
 import { FormDraftGuard, markDraftCommitted } from '@/components/admin/FormDraftGuard';
 import { journeyCategoryId, journeyPeriod } from '@/lib/journey-category';
+import { mergeBackgroundEntries } from '@/lib/background-entries';
 import { MediaPicker } from '@/components/admin/MediaPicker';
 
-const field = 'mt-1.5 w-full rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-sm text-white outline-none transition focus:border-cyan-400/50 focus:bg-white/[0.055]';
+const field = 'mt-1.5 min-w-0 max-w-full w-full rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-sm text-white outline-none transition focus:border-cyan-400/50 focus:bg-white/[0.055]';
 const selectField = `${field} [color-scheme:dark] [&>option]:bg-[#151515] [&>option]:text-white`;
 const panel = 'rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5';
 const toggle = 'flex items-center gap-3 text-sm text-white/70';
 const draftKey = 'experience:settings';
 
-type AdminTab = 'general' | 'education' | 'journey' | 'experience' | 'partners';
+type AdminTab = 'general' | 'education' | 'experience' | 'partners';
 type EditableList = JourneyEntryList | 'partners';
 type SaveAction = (formData: FormData) => Promise<ExperienceSaveResult>;
 type Selection = Record<EditableList, string[]>;
@@ -27,8 +28,7 @@ type DraftDetail = { fields?: Record<string, string[]> };
 const tabs: { id: AdminTab; label: string; icon: typeof Settings2 }[] = [
     { id: 'general', label: 'General', icon: Settings2 },
     { id: 'education', label: 'Education', icon: GraduationCap },
-    { id: 'journey', label: 'Journey', icon: Route },
-    { id: 'experience', label: 'Experience', icon: Briefcase },
+    { id: 'experience', label: 'Background', icon: Briefcase },
     { id: 'partners', label: 'Partners & Sponsors', icon: HeartHandshake },
 ];
 
@@ -59,14 +59,15 @@ function newPartner(): PartnerLogo {
 }
 
 export function JourneyAdminEditor({ content, pageName, initialStates, action }: { content: ExperienceContent; pageName: string; initialStates: JourneyEntryState; action: SaveAction }) {
+    const merged = useMemo(() => mergeBackgroundEntries(content.experienceEntries, content.journeyEntries, initialStates), [content, initialStates]);
     const [activeTab, setActiveTab] = useState<AdminTab>('general');
     const [query, setQuery] = useState('');
     const [openKey, setOpenKey] = useState<string | null>(null);
     const [education, setEducation] = useState(content.educationEntries);
-    const [journey, setJourney] = useState(content.journeyEntries);
-    const [experience, setExperience] = useState(content.experienceEntries);
+    const [journey, setJourney] = useState<Experience[]>([]);
+    const [experience, setExperience] = useState(merged.entries);
     const [partners, setPartners] = useState(content.partnerLogos);
-    const [states, setStates] = useState<JourneyEntryState>(initialStates);
+    const [states, setStates] = useState<JourneyEntryState>(merged.state);
     const [selection, setSelection] = useState<Selection>({ education: [], journey: [], experience: [], partners: [] });
     const [drag, setDrag] = useState<DragState>(null);
     const [saveState, setSaveState] = useState<'idle' | 'saved' | 'error'>('idle');
@@ -101,10 +102,16 @@ export function JourneyAdminEditor({ content, pageName, initialStates, action }:
             if (!fields) return;
             try {
                 if (fields.educationEntriesJson?.[0]) setEducation(JSON.parse(fields.educationEntriesJson[0]) as Education[]);
-                if (fields.journeyEntriesJson?.[0]) setJourney(JSON.parse(fields.journeyEntriesJson[0]) as Experience[]);
-                if (fields.experienceEntriesJson?.[0]) setExperience(JSON.parse(fields.experienceEntriesJson[0]) as Experience[]);
+                const restored = mergeBackgroundEntries(
+                    fields.experienceEntriesJson?.[0] ? JSON.parse(fields.experienceEntriesJson[0]) : content.experienceEntries,
+                    fields.journeyEntriesJson?.[0] ? JSON.parse(fields.journeyEntriesJson[0]) : content.journeyEntries,
+                    fields.entryStatesJson?.[0] ? JSON.parse(fields.entryStatesJson[0]) : initialStates,
+                );
+                setJourney([]);
+                setExperience(restored.entries);
+                setStates(restored.state);
                 if (fields.partnerLogosJson?.[0]) setPartners(JSON.parse(fields.partnerLogosJson[0]) as PartnerLogo[]);
-                if (fields.entryStatesJson?.[0]) setStates(JSON.parse(fields.entryStatesJson[0]) as JourneyEntryState);
+
             } catch {
                 notice('The local Journey draft could not be restored completely.', 'error');
             }
@@ -158,11 +165,7 @@ export function JourneyAdminEditor({ content, pageName, initialStates, action }:
         setEducation((items) => items.map((item, i) => i === index ? { ...item, ...patch } : item));
         touch();
     };
-    const updateJourney = (index: number, patch: Partial<Experience>) => {
-        renameState('journey', journey[index]?.id ?? '', patch.id);
-        setJourney((items) => items.map((item, i) => i === index ? { ...item, ...patch } : item));
-        touch();
-    };
+
     const updateExperience = (index: number, patch: Partial<Experience>) => {
         renameState('experience', experience[index]?.id ?? '', patch.id);
         setExperience((items) => items.map((item, i) => i === index ? { ...item, ...patch } : item));
@@ -175,7 +178,6 @@ export function JourneyAdminEditor({ content, pageName, initialStates, action }:
 
     const q = query.trim().toLowerCase();
     const visibleEducation = useMemo(() => education.map((item, index) => ({ item, index })).filter(({ item }) => openKey === `education:${item.id}` || !q || `${item.degree} ${item.institution} ${item.major}`.toLowerCase().includes(q)), [education, q, openKey]);
-    const visibleJourney = useMemo(() => journey.map((item, index) => ({ item, index })).filter(({ item }) => openKey === `journey:${item.id}` || !q || `${item.position} ${item.company} ${item.location ?? ''} ${item.type}`.toLowerCase().includes(q)), [journey, q, openKey]);
     const visibleExperience = useMemo(() => experience.map((item, index) => ({ item, index })).filter(({ item }) => openKey === `experience:${item.id}` || !q || `${item.position} ${item.company} ${item.location ?? ''} ${item.type}`.toLowerCase().includes(q)), [experience, q, openKey]);
 
     const toggleSelected = (list: EditableList, id: string) => setSelection((current) => ({ ...current, [list]: current[list].includes(id) ? current[list].filter((item) => item !== id) : [...current[list], id] }));
@@ -218,53 +220,9 @@ export function JourneyAdminEditor({ content, pageName, initialStates, action }:
         touch();
     };
 
-    const moveJourneyToExperience = () => {
-        const ids = new Set(selection.journey);
-        const moving = journey.filter((item) => ids.has(item.id));
-        if (!moving.length) return;
-        const existing = new Set(experience.map((item) => item.id));
-        const mapped = moving.map((item) => {
-            let id = item.id;
-            if (!id || existing.has(id)) id = `experience-${crypto.randomUUID()}`;
-            existing.add(id);
-            return { ...item, id, categoryId: journeyCategoryId(item, content.categories) };
-        });
-        setJourney((items) => items.filter((item) => !ids.has(item.id)));
-        setExperience((items) => [...items, ...mapped]);
-        setStates((current) => {
-            const journeyState = { ...current.journey };
-            const experienceState = { ...current.experience };
-            moving.forEach((item, index) => { const value = journeyState[item.id]; delete journeyState[item.id]; if (value) experienceState[mapped[index].id] = value; });
-            return { ...current, journey: journeyState, experience: experienceState };
-        });
-        clearSelection('journey');
-        chooseTab('experience');
-        touch();
-    };
 
-    const moveExperienceToJourney = () => {
-        const ids = new Set(selection.experience);
-        const moving = experience.filter((item) => ids.has(item.id));
-        if (!moving.length) return;
-        const existing = new Set(journey.map((item) => item.id));
-        const mapped = moving.map((item, index) => {
-            let id = item.id;
-            if (existing.has(id)) id = `journey-${Date.now()}-${index}`;
-            existing.add(id);
-            return { ...item, id };
-        });
-        setExperience((items) => items.filter((item) => !ids.has(item.id)));
-        setJourney((items) => [...items, ...mapped]);
-        setStates((current) => {
-            const experienceState = { ...current.experience };
-            const journeyState = { ...current.journey };
-            moving.forEach((item, index) => { const value = experienceState[item.id]; delete experienceState[item.id]; if (value) journeyState[mapped[index].id] = value; });
-            return { ...current, experience: experienceState, journey: journeyState };
-        });
-        clearSelection('experience');
-        chooseTab('journey');
-        touch();
-    };
+
+
 
     const reorder = (list: EditableList, from: number, to: number) => {
         if (q || from === to) return;
@@ -293,7 +251,7 @@ export function JourneyAdminEditor({ content, pageName, initialStates, action }:
 
     return (
         <>
-            <form ref={formRef} onSubmit={submit} onInput={markEditing} onChange={markEditing} className="space-y-5">
+            <form ref={formRef} onSubmit={submit} onInput={markEditing} onChange={markEditing} className="min-w-0 max-w-full space-y-5">
                 <FormDraftGuard draftKey={draftKey} label="Journey settings" /><fieldset inert={isPending} className="min-w-0 space-y-5">
                 <input type="hidden" name="educationEntriesJson" value={JSON.stringify(education)} readOnly />
                 <input type="hidden" name="journeyEntriesJson" value={JSON.stringify(journey)} readOnly />
@@ -313,14 +271,7 @@ export function JourneyAdminEditor({ content, pageName, initialStates, action }:
                     <HighlightEditor id="education" content={content} />
                 </ListSection></div>
 
-                <div hidden={activeTab !== 'journey'}><ListSection title="Journey timeline" count={journey.length} query={query} setQuery={setQuery} addLabel="Add journey entry" onAdd={() => { setQuery(''); const item = newExperience('journey'); setJourney((items) => [...items, item]); setOpenKey(`journey:${item.id}`); touch(); }} toolbar={<BulkToolbar list="journey" selected={selection.journey} visible={visibleJourney.map(({ item }) => item.id)} onSelect={(checked) => selectVisible('journey', visibleJourney.map(({ item }) => item.id), checked)} onClear={() => clearSelection('journey')} onShow={() => bulkState('journey', { hidden: false })} onHide={() => bulkState('journey', { hidden: true })} onArchive={() => bulkState('journey', { archived: true })} onRestore={() => bulkState('journey', { archived: false })} onDelete={() => deleteSelected('journey')} moveLabel="Move to Experience" onMove={moveJourneyToExperience} />}>
-                    {visibleJourney.map(({ item, index }) => <RecordRow key={item.id || index} title={item.position || `Journey ${index + 1}`} subtitle={item.company || 'No organization'} meta={[period(item.startDate, item.endDate, item.isOngoing), item.location || 'No location']} badges={[item.type.replace('-', ' '), ...flags('journey', item.id)]} preview={item.thumbnail || item.logo} selected={selection.journey.includes(item.id)} onSelect={() => toggleSelected('journey', item.id)} open={openKey === `journey:${item.id}`} onToggle={() => setOpenKey(openKey === `journey:${item.id}` ? null : `journey:${item.id}`)} onRemove={() => { setJourney((items) => items.filter((_, i) => i !== index)); touch(); }} dragEnabled={!q} dragging={drag?.list === 'journey' && drag.index === index} onDragStart={(event) => dragStart(event, 'journey', index)} onDragEnd={() => setDrag(null)} onDrop={(event) => drop(event, 'journey', index)}><ExperienceFields item={item} index={index} namespace="journey" categories={content.categories} onChange={(patch) => updateJourney(index, patch)} /></RecordRow>)}
-                    {!visibleJourney.length && <Empty label={journey.length ? 'No Journey records match your search.' : 'No Journey records yet.'} />}
-                    {q && <ReorderHint />}
-                    <HighlightEditor id="journey" content={content} />
-                </ListSection></div>
-
-                <div hidden={activeTab !== 'experience'} className="space-y-4"><ExperienceCategories content={content} /><ListSection title="Experience archive" count={experience.length} query={query} setQuery={setQuery} addLabel="Add experience" onAdd={() => { setQuery(''); const item = newExperience('prof'); setExperience((items) => [...items, item]); setOpenKey(`experience:${item.id}`); touch(); }} toolbar={<BulkToolbar list="experience" selected={selection.experience} visible={visibleExperience.map(({ item }) => item.id)} onSelect={(checked) => selectVisible('experience', visibleExperience.map(({ item }) => item.id), checked)} onClear={() => clearSelection('experience')} onShow={() => bulkState('experience', { hidden: false })} onHide={() => bulkState('experience', { hidden: true })} onArchive={() => bulkState('experience', { archived: true })} onRestore={() => bulkState('experience', { archived: false })} onDelete={() => deleteSelected('experience')} moveLabel="Move to Journey" onMove={moveExperienceToJourney} />}>
+                <div hidden={activeTab !== 'experience'} className="space-y-4"><ExperienceCategories content={content} /><ListSection title="Background records" count={experience.length} query={query} setQuery={setQuery} addLabel="Add background record" onAdd={() => { setQuery(''); const item = newExperience('prof'); setExperience((items) => [...items, item]); setOpenKey(`experience:${item.id}`); touch(); }} toolbar={<BulkToolbar list="experience" selected={selection.experience} visible={visibleExperience.map(({ item }) => item.id)} onSelect={(checked) => selectVisible('experience', visibleExperience.map(({ item }) => item.id), checked)} onClear={() => clearSelection('experience')} onShow={() => bulkState('experience', { hidden: false })} onHide={() => bulkState('experience', { hidden: true })} onArchive={() => bulkState('experience', { archived: true })} onRestore={() => bulkState('experience', { archived: false })} onDelete={() => deleteSelected('experience')} />}>
                     {visibleExperience.map(({ item, index }) => <RecordRow key={item.id || index} title={item.position || `Experience ${index + 1}`} subtitle={item.company || 'No organization'} meta={[item.id, period(item.startDate, item.endDate, item.isOngoing)]} badges={[item.type.replace('-', ' '), ...flags('experience', item.id)]} preview={item.thumbnail || item.logo} selected={selection.experience.includes(item.id)} onSelect={() => toggleSelected('experience', item.id)} open={openKey === `experience:${item.id}`} onToggle={() => setOpenKey(openKey === `experience:${item.id}` ? null : `experience:${item.id}`)} onRemove={() => { setExperience((items) => items.filter((_, i) => i !== index)); touch(); }} dragEnabled={!q} dragging={drag?.list === 'experience' && drag.index === index} onDragStart={(event) => dragStart(event, 'experience', index)} onDragEnd={() => setDrag(null)} onDrop={(event) => drop(event, 'experience', index)}><ExperienceFields item={item} index={index} namespace="experience" categories={content.categories} onChange={(patch) => updateExperience(index, patch)} /></RecordRow>)}
                     {!visibleExperience.length && <Empty label={experience.length ? 'No Experience records match your search.' : 'No Experience records yet.'} />}
                     {q && <ReorderHint />}
@@ -343,9 +294,9 @@ export function JourneyAdminEditor({ content, pageName, initialStates, action }:
 
 function GeneralTab({ content, pageName }: { content: ExperienceContent; pageName: string }) {
     const toggles = [
-        ['pageEnabled', content.pageEnabled, 'Enable Journey page'], ['showHero', content.showHero, 'Hero'], ['showDecorations', content.showDecorations, 'Background decorations'], ['showMarquee', content.showMarquee, 'Partners & Sponsors'], ['showTabs', content.showTabs, 'Public tab navigation'], ['showEducation', content.showEducation, 'Education tab'], ['showJourney', content.showJourney, 'Journey tab'], ['showExperience', content.showExperience, 'Experience tab'], ['showHighlights', content.showHighlights, 'Highlight blocks'], ['showSkills', content.showSkills, 'Skills'], ['showResponsibilities', content.showResponsibilities, 'Responsibilities'], ['showImpact', content.showImpact, 'Impact'], ['showKeyLearnings', content.showKeyLearnings, 'Key learnings'],
+        ['pageEnabled', content.pageEnabled, 'Enable Background page'], ['showHero', content.showHero, 'Hero'], ['showDecorations', content.showDecorations, 'Background decorations'], ['showMarquee', content.showMarquee, 'Partners & Sponsors'], ['showTabs', content.showTabs, 'Public tab navigation'], ['showEducation', content.showEducation, 'Education tab'], ['showExperience', content.showExperience || content.showJourney, 'Background tab'], ['showHighlights', content.showHighlights, 'Highlight blocks'], ['showSkills', content.showSkills, 'Skills'], ['showResponsibilities', content.showResponsibilities, 'Responsibilities'], ['showImpact', content.showImpact, 'Impact'], ['showKeyLearnings', content.showKeyLearnings, 'Key learnings'],
     ] as const;
-    return <div className="space-y-4"><section className={panel}><p className="text-xs uppercase tracking-[0.25em] text-white/35">Page identity</p><div className="mt-4 grid gap-4 md:grid-cols-2"><Label title="Page name"><input name="pageName" defaultValue={pageName} className={field} /></Label><Label title="Public slug"><div className="mt-1.5 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white/45">/journey</div></Label></div></section><section className={panel}><p className="text-xs uppercase tracking-[0.25em] text-white/35">Visibility & behavior</p><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{toggles.map(([name, checked, label]) => <Toggle key={name} name={name} checked={checked} label={label} />)}</div><label className="mt-5 block text-sm text-white/60">Default public tab<select name="defaultTab" defaultValue={content.defaultTab} className={selectField}><option value="education">Education</option><option value="journey">Journey</option><option value="experience">Experience</option></select></label></section><details className={panel}><summary className="cursor-pointer select-none font-semibold text-white">Hero content</summary><div className="mt-4 grid gap-4 md:grid-cols-2"><Label title="Eyebrow"><input name="heroEyebrow" defaultValue={content.heroEyebrow} className={field} /></Label><Label title="Highlighted words"><input name="heroHighlight" defaultValue={content.heroHighlight} className={field} /></Label><Label title="Main title" wide><input name="heroTitle" defaultValue={content.heroTitle} className={field} /></Label><Label title="Description" wide><textarea name="heroDescription" defaultValue={content.heroDescription} rows={3} className={field} /></Label><Label title="Primary button label"><input name="heroPrimaryLabel" defaultValue={content.heroPrimaryLabel} className={field} /></Label><Label title="Primary button URL"><input name="heroPrimaryUrl" defaultValue={content.heroPrimaryUrl} className={field} /></Label><Label title="Secondary button label"><input name="heroSecondaryLabel" defaultValue={content.heroSecondaryLabel} className={field} /></Label><Label title="Secondary button URL"><input name="heroSecondaryUrl" defaultValue={content.heroSecondaryUrl} className={field} /></Label></div></details><details className={panel}><summary className="cursor-pointer select-none font-semibold text-white">Public tab text</summary><div className="mt-4 grid gap-4 md:grid-cols-2"><Label title="Tab intro" wide><input name="tabIntro" defaultValue={content.tabIntro} className={field} /></Label><Label title="Education label"><input name="educationLabel" defaultValue={content.educationLabel} className={field} /></Label><Label title="Education description"><textarea name="educationDescription" defaultValue={content.educationDescription} rows={2} className={field} /></Label><Label title="Journey label"><input name="journeyLabel" defaultValue={content.journeyLabel} className={field} /></Label><Label title="Journey description"><textarea name="journeyDescription" defaultValue={content.journeyDescription} rows={2} className={field} /></Label><Label title="Experience label"><input name="experienceLabel" defaultValue={content.experienceLabel} className={field} /></Label><Label title="Experience description"><textarea name="experienceDescription" defaultValue={content.experienceDescription} rows={2} className={field} /></Label><Label title="Archive eyebrow"><input name="archiveEyebrow" defaultValue={content.archiveEyebrow} className={field} /></Label><Label title="Archive title"><input name="archiveTitle" defaultValue={content.archiveTitle} className={field} /></Label><Label title="Archive description" wide><textarea name="archiveDescription" defaultValue={content.archiveDescription} rows={2} className={field} /></Label><Label title="Empty state" wide><input name="emptyState" defaultValue={content.emptyState} className={field} /></Label></div></details></div>;
+    return <div className="space-y-4"><section className={panel}><p className="text-xs uppercase tracking-[0.25em] text-white/35">Page identity</p><div className="mt-4 grid gap-4 md:grid-cols-2"><Label title="Page name"><input name="pageName" defaultValue={pageName === 'Journey' || pageName === 'Experience' ? 'Background' : pageName} className={field} /></Label><Label title="Public slug"><div className="mt-1.5 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white/45">/journey</div></Label></div></section><section className={panel}><p className="text-xs uppercase tracking-[0.25em] text-white/35">Visibility & behavior</p><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{toggles.map(([name, checked, label]) => <Toggle key={name} name={name} checked={checked} label={label} />)}</div><label className="mt-5 block text-sm text-white/60">Default public tab<select name="defaultTab" defaultValue={content.defaultTab === 'journey' ? 'experience' : content.defaultTab} className={selectField}><option value="education">Education</option><option value="experience">Background</option></select></label></section><section className={panel}><Label title="Default display"><select name="displayStyle" defaultValue={content.displayStyle} className={selectField}><option value="cards">Cards</option><option value="timeline">Timeline</option></select></Label><p className="mt-2 text-xs text-white/40">One view at a time. Visitors can switch between Cards and Timeline.</p></section><details className={panel}><summary className="cursor-pointer select-none font-semibold text-white">Hero content</summary><div className="mt-4 grid gap-4 md:grid-cols-2"><Label title="Eyebrow"><input name="heroEyebrow" defaultValue={content.heroEyebrow} className={field} /></Label><Label title="Highlighted words"><input name="heroHighlight" defaultValue={content.heroHighlight} className={field} /></Label><Label title="Main title" wide><input name="heroTitle" defaultValue={content.heroTitle} className={field} /></Label><Label title="Description" wide><textarea name="heroDescription" defaultValue={content.heroDescription} rows={3} className={field} /></Label><Label title="Primary button label"><input name="heroPrimaryLabel" defaultValue={content.heroPrimaryLabel} className={field} /></Label><Label title="Primary button URL"><input name="heroPrimaryUrl" defaultValue={content.heroPrimaryUrl} className={field} /></Label><Label title="Secondary button label"><input name="heroSecondaryLabel" defaultValue={content.heroSecondaryLabel} className={field} /></Label><Label title="Secondary button URL"><input name="heroSecondaryUrl" defaultValue={content.heroSecondaryUrl} className={field} /></Label></div></details><details className={panel}><summary className="cursor-pointer select-none font-semibold text-white">Public tab text</summary><div className="mt-4 grid gap-4 md:grid-cols-2"><Label title="Tab intro" wide><input name="tabIntro" defaultValue={content.tabIntro} className={field} /></Label><Label title="Education label"><input name="educationLabel" defaultValue={content.educationLabel} className={field} /></Label><Label title="Education description"><textarea name="educationDescription" defaultValue={content.educationDescription} rows={2} className={field} /></Label><Label title="Background label"><input name="experienceLabel" defaultValue={content.experienceLabel} className={field} /></Label><Label title="Background description"><textarea name="experienceDescription" defaultValue={content.experienceDescription} rows={2} className={field} /></Label><Label title="Archive eyebrow"><input name="archiveEyebrow" defaultValue={content.archiveEyebrow} className={field} /></Label><Label title="Archive title"><input name="archiveTitle" defaultValue={content.archiveTitle} className={field} /></Label><Label title="Archive description" wide><textarea name="archiveDescription" defaultValue={content.archiveDescription} rows={2} className={field} /></Label><Label title="Empty state" wide><input name="emptyState" defaultValue={content.emptyState} className={field} /></Label></div></details></div>;
 }
 
 function ListSection({ title, count, query, setQuery, addLabel, onAdd, hideSearch = false, toolbar, children }: { title: string; count: number; query: string; setQuery: (value: string) => void; addLabel: string; onAdd: () => void; hideSearch?: boolean; toolbar: ReactNode; children: ReactNode }) {
@@ -362,17 +313,17 @@ function RecordRow({ title, subtitle, meta = [], badges = [], preview, selected,
 }
 
 function EducationFields({ item, index, onChange }: { item: Education; index: number; onChange: (patch: Partial<Education>) => void }) {
-    return <div className="grid gap-3 md:grid-cols-2"><Label title="Record ID"><input name={`education_editor_${index}_id`} value={item.id} readOnly className={field} /></Label><ThumbnailField value={item.thumbnail} onChange={(url) => onChange({ thumbnail: url || undefined })} /><Label title="Institution"><input value={item.institution} onChange={(e) => onChange({ institution: e.target.value })} className={field} /></Label><Label title="Degree"><input value={item.degree} onChange={(e) => onChange({ degree: e.target.value })} className={field} /></Label><Label title="Major"><input value={item.major} onChange={(e) => onChange({ major: e.target.value })} className={field} /></Label><Label title="Start date (optional)"><input value={item.startDate} onChange={(e) => onChange({ startDate: e.target.value })} className={field} /></Label><Label title="End date (optional)"><input disabled={item.isOngoing} value={item.endDate ?? ''} onChange={(e) => onChange({ endDate: e.target.value || undefined })} className={field} /></Label><Label title="GPA"><input value={item.gpa ?? ''} onChange={(e) => onChange({ gpa: e.target.value || undefined })} className={field} /></Label><label className={`${toggle} mt-6`}><input type="checkbox" checked={item.isOngoing} onChange={(e) => onChange({ isOngoing: e.target.checked })} className="size-4" />Ongoing education</label><Label title="Activities - one per line" wide><textarea value={text(item.activities)} onChange={(e) => onChange({ activities: toLines(e.target.value) })} rows={3} className={field} /></Label><Label title="Achievements - one per line" wide><textarea value={text(item.achievements)} onChange={(e) => onChange({ achievements: toLines(e.target.value) })} rows={3} className={field} /></Label></div>;
+    return <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2"><Label title="Record ID"><input name={`education_editor_${index}_id`} value={item.id} readOnly className={field} /></Label><ThumbnailField value={item.thumbnail} onChange={(url) => onChange({ thumbnail: url || undefined })} /><Label title="Institution"><input value={item.institution} onChange={(e) => onChange({ institution: e.target.value })} className={field} /></Label><Label title="Degree"><input value={item.degree} onChange={(e) => onChange({ degree: e.target.value })} className={field} /></Label><Label title="Major"><input value={item.major} onChange={(e) => onChange({ major: e.target.value })} className={field} /></Label><Label title="Start date (optional)"><input placeholder="2016 or 2016-09 - leave blank if unknown" value={item.startDate} onChange={(e) => onChange({ startDate: e.target.value })} className={field} /></Label><Label title="End date (optional)"><input placeholder="2018 or 2018-06 - leave blank if unknown" disabled={item.isOngoing} value={item.endDate ?? ''} onChange={(e) => onChange({ endDate: e.target.value || undefined })} className={field} /></Label><Label title="GPA"><input value={item.gpa ?? ''} onChange={(e) => onChange({ gpa: e.target.value || undefined })} className={field} /></Label><label className={`${toggle} mt-6`}><input type="checkbox" checked={item.isOngoing} onChange={(e) => onChange({ isOngoing: e.target.checked })} className="size-4" />Ongoing education</label><Label title="Activities - one per line" wide><textarea value={text(item.activities)} onChange={(e) => onChange({ activities: toLines(e.target.value) })} rows={3} className={field} /></Label><Label title="Achievements - one per line" wide><textarea value={text(item.achievements)} onChange={(e) => onChange({ achievements: toLines(e.target.value) })} rows={3} className={field} /></Label></div>;
 }
 
 function ExperienceFields({ item, index, namespace, categories, onChange }: { item: Experience; index: number; namespace: 'journey' | 'experience'; categories: ExperienceCategory[]; onChange: (patch: Partial<Experience>) => void }) {
     const external = Array.isArray(item.externalLink) ? item.externalLink.join('\n') : item.externalLink ?? '';
-    return <div className="grid gap-3 md:grid-cols-2"><Label title="Record ID"><input value={item.id} readOnly className={field} /></Label><Label title="Category"><select value={journeyCategoryId(item, categories) ?? ''} onChange={(e) => onChange({ categoryId: e.target.value })} className={selectField}>{categories.map((category) => <option key={category.id} value={category.id}>{category.label}{category.enabled ? '' : ' (hidden publicly)'}</option>)}</select></Label><Label title="Employment type"><select value={item.type} onChange={(e) => onChange({ type: e.target.value as Experience['type'] })} className={selectField}><option value="full-time">Full-time</option><option value="part-time">Part-time</option><option value="contract">Contract</option><option value="internship">Internship</option><option value="freelance">Freelance</option><option value="volunteer">Volunteer</option><option value="apprenticeship">Apprenticeship</option><option value="self-employed">Self-employed</option></select></Label><ThumbnailField value={item.thumbnail} onChange={(url) => onChange({ thumbnail: url || undefined })} /><Label title="Company / organization"><input value={item.company} onChange={(e) => onChange({ company: e.target.value })} className={field} /></Label><Label title="Position"><input value={item.position} onChange={(e) => onChange({ position: e.target.value })} className={field} /></Label><Label title="Location"><input value={item.location ?? ''} onChange={(e) => onChange({ location: e.target.value || undefined })} className={field} /></Label><div className="md:col-span-2 rounded-xl border border-white/10 bg-white/[0.02] p-3"><MediaPicker value={item.logo ?? ''} onChange={(url) => onChange({ logo: url || undefined })} label={`${namespace === 'journey' ? 'Journey' : 'Experience'} logo / image`} initialKind="image" lockKind /><p className="mt-2 text-[11px] text-white/30">Choose from Media Library or upload a new image. This media is used on the public page.</p></div><Label title="Start date (optional)"><input value={item.startDate} onChange={(e) => onChange({ startDate: e.target.value })} className={field} /></Label><Label title="End date (optional)"><input disabled={item.isOngoing} value={item.endDate ?? ''} onChange={(e) => onChange({ endDate: e.target.value || undefined })} className={field} /></Label><Label title="Primary link"><input value={item.link ?? ''} onChange={(e) => onChange({ link: e.target.value || undefined })} className={field} /></Label><Label title="External links"><textarea value={external} onChange={(e) => onChange({ externalLink: toLines(e.target.value) })} rows={2} className={field} /></Label><label className={`${toggle} md:col-span-2`}><input type="checkbox" checked={item.isOngoing} onChange={(e) => onChange({ isOngoing: e.target.checked })} className="size-4" />Current / ongoing role</label><Label title="Description" wide><textarea value={item.description} onChange={(e) => onChange({ description: e.target.value })} rows={3} className={field} /></Label><Label title="Skills - one per line" wide><textarea value={text(item.skills)} onChange={(e) => onChange({ skills: toLines(e.target.value) })} rows={3} className={field} /></Label><Label title="Responsibilities - one per line" wide><textarea value={text(item.responsibilities)} onChange={(e) => onChange({ responsibilities: toLines(e.target.value) })} rows={3} className={field} /></Label><Label title="Impact - one per line" wide><textarea value={text(item.impact)} onChange={(e) => onChange({ impact: toLines(e.target.value) })} rows={3} className={field} /></Label><Label title="Key learnings - one per line" wide><textarea value={text(item.keyLearnings)} onChange={(e) => onChange({ keyLearnings: toLines(e.target.value) })} rows={3} className={field} /></Label><input type="hidden" name={`${namespace}_editor_${index}`} value={item.id} readOnly /></div>;
+    return <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2"><Label title="Record reference"><span className="mt-2 block break-all text-xs text-white/30">{item.id}</span></Label><Label title="Category"><select value={journeyCategoryId(item, categories) ?? ''} onChange={(e) => onChange({ categoryId: e.target.value })} className={selectField}>{categories.map((category) => <option key={category.id} value={category.id}>{category.label}{category.enabled ? '' : ' (hidden publicly)'}</option>)}</select></Label><Label title="Employment type"><select value={item.type} onChange={(e) => onChange({ type: e.target.value as Experience['type'] })} className={selectField}><option value="full-time">Full-time</option><option value="part-time">Part-time</option><option value="contract">Contract</option><option value="internship">Internship</option><option value="freelance">Freelance</option><option value="volunteer">Volunteer</option><option value="apprenticeship">Apprenticeship</option><option value="self-employed">Self-employed</option></select></Label><ThumbnailField value={item.thumbnail} onChange={(url) => onChange({ thumbnail: url || undefined })} /><Label title="Company / organization (optional for independent work)"><input value={item.company} onChange={(e) => onChange({ company: e.target.value })} className={field} /></Label><Label title="Position"><input value={item.position} onChange={(e) => onChange({ position: e.target.value })} className={field} /></Label><Label title="Location"><input value={item.location ?? ''} onChange={(e) => onChange({ location: e.target.value || undefined })} className={field} /></Label><div className="min-w-0 md:col-span-2 rounded-xl border border-white/10 bg-white/[0.02] p-3"><MediaPicker value={item.logo ?? ''} onChange={(url) => onChange({ logo: url || undefined })} label="Organization icon / logo (optional)" initialKind="image" lockKind /><p className="mt-2 text-[11px] text-white/30">Choose from Media Library or upload a new image. Separate from the work preview thumbnail.</p></div><Label title="Start date (optional)"><input placeholder="2016 or 2016-09 - leave blank if unknown" value={item.startDate} onChange={(e) => onChange({ startDate: e.target.value })} className={field} /></Label><Label title="End date (optional)"><input placeholder="2018 or 2018-06 - leave blank if unknown" disabled={item.isOngoing} value={item.endDate ?? ''} onChange={(e) => onChange({ endDate: e.target.value || undefined })} className={field} /></Label><Label title="Primary link"><input value={item.link ?? ''} onChange={(e) => onChange({ link: e.target.value || undefined })} className={field} /></Label><Label title="External links"><textarea value={external} onChange={(e) => onChange({ externalLink: toLines(e.target.value) })} rows={2} className={field} /></Label><label className={`${toggle} md:col-span-2`}><input type="checkbox" checked={item.isOngoing} onChange={(e) => onChange({ isOngoing: e.target.checked })} className="size-4" />Current / ongoing role</label><Label title="Description" wide><textarea value={item.description} onChange={(e) => onChange({ description: e.target.value })} rows={3} className={field} /></Label><Label title="Skills - one per line" wide><textarea value={text(item.skills)} onChange={(e) => onChange({ skills: toLines(e.target.value) })} rows={3} className={field} /></Label><details className="min-w-0 rounded-xl border border-white/10 p-3 md:col-span-2"><summary className="cursor-pointer text-sm font-semibold text-white/70">Responsibilities, impact & learnings (optional)</summary><div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2"><Label title="Responsibilities - one per line" wide><textarea value={text(item.responsibilities)} onChange={(e) => onChange({ responsibilities: toLines(e.target.value) })} rows={3} className={field} /></Label><Label title="Impact - one per line" wide><textarea value={text(item.impact)} onChange={(e) => onChange({ impact: toLines(e.target.value) })} rows={3} className={field} /></Label><Label title="Key learnings - one per line" wide><textarea value={text(item.keyLearnings)} onChange={(e) => onChange({ keyLearnings: toLines(e.target.value) })} rows={3} className={field} /></Label></div></details><input type="hidden" name={`${namespace}_editor_${index}`} value={item.id} readOnly /></div>;
 }
 
 function PartnerFields({ item, index, onChange }: { item: PartnerLogo; index: number; onChange: (patch: Partial<PartnerLogo>) => void }) {
     const legacy = Boolean(item.src && !isSvg(item.src));
-    return <div className="grid gap-3 md:grid-cols-2"><Label title="Name"><input value={item.name} onChange={(e) => onChange({ name: e.target.value })} className={field} /></Label><Label title="ID"><input value={item.id} readOnly className={field} /></Label><Label title="SVG path / URL" wide><input value={item.src} onChange={(e) => onChange({ src: e.target.value })} placeholder="/assets/partner-logo.svg" className={`${field} ${legacy ? 'border-amber-400/25' : ''}`} /><span className="mt-2 block text-[11px] text-white/35">New or changed files must end in .svg. Existing legacy images can remain until replaced.</span></Label><Label title="Partner website" wide><input value={item.href ?? ''} onChange={(e) => onChange({ href: e.target.value || undefined })} className={field} /></Label><label className={`${toggle} md:col-span-2`}><input type="checkbox" checked={item.enabled} onChange={(e) => onChange({ enabled: e.target.checked })} className="size-4" />Show this logo</label><input type="hidden" name={`partner_editor_${index}`} value={item.id} readOnly /></div>;
+    return <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2"><Label title="Name"><input value={item.name} onChange={(e) => onChange({ name: e.target.value })} className={field} /></Label><Label title="ID"><input value={item.id} readOnly className={field} /></Label><Label title="SVG path / URL" wide><input value={item.src} onChange={(e) => onChange({ src: e.target.value })} placeholder="/assets/partner-logo.svg" className={`${field} ${legacy ? 'border-amber-400/25' : ''}`} /><span className="mt-2 block text-[11px] text-white/35">New or changed files must end in .svg. Existing legacy images can remain until replaced.</span></Label><Label title="Partner website" wide><input value={item.href ?? ''} onChange={(e) => onChange({ href: e.target.value || undefined })} className={field} /></Label><label className={`${toggle} md:col-span-2`}><input type="checkbox" checked={item.enabled} onChange={(e) => onChange({ enabled: e.target.checked })} className="size-4" />Show this logo</label><input type="hidden" name={`partner_editor_${index}`} value={item.id} readOnly /></div>;
 }
 
 function ExperienceCategories({ content }: { content: ExperienceContent }) {
@@ -387,8 +338,8 @@ function HighlightEditor({ id, content }: { id: ExperienceTabId; content: Experi
 function ReorderHint() { return <p className="px-1 text-[11px] text-amber-200/60">Clear the search field to enable drag-and-drop reordering.</p>; }
 function Empty({ label }: { label: string }) { return <div className="px-5 py-12 text-center text-sm text-white/35">{label}</div>; }
 function Toggle({ name, checked, label }: { name: string; checked: boolean; label: string }) { return <label className={toggle}><input type="checkbox" name={name} defaultChecked={checked} className="size-4 accent-cyan-400" />{label}</label>; }
-function Label({ title, wide, children }: { title: string; wide?: boolean; children: ReactNode }) { return <label className={`block text-sm text-white/60 ${wide ? 'md:col-span-2' : ''}`}><span>{title}</span>{children}</label>; }
+function Label({ title, wide, children }: { title: string; wide?: boolean; children: ReactNode }) { return <label className={`block min-w-0 max-w-full text-sm text-white/60 ${wide ? 'md:col-span-2' : ''}`}><span>{title}</span>{children}</label>; }
 
 function ThumbnailField({ value, onChange }: { value?: string; onChange: (url: string) => void }) {
-    return <div className="md:col-span-2 rounded-xl border border-white/10 p-3"><MediaPicker value={value ?? ''} onChange={onChange} label="Thumbnail (optional)" initialKind="image" lockKind /><p className="mt-2 text-xs text-white/40">Add a photo of your work or experience. Shown separately from the logo on desktop and mobile.</p>{value && <button type="button" onClick={() => onChange('')} className="mt-2 text-xs text-red-300">Remove thumbnail</button>}</div>;
+    return <div className="min-w-0 md:col-span-2 rounded-xl border border-white/10 p-3"><MediaPicker value={value ?? ''} onChange={onChange} label="Thumbnail (optional)" initialKind="image" lockKind /><p className="mt-2 text-xs text-white/40">Add a photo of your work or experience. Shown separately from the logo on desktop and mobile.</p>{value && <button type="button" onClick={() => onChange('')} className="mt-2 text-xs text-red-300">Remove thumbnail</button>}</div>;
 }

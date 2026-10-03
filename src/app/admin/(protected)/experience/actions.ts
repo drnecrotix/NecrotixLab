@@ -6,6 +6,8 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { defaultExperienceContent, normalizeExperienceContent, type ExperienceContent, type ExperienceTabId, type PartnerLogo } from '@/lib/experience-content';
 
+import { normalizeJourneyEntryState } from '@/lib/journey-entry-state';
+
 const CONFIG_SLUG = '__experience-config';
 const LEGACY_PAGE_TITLE = 'Experience page configuration';
 const DEFAULT_PAGE_NAME = 'Journey';
@@ -72,7 +74,7 @@ function validateExperienceEntries(raw: unknown, label: string): ExperienceSaveR
         const id = requiredValue(record, 'id');
         if (!id || seenIds.has(id)) return { ok: false, error: `${label} record ${index + 1} needs a unique record ID.` };
         seenIds.add(id);
-        if (!requiredValue(record, 'company') || !requiredValue(record, 'position')) {
+        if ((!requiredValue(record, 'company') && !['freelance', 'self-employed'].includes(String(record.type))) || !requiredValue(record, 'position')) {
             return { ok: false, error: `${label} record ${index + 1} needs a company and position before it can be saved.` };
         }
     }
@@ -159,6 +161,7 @@ export async function updateExperiencePage(form: FormData): Promise<ExperienceSa
 
         const candidate: ExperienceContent = normalizeExperienceContent({
             ...existing,
+            displayStyle: form.has('displayStyle') ? (form.get('displayStyle') === 'timeline' ? 'timeline' : 'cards') : existing.displayStyle,
             pageEnabled: editingGeneral ? readBoolean(form, 'pageEnabled') : existing.pageEnabled,
             showHero: editingGeneral ? readBoolean(form, 'showHero') : existing.showHero,
             showDecorations: editingGeneral ? readBoolean(form, 'showDecorations') : existing.showDecorations,
@@ -228,8 +231,14 @@ export async function updateExperiencePage(form: FormData): Promise<ExperienceSa
             partnerLogos,
         });
 
+        const rawState = form.has('entryStatesJson') ? normalizeJourneyEntryState(JSON.parse(String(form.get('entryStatesJson') || '{}'))) : null;
         const jsonContent = candidate as unknown as Prisma.InputJsonValue;
         await prisma.$transaction([
+            ...(rawState ? [prisma.page.upsert({
+                where: { slug: '__journey-entry-state' },
+                create: { slug: '__journey-entry-state', title: 'Background entry state', status: 'PUBLISHED', content: rawState as unknown as Prisma.InputJsonValue },
+                update: { content: rawState as unknown as Prisma.InputJsonValue },
+            })] : []),
             prisma.page.upsert({
                 where: { slug: CONFIG_SLUG },
                 create: { slug: CONFIG_SLUG, title: pageName, status: 'PUBLISHED', content: jsonContent },

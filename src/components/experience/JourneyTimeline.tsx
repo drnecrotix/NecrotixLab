@@ -55,15 +55,15 @@ function JourneyTimelineEntry({ experience, content }: { experience: Experience;
     const specificLogoClasses = logoClasses(experience.logo);
 
     return (
-        <article className="group/timeline relative border-l-2 border-neutral-200 pl-8 dark:border-neutral-800">
-            <div className="absolute -left-[9px] top-0 size-4 rounded-full border-2 border-white bg-neutral-200 dark:border-black dark:bg-neutral-800" />
+        <article className="group/timeline relative min-w-0 rounded-2xl border border-border bg-card/50 p-4 sm:p-6 dark:border-neutral-800">
+
 
             {experience.logo && (
                 <div className="pointer-events-none absolute right-full top-0 mr-6 hidden h-10 w-32 -translate-x-4 items-center justify-end opacity-0 transition-all duration-300 group-hover/timeline:translate-x-0 group-hover/timeline:opacity-100 md:flex md:h-16 md:w-40">
                     <div className="relative size-full">
                         <Image
                             src={experience.logo}
-                            alt={`${experience.company} Logo`}
+                            alt={`${!/^[-–—]+$/.test(experience.company.trim()) ? experience.company : ''} Logo`}
                             fill
                             unoptimized
                             className={`object-contain object-right ${specificLogoClasses}`}
@@ -77,17 +77,17 @@ function JourneyTimelineEntry({ experience, content }: { experience: Experience;
                     <h3 className="text-xl font-bold leading-tight text-neutral-900 dark:text-white">
                         {experience.position}
                     </h3>
-                    <p className="text-lg font-medium text-primary">{experience.company}</p>
+                    <p className="text-lg font-medium text-primary">{!/^[-–—]+$/.test(experience.company.trim()) ? experience.company : ''}</p>
                 </div>
                 <div className="flex items-center gap-3"><EntryThumbnail src={experience.thumbnail} label={experience.position} /><div className="flex flex-col gap-2 sm:items-end">
                     <span className="w-fit rounded bg-neutral-100 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
-                        {journeyPeriod(experience.startDate ? journeyDate(experience.startDate) : '', experience.endDate ? journeyDate(experience.endDate) : '', experience.isOngoing) || 'Date not specified'}
+                        {journeyPeriod(experience.startDate ? journeyDate(experience.startDate) : '', experience.endDate ? journeyDate(experience.endDate) : '', experience.isOngoing) || ''}
                     </span>
                 </div></div>
             </div>
 
             {experience.description && (
-                <p className="mb-6 text-justify text-sm leading-relaxed text-neutral-600 dark:text-neutral-300 md:text-base">
+                <p className="mb-6 text-left text-sm leading-relaxed text-neutral-600 dark:text-neutral-300 md:text-base">
                     {experience.description}
                 </p>
             )}
@@ -95,7 +95,7 @@ function JourneyTimelineEntry({ experience, content }: { experience: Experience;
             {content.showResponsibilities && experience.responsibilities && experience.responsibilities.length > 0 && (
                 <ul className="mb-8 space-y-3">
                     {experience.responsibilities.slice(0, 3).map((responsibility) => (
-                        <li key={responsibility} className="flex items-start gap-2.5 text-justify text-xs text-neutral-500 dark:text-neutral-400 md:text-sm">
+                        <li key={responsibility} className="flex items-start gap-2.5 text-left text-xs text-neutral-500 dark:text-neutral-400 md:text-sm">
                             <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/40" />
                             <span>{responsibility}</span>
                         </li>

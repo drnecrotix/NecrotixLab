@@ -9,6 +9,10 @@ export function journeyCategoryId(entry: { id: string; categoryId?: string }, ca
 }
 
 export function journeyPeriod(start?: string, end?: string, ongoing = false) {
+    start = start?.trim();
+    end = end?.trim();
+    if (start && /^[-–—]+$/.test(start)) start = '';
+    if (end && /^[-–—]+$/.test(end)) end = '';
     if (ongoing) return start ? `${start} - Present` : 'Present';
     if (start && end) return `${start} - ${end}`;
     return start || end || '';
@@ -36,7 +40,7 @@ export function journeyTimelineGroups<T extends { startDate: string; endDate?: s
     const groups: { title: string; experiences: T[] }[] = [];
     for (const entry of entries) {
         const date = entry.startDate || entry.endDate || '';
-        const title = date.match(/\d{4}/)?.[0] ?? 'Undated';
+        const title = date.match(/\d{4}/)?.[0] ?? 'Other experience';
         const previous = groups[groups.length - 1];
         if (previous?.title === title) previous.experiences.push(entry);
         else groups.push({ title, experiences: [entry] });

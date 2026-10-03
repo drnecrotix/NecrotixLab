@@ -14,10 +14,10 @@ export default async function ExperienceAdminPage() {
     ]);
     const content = normalizeExperienceContent(page?.content);
     const entryStates = normalizeJourneyEntryState(entryStatePage?.content);
-    const pageName = page?.title && page.title !== LEGACY_PAGE_TITLE ? page.title : 'Journey';
+    const pageName = page?.title && ![LEGACY_PAGE_TITLE, 'Journey', 'Experience'].includes(page.title) ? page.title : 'Background';
 
     return (
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto w-full min-w-0 max-w-6xl">
             <div className="mb-7 flex flex-col gap-5 md:mb-9 md:flex-row md:items-end md:justify-between">
                 <div className="min-w-0">
                     <p className="text-xs uppercase tracking-[0.3em] text-white/35">Protected visual editor</p>
