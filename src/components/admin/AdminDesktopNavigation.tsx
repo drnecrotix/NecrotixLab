@@ -32,6 +32,7 @@ export function AdminDesktopNavigation({
     signOutAction: () => Promise<void>;
 }) {
     const pathname = usePathname();
+    const appointmentsItem = navGroups.flatMap(([, items]) => [...items]).find(([, href]) => href === '/admin/bookings');
     const activeGroup = activeGroupForPath(pathname, navGroups);
     const [openGroup, setOpenGroup] = useState<string | null>(() => activeGroup ?? navGroups[0]?.[0] ?? null);
 
@@ -54,6 +55,8 @@ export function AdminDesktopNavigation({
                 <AdminNavigationSearch dashboardItem={dashboardItem} navGroups={navGroups} />
                 <nav aria-label="Admin pages" className="grid gap-2 py-2">
                     <Link href={dashboardItem[1]} onClick={() => setOpenGroup(null)} aria-current={pathname === dashboardItem[1] ? 'page' : undefined} className={linkClass(pathname === dashboardItem[1])}>{dashboardItem[0]}</Link>
+
+                    {appointmentsItem && <Link href={appointmentsItem[1]} onClick={() => setOpenGroup(null)} aria-current={pathname === appointmentsItem[1] || pathname.startsWith(`${appointmentsItem[1]}/`) ? 'page' : undefined} className={linkClass(pathname === appointmentsItem[1] || pathname.startsWith(`${appointmentsItem[1]}/`))}>{appointmentsItem[0]}</Link>}
 
                     {navGroups.map(([groupLabel, items]) => {
                         const isOpen = openGroup === groupLabel || (openGroup === null && activeGroup === groupLabel);
