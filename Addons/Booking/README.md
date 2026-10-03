@@ -1,6 +1,6 @@
-# Booking Addon 1.4.0
+# Booking Addon 1.4.1
 
-Standalone appointment booking for NecrotixLab CMS 1.3.97 or later. Cal.diy installation, account, origin and webhooks are not required for new bookings. No payment functionality is included.
+Standalone appointment booking for NecrotixLab CMS 1.3.98 or later. Cal.diy installation, account, origin and webhooks are not required for new bookings. No payment functionality is included.
 
 ## Setup
 
@@ -36,3 +36,11 @@ OWNER/ADMIN can export all retained reservations, filtered results, or 1-200 sel
 ## Package boundaries
 
 The compiled CMS wrappers, Prisma schema/migrations and addon source must be upgraded together. Install/activate toggles enable the already compiled addon; uploading its ZIP alone cannot deploy new API routes or schema migrations. Deactivation prevents new native bookings while history/export and scheduled retention remain available. Uninstallation keeps retained records rather than destroying them immediately.
+
+## Appointment experience
+
+The public flow separates service, date/time, contact details and final review. A monthly working-day calendar leads to authoritative available slots; contact details survive backward navigation in memory. A conflicting final submission returns the visitor to refreshed times. Confirmation distinguishes approval requests from confirmed appointments.
+
+Admin > Appointments includes a monthly calendar and selected-day agenda alongside existing lists. Search/status filters and monthly CSV export use the same Europe/Sofia date boundaries, including daylight-saving changes. The calendar shows up to 300 matching records and warns when the month needs narrower filters.
+
+Design references: [Easy!Appointments](https://github.com/alextselegidis/easyappointments), particularly its service/time/info/final booking steps, and [Cal.diy](https://github.com/calcom/cal.diy) for the organizer summary and calendar-focused booking experience. These patterns are implemented in original React components; no upstream source or runtime dependency is bundled.

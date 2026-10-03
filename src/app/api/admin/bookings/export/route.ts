@@ -1,3 +1,4 @@
+import { bookingMonthRange } from '@addons/Booking/calendar-view';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { bookingDataCsv } from '@addons/Booking/export.mjs';
@@ -9,9 +10,11 @@ async function exportData(query: URLSearchParams) {
     const scope = query.get('scope') || 'filtered'; const ids = [...new Set(query.getAll('ids'))];
     if (!['all', 'filtered', 'selected'].includes(scope)) return new Response('Invalid export scope', { status: 400 });
     if (scope === 'selected' && (!ids.length || ids.length > 200 || ids.some(id => id.length > 160))) return new Response('Select between 1 and 200 bookings', { status: 400 });
-    const q = (query.get('q') || '').trim().slice(0, 120); const view = query.get('view'); const now = new Date();
+    const q = (query.get('q') || '').trim().slice(0, 120); const view = query.get('view'); const range = view === 'calendar' ? bookingMonthRange(query.get('month') || '') : null;
+    if (scope === 'filtered' && view === 'calendar' && !range) return new Response('Invalid calendar month', { status: 400 });
+    const now = new Date();
     const where = scope === 'selected' ? { id: { in: ids } } : scope === 'all' ? {} : { AND: [
-        bookingStatusFilter(view === 'unconfirmed' ? 'PENDING' : query.get('status') || undefined),
+        bookingStatusFilter(view === 'unconfirmed' ? 'PENDING' : query.get('status') || undefined), ...(range ? [{ startTime: range }] : []),
         ...(view === 'upcoming' ? [{ startTime: { gte: now } }] : view === 'past' ? [{ startTime: { lt: now } }] : []),
         ...(q ? [{ OR: [{ customerName: { contains: q, mode: 'insensitive' as const } }, { email: { contains: q, mode: 'insensitive' as const } }, { title: { contains: q, mode: 'insensitive' as const } }] }] : []),
     ] };

@@ -1,5 +1,5 @@
 export const BOOKING_CONFIG_SLUG = '_booking-addon-config';
-export const BOOKING_ADDON_VERSION = '1.4.0';
+export const BOOKING_ADDON_VERSION = '1.4.1';
 export const MEETING_PLATFORMS = ['CALDIY', 'ZOOM', 'GOOGLE_MEET', 'VIBER', 'TEAMS', 'PHONE', 'OTHER'] as const;
 export type MeetingPlatform = typeof MEETING_PLATFORMS[number];
 export const CALENDAR_RECIPIENTS = ['BOTH', 'CLIENT', 'HOST', 'NONE'] as const;

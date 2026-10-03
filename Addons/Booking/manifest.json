@@ -2,7 +2,7 @@
   "format": "necrotixlab-addon-v1",
   "id": "booking",
   "name": "Booking",
-  "version": "1.4.0",
-  "requiresCms": "1.3.97",
+  "version": "1.4.1",
+  "requiresCms": "1.3.98",
   "description": "Standalone NecrotixLab appointment scheduling, approval, SMTP emails, calendar invitations, CSV export and 30-day history."
 }
