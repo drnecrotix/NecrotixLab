@@ -19,8 +19,11 @@ import {
 } from 'lucide-react';
 import type { Education, Experience } from '@/types';
 import type { ExperienceContent, ExperienceTabId } from '@/lib/experience-content';
-import { cn, formatDate } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import ExperienceMarquee from '@/components/sections/ExperienceMarquee';
+import { Timeline } from '@/components/ui/timeline';
+import { EntryThumbnail } from './EntryThumbnail';
+import { journeyCategoryId, journeyPeriod, journeyDate } from '@/lib/journey-category';
 import { JourneyTimeline } from '@/components/experience/JourneyTimeline';
 
 const icons: Record<ExperienceTabId, typeof GraduationCap> = {
@@ -224,11 +227,13 @@ function TabNavigation({ content, availableTabs, activeTab, onChange }: { conten
 }
 
 function EducationView({ content }: { content: ExperienceContent }) {
+    const [timeline, setTimeline] = useState(false);
     return (
         <div>
-            <div className="grid gap-5 lg:grid-cols-2">
+            <TimelineToggle timeline={timeline} onChange={setTimeline} />
+            {timeline ? <Timeline data={content.educationEntries.map((item) => ({ title: item.startDate ? (item.startDate.match(/\d{4}/)?.[0] ?? item.startDate) : 'Undated', content: <EducationCard key={item.id} item={item} /> }))} /> : <div className="grid gap-5 lg:grid-cols-2">
                 {content.educationEntries.map((item) => <EducationCard key={item.id} item={item} />)}
-            </div>
+            </div>}
             {content.educationEntries.length === 0 && <div className="rounded-3xl border border-dashed border-border p-12 text-center text-muted-foreground">{content.emptyState}</div>}
             <Highlight content={content} id="education" />
         </div>
@@ -240,14 +245,14 @@ function EducationCard({ item }: { item: Education }) {
         <article className="rounded-[2rem] border border-border/60 bg-card/45 p-6 md:p-8">
             <div className="flex items-start gap-4">
                 <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-foreground text-background"><GraduationCap className="size-6" /></div>
-                <div>
+                <div className="min-w-0 flex-1">
                     <h3 className="text-xl font-bold md:text-2xl">{item.degree}</h3>
                     <p className="mt-1 font-medium text-muted-foreground">{item.institution}</p>
                     <p className="mt-1 text-sm text-muted-foreground">{item.major}</p>
-                </div>
+                </div><EntryThumbnail src={item.thumbnail} label={item.degree} />
             </div>
             <div className="mt-6 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-2"><CalendarDays className="size-4" />{formatDate(item.startDate)} - {item.endDate ? formatDate(item.endDate) : 'Present'}</span>
+                <span className="inline-flex items-center gap-2"><CalendarDays className="size-4" />{journeyPeriod(item.startDate ? journeyDate(item.startDate) : '', item.endDate ? journeyDate(item.endDate) : '', item.isOngoing) || 'Date not specified'}</span>
                 {item.gpa && <span>GPA {item.gpa}</span>}
             </div>
             {item.achievements && item.achievements.length > 0 && (
@@ -269,10 +274,11 @@ function JourneyView({ content }: { content: ExperienceContent }) {
 }
 
 function ArchiveView({ content }: { content: ExperienceContent }) {
+    const [timeline, setTimeline] = useState(false);
     const categories = content.categories.filter((category) => category.enabled);
     const [selected, setSelected] = useState(categories[0]?.id ?? '');
     const active = categories.find((category) => category.id === selected) ?? categories[0];
-    const items = active ? content.experienceEntries.filter((item) => item.id.startsWith(active.prefix)) : [];
+    const items = active ? content.experienceEntries.filter((item) => journeyCategoryId(item, content.categories) === active.id) : [];
 
     if (categories.length === 0) return <div className="rounded-3xl border border-border/60 p-10 text-center text-muted-foreground">{content.emptyState}</div>;
 
@@ -285,15 +291,15 @@ function ArchiveView({ content }: { content: ExperienceContent }) {
                     <p className="mt-4 max-w-md leading-7 text-muted-foreground">{content.archiveDescription}</p>
                     <div className="mt-7 space-y-2">
                         {categories.map((category) => (
-                            <button key={category.id} type="button" onClick={() => setSelected(category.id)} className={cn('w-full rounded-2xl border px-4 py-4 text-left transition', selected === category.id ? 'border-foreground bg-foreground text-background' : 'border-border/60 bg-card/40 hover:bg-card')}>
+                            <button key={category.id} type="button" onClick={() => setSelected(category.id)} className={cn('w-full rounded-2xl border px-4 py-4 text-left transition', active?.id === category.id ? 'border-foreground bg-foreground text-background' : 'border-border/60 bg-card/40 hover:bg-card')}>
                                 <div className="font-semibold">{category.label}</div>
-                                <div className={cn('mt-1 text-xs leading-5', selected === category.id ? 'text-background/60' : 'text-muted-foreground')}>{category.description}</div>
+                                <div className={cn('mt-1 text-xs leading-5', active?.id === category.id ? 'text-background/60' : 'text-muted-foreground')}>{category.description}</div>
                             </button>
                         ))}
                     </div>
                 </aside>
-                <div className="space-y-5">
-                    {items.length > 0 ? items.map((item) => <ExperienceCard key={item.id} item={item} content={content} />) : (
+                <div className="space-y-5"><TimelineToggle timeline={timeline} onChange={setTimeline} />
+                    {timeline ? <JourneyTimeline content={content} entries={items} /> : items.length > 0 ? items.map((item) => <ExperienceCard key={item.id} item={item} content={content} />) : (
                         <div className="rounded-3xl border border-dashed border-border p-12 text-center text-muted-foreground">{content.emptyState}</div>
                     )}
                 </div>
@@ -323,7 +329,7 @@ function ExperienceCard({ item, content }: { item: Experience; content: Experien
                             {hasDetails && <ChevronDown className={cn('mt-1 size-5 shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')} />}
                         </div>
                         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-muted-foreground sm:text-sm">
-                            <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" />{formatDate(item.startDate)} - {item.endDate ? formatDate(item.endDate) : 'Present'}</span>
+                            <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" />{journeyPeriod(item.startDate ? journeyDate(item.startDate) : '', item.endDate ? journeyDate(item.endDate) : '', item.isOngoing) || 'Date not specified'}</span>
                             {item.location && <span className="inline-flex items-center gap-1.5"><MapPin className="size-4" />{item.location}</span>}
                             <span className="capitalize">{item.type.replace('-', ' ')}</span>
                         </div>
@@ -342,6 +348,7 @@ function ExperienceCard({ item, content }: { item: Experience; content: Experien
                 </div>
             </button>
 
+            {item.thumbnail && <div className="px-6 pb-5 md:px-8"><EntryThumbnail src={item.thumbnail} label={item.position} /></div>}
             <AnimatePresence initial={false}>
                 {expanded && hasDetails && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
@@ -380,4 +387,8 @@ function Highlight({ content, id }: { content: ExperienceContent; id: Experience
             </div>
         </section>
     );
+}
+
+function TimelineToggle({ timeline, onChange }: { timeline: boolean; onChange: (value: boolean) => void }) {
+    return <div className="mb-5 flex gap-2" aria-label="Display style">{[false, true].map((value) => <button key={String(value)} type="button" aria-pressed={timeline === value} onClick={() => onChange(value)} className={cn('rounded-xl border px-4 py-2 text-sm', timeline === value ? 'bg-foreground text-background' : 'border-border text-muted-foreground')}>{value ? 'Timeline' : 'Cards'}</button>)}</div>;
 }

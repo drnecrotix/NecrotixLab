@@ -1,3 +1,4 @@
+import { journeyThumbnail } from './journey-category';
 import { portfolioData } from '@/data/portfolio';
 import type { Education, Experience } from '@/types';
 
@@ -243,6 +244,7 @@ function normalizeEducationEntry(value: unknown, index: number): Education | nul
         id: cleanId(source.id, `education-${index + 1}`),
         institution,
         degree,
+        ...(journeyThumbnail(source.thumbnail) ? { thumbnail: journeyThumbnail(source.thumbnail) } : {}),
         major: optionalText(source.major, 200),
         startDate: optionalText(source.startDate, 40),
         ...(endDate ? { endDate } : {}),
@@ -279,6 +281,8 @@ function normalizeExperienceEntry(value: unknown, index: number): Experience | n
         id: cleanId(source.id, `experience-${index + 1}`),
         company,
         position,
+        ...(optionalText(source.categoryId, 120) ? { categoryId: optionalText(source.categoryId, 120) } : {}),
+        ...(journeyThumbnail(source.thumbnail) ? { thumbnail: journeyThumbnail(source.thumbnail) } : {}),
         description,
         ...(responsibilities.length ? { responsibilities } : {}),
         skills,

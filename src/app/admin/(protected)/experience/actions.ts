@@ -49,11 +49,15 @@ function requiredValue(record: Record<string, unknown>, key: string) {
 
 function validateEducationEntries(raw: unknown): ExperienceSaveResult | null {
     if (!Array.isArray(raw)) return { ok: false, error: 'Education records are invalid.' };
+    const seenIds = new Set<string>();
     for (let index = 0; index < raw.length; index += 1) {
         const record = objectValue(raw[index]);
         if (!record) return { ok: false, error: `Education record ${index + 1} is invalid.` };
-        if (!requiredValue(record, 'institution') || !requiredValue(record, 'degree') || !requiredValue(record, 'startDate')) {
-            return { ok: false, error: `Education record ${index + 1} needs an institution, degree and start date before it can be saved.` };
+        const id = requiredValue(record, 'id');
+        if (!id || seenIds.has(id)) return { ok: false, error: `Education record ${index + 1} needs a unique record ID.` };
+        seenIds.add(id);
+        if (!requiredValue(record, 'institution') || !requiredValue(record, 'degree')) {
+            return { ok: false, error: `Education record ${index + 1} needs an institution and degree before it can be saved.` };
         }
     }
     return null;
@@ -61,11 +65,15 @@ function validateEducationEntries(raw: unknown): ExperienceSaveResult | null {
 
 function validateExperienceEntries(raw: unknown, label: string): ExperienceSaveResult | null {
     if (!Array.isArray(raw)) return { ok: false, error: `${label} records are invalid.` };
+    const seenIds = new Set<string>();
     for (let index = 0; index < raw.length; index += 1) {
         const record = objectValue(raw[index]);
         if (!record) return { ok: false, error: `${label} record ${index + 1} is invalid.` };
-        if (!requiredValue(record, 'company') || !requiredValue(record, 'position') || !requiredValue(record, 'startDate')) {
-            return { ok: false, error: `${label} record ${index + 1} needs a company, position and start date before it can be saved.` };
+        const id = requiredValue(record, 'id');
+        if (!id || seenIds.has(id)) return { ok: false, error: `${label} record ${index + 1} needs a unique record ID.` };
+        seenIds.add(id);
+        if (!requiredValue(record, 'company') || !requiredValue(record, 'position')) {
+            return { ok: false, error: `${label} record ${index + 1} needs a company and position before it can be saved.` };
         }
     }
     return null;
@@ -235,6 +243,7 @@ export async function updateExperiencePage(form: FormData): Promise<ExperienceSa
 
         revalidatePath('/journey');
         revalidatePath('/experience');
+        revalidatePath('/resume');
         revalidatePath('/admin/experience');
         revalidatePath('/');
         return { ok: true, savedAt: new Date().toISOString() };

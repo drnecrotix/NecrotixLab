@@ -34,6 +34,8 @@ export interface Project {
 
 export interface Experience {
     id: string;
+    categoryId?: string;
+    thumbnail?: string;
     company: string;
     position: string;
     description: string;
@@ -55,6 +57,7 @@ export interface Experience {
 
 export interface Education {
     id: string;
+    thumbnail?: string;
     institution: string;
     degree: string;
     major: string;
