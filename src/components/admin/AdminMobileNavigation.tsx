@@ -30,6 +30,7 @@ export function AdminMobileNavigation({
     signOutAction: () => Promise<void>;
 }) {
     const pathname = usePathname();
+    const appointmentsItem = navGroups.flatMap(([, items]) => [...items]).find(([, href]) => href === '/admin/bookings');
     const detailsRef = useRef<HTMLDetailsElement>(null);
 
     const closeMenu = () => {
@@ -65,6 +66,8 @@ export function AdminMobileNavigation({
                         <AdminNavigationSearch dashboardItem={dashboardItem} navGroups={navGroups} onNavigate={closeMenu} />
                         <nav aria-label="Admin pages" className="grid gap-2">
                             <Link href={dashboardItem[1]} onClick={closeMenu} aria-current={pathname === dashboardItem[1] ? 'page' : undefined} className={linkClass(pathname === dashboardItem[1])}>{dashboardItem[0]}</Link>
+
+                            {appointmentsItem && <Link href={appointmentsItem[1]} onClick={closeMenu} aria-current={pathname === appointmentsItem[1] || pathname.startsWith(`${appointmentsItem[1]}/`) ? 'page' : undefined} className={linkClass(pathname === appointmentsItem[1] || pathname.startsWith(`${appointmentsItem[1]}/`))}>{appointmentsItem[0]}</Link>}
 
                             {navGroups.map(([groupLabel, items]) => {
                                 const groupActive = items.some(([, href]) => isItemActive(pathname, href, items));

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { calOrigin } from '@addons/Booking/settings';
 
 type SiteModePayload = {
     mode: 'NORMAL' | 'MAINTENANCE' | 'COMING_SOON' | 'PRIVATE' | 'ARCHIVE';
@@ -36,7 +35,7 @@ function contentSecurityPolicy() {
         "font-src 'self' data: https:",
         "media-src 'self' data: blob: https:",
         "connect-src 'self' https: wss:",
-        `frame-src 'self' ${calOrigin(process.env.CALDIY_ORIGIN) || ''} https://www.youtube.com https://player.vimeo.com https://www.tiktok.com https://www.instagram.com https://www.facebook.com https://platform.twitter.com https://assets.pinterest.com https://www.dailymotion.com`,
+        `frame-src 'self' https://www.youtube.com https://player.vimeo.com https://www.tiktok.com https://www.instagram.com https://www.facebook.com https://platform.twitter.com https://assets.pinterest.com https://www.dailymotion.com`,
         'upgrade-insecure-requests',
     ].join('; ');
 }

@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     if (!validBookingSignature(body, request.headers.get('x-cal-signature-256'), process.env.CALDIY_WEBHOOK_SECRET)) return new Response('Invalid signature', { status: 401 });
     let event;
     try { event = parseBookingEvent(JSON.parse(body)); } catch { return new Response('Invalid event', { status: 400 }); }
-    if (!event || !withinBookingRetention(event.data.eventAt)) return new Response('Ignored');
+    if (!event || event.uid.startsWith('native:') || !withinBookingRetention(event.data.eventAt)) return new Response('Ignored');
     const booking = event;
     try {
         await prisma.$transaction(async tx => {
