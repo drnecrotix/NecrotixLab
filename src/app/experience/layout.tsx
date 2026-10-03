@@ -1,3 +1,4 @@
+import { FeatureInDevelopment } from '@/components/layout/FeatureInDevelopment';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { requireManagedPageAccess } from '@/lib/page-access';
@@ -10,6 +11,6 @@ export const metadata: Metadata = {
 };
 
 export default async function ExperienceLayout({ children }: { children: ReactNode }) {
-    await requireManagedPageAccess('journey');
+    if (!await requireManagedPageAccess('journey')) return <FeatureInDevelopment />;
     return children;
 }

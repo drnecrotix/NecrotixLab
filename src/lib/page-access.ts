@@ -62,11 +62,12 @@ export function isManagedPagePublic(settings: ManagedPageAccessSettings, key: Ma
 export async function requireManagedPageAccess(key: ManagedPageKey) {
     const settings = await getManagedPageAccessSettings();
     const mode = settings[key];
-    if (mode === 'PUBLIC') return;
+    if (mode === 'PUBLIC') return true;
 
     if (mode === 'ADMIN_ONLY') {
         const session = await auth();
-        if (session?.user && ['OWNER', 'ADMIN'].includes(session.user.role)) return;
+        if (session?.user && ['OWNER', 'ADMIN'].includes(session.user.role)) return true;
+        return false;
     }
 
     notFound();
