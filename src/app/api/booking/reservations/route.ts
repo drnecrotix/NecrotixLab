@@ -1,3 +1,4 @@
+import { bookingSameOrigin } from '@addons/Booking/request-policy';
 import { after } from 'next/server';
 import { bookingAddonConfig } from '@addons/Booking/server';
 import { bookingReady } from '@addons/Booking/settings';
@@ -7,7 +8,7 @@ import { processBookingNotifications } from '@addons/Booking/notifications';
 export const runtime = 'nodejs';
 const failure = (error: string, status: number) => Response.json({ error }, { status, headers: { 'cache-control': 'no-store' } });
 export async function POST(request: Request) {
-    if (request.headers.get('origin') !== new URL(request.url).origin) return failure('Forbidden', 403);
+    if (!bookingSameOrigin(request)) return failure('Forbidden', 403);
     if (!request.headers.get('content-type')?.startsWith('application/json')) return failure('JSON required', 415);
     if (!request.body) return failure('Empty body', 400);
     const reader = request.body.getReader(); const chunks: Uint8Array[] = []; let size = 0;

@@ -115,6 +115,7 @@ export function PortfolioUpdater({ currentVersion, initialStatus }: { currentVer
     const [isStarting, startInstall] = useTransition();
     const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const autoCheckStarted = useRef(false);
+    const observedUpdate = useRef(activeStates.has(initialStatus?.state || ''));
 
     const showNotice = useCallback(() => {
         setNoticeVisible(true);
@@ -175,6 +176,27 @@ export function PortfolioUpdater({ currentVersion, initialStatus }: { currentVer
             clearInterval(timer);
         };
     }, [isUpdating, pollStatus]);
+
+    useEffect(() => {
+        if (activeStates.has(status?.state || '')) observedUpdate.current = true;
+        if (status?.state !== 'success' || !observedUpdate.current) return;
+        let cancelled = false;
+        let timer: ReturnType<typeof setTimeout>;
+        const confirmRuntime = async () => {
+            try {
+                const response = await fetch(`/api/admin/update-status?_=${Date.now()}`, { cache: 'no-store' });
+                if (response.ok) {
+                    const payload = await response.json() as { status: PortfolioUpdateStatus | null; runtimeVersion?: string };
+                    if (!cancelled && payload.status?.state === 'success' && payload.status.updatedAt === status.updatedAt && payload.runtimeVersion && (!status.targetVersion || payload.runtimeVersion === status.targetVersion)) {
+                        window.location.reload(); return;
+                    }
+                }
+            } catch { /* Passenger may be restarting. Keep the current page until the new runtime answers. */ }
+            if (!cancelled) timer = setTimeout(() => void confirmRuntime(), 1500);
+        };
+        timer = setTimeout(() => void confirmRuntime(), 2000);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [status?.state, status?.updatedAt, status?.targetVersion]);
 
     useEffect(() => {
         if (autoCheckStarted.current || isUpdating) return;
@@ -253,6 +275,7 @@ export function PortfolioUpdater({ currentVersion, initialStatus }: { currentVer
                                 {displayStatus.updatedAt ? <span className="text-[10px] text-muted-foreground">{new Date(displayStatus.updatedAt).toLocaleTimeString()}</span> : null}
                             </div>
                             <p className="mt-1 break-words text-sm leading-5 text-foreground/80">{displayStatus.message}</p>
+                            {status?.state === 'success' && observedUpdate.current && <p role="status" className="mt-2 text-xs text-muted-foreground">Update complete. Waiting for the updated server before reloading...</p>}
                             {isUpdating ? (
                                 <div className="mt-4">
                                     <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-muted-foreground"><span>Deployment progress</span><span>{progress}%</span></div>

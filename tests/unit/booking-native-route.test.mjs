@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { normalizeBookingConfig, bookingReady } from '../../Addons/Booking/settings.ts';
+import { bookingSameOrigin } from '../../Addons/Booking/request-policy.ts';
 import { normalizeBookingContact } from '../../Addons/Booking/intake.ts';
 function fixture(active = true) {
     const calls = []; const callbacks = []; class BookingConflict extends Error {}
-    const deps = { 'next/server': { after: cb => callbacks.push(cb) }, '@addons/Booking/server': { bookingAddonConfig: async () => normalizeBookingConfig({ installed: true, active, services: [{ title: 'Consultation' }] }) }, '@addons/Booking/settings': { bookingReady }, '@addons/Booking/intake': { normalizeBookingContact }, '@addons/Booking/native': { BookingConflict, createNativeBooking: async (...args) => { calls.push(args); return { id: 'private-id', email: 'private@example.com', status: 'PENDING', startTime: args[3], endTime: new Date(+args[3] + 1800000), timeZone: 'Europe/Sofia', title: 'Consultation' }; } }, '@addons/Booking/notifications': { processBookingNotifications: async () => {} } };
+    const deps = { '@addons/Booking/request-policy': { bookingSameOrigin }, 'next/server': { after: cb => callbacks.push(cb) }, '@addons/Booking/server': { bookingAddonConfig: async () => normalizeBookingConfig({ installed: true, active, services: [{ title: 'Consultation' }] }) }, '@addons/Booking/settings': { bookingReady }, '@addons/Booking/intake': { normalizeBookingContact }, '@addons/Booking/native': { BookingConflict, createNativeBooking: async (...args) => { calls.push(args); return { id: 'private-id', email: 'private@example.com', status: 'PENDING', startTime: args[3], endTime: new Date(+args[3] + 1800000), timeZone: 'Europe/Sofia', title: 'Consultation' }; } }, '@addons/Booking/notifications': { processBookingNotifications: async () => {} } };
     const source = readFileSync(new URL('../../src/app/api/booking/reservations/route.ts', import.meta.url), 'utf8'); const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
     const loaded = { exports: {} }; new Function('exports', 'require', compiled)(loaded.exports, name => deps[name]); return { ...loaded.exports, calls, callbacks };
 }
@@ -28,4 +29,12 @@ test('inactive addon blocks public reservation writes', async () => {
 test('success returns no stored personal data and schedules durable email delivery', async () => {
     const f = fixture(); const response = await f.POST(request()); assert.equal(response.status, 201); const result = await response.json();
     assert.equal(result.status, 'PENDING'); assert.equal(result.email, undefined); assert.equal(result.id, undefined); assert.equal(f.calls.length, 1); assert.equal(f.callbacks.length, 1); assert.equal(response.headers.get('cache-control'), 'no-store');
+});
+
+test('browser-facing host survives Next internal URL rewriting and proxy TLS', async () => {
+    const f = fixture();
+    const req = new Request('http://localhost:3000/api/booking/reservations', { method: 'POST', headers: { host: '127.0.0.1:3000', origin: 'http://127.0.0.1:3000', 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+    assert.equal((await f.POST(req)).status, 201);
+    assert.equal(bookingSameOrigin(new Request('http://localhost/api', { headers: { host: 'necrotixlab.com', origin: 'https://necrotixlab.com', 'x-forwarded-proto': 'https' } })), true);
+    for (const origin of ['https://evil.example', 'http://necrotixlab.com', 'https://necrotixlab.com:444', 'https://user@necrotixlab.com', 'null']) assert.equal(bookingSameOrigin(new Request('http://localhost/api', { headers: { host: 'necrotixlab.com', origin, 'x-forwarded-proto': 'https' } })), false);
 });

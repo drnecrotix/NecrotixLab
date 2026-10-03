@@ -16,7 +16,9 @@ test('native booking accepts required contact details without an external provid
         const slot = page.getByRole('button', { name: /09:00/ }).first(); await expect(slot).toBeVisible(); await slot.click();
         await page.locator('[name=firstName]').fill('Native'); await page.locator('[name=lastName]').fill('Test');
         await page.locator('[name=email]').fill(email); await page.locator('[name=phone]').fill('+359888123456');
+        const saved = page.waitForResponse(response => response.url().endsWith('/api/booking/reservations') && response.request().method() === 'POST');
         await page.getByRole('button', { name: /Book appointment/ }).click();
+        const response = await saved; expect(response.status(), await response.text()).toBe(201);
         await expect(page.getByRole('status')).toContainText('Request received');
         const booking = await prisma.bookingReservation.findFirstOrThrow({ where: { email } });
         expect(booking.source).toBe('NATIVE'); expect(booking.status).toBe('PENDING'); expect(booking.phone).toBe('+359888123456');
