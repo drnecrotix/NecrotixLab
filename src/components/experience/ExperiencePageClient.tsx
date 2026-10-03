@@ -278,30 +278,13 @@ function JourneyView({ content }: { content: ExperienceContent }) {
 function ArchiveView({ content }: { content: ExperienceContent }) {
     const [timeline, setTimeline] = useState(content.displayStyle === 'timeline');
     const categories = content.categories.filter((category) => category.enabled);
-    const [selected, setSelected] = useState(categories[0]?.id ?? '');
-    const active = categories.find((category) => category.id === selected) ?? categories[0];
-    const items = active ? content.experienceEntries.filter((item) => journeyCategoryId(item, content.categories) === active.id) : [];
-
-    if (categories.length === 0) return <div className="rounded-3xl border border-border/60 p-10 text-center text-muted-foreground">{content.emptyState}</div>;
+    const items = content.experienceEntries.filter((item) => categories.some((category) => category.id === journeyCategoryId(item, content.categories)));
 
     return (
         <div>
-            <div className="grid gap-10 lg:grid-cols-[.75fr_1.25fr]">
-                <aside className="lg:sticky lg:top-28 lg:self-start">
-                    <p className="text-xs font-bold uppercase tracking-[0.28em] text-muted-foreground">Work & experience</p>
-                    <h2 className="mt-3 text-4xl font-black tracking-[-0.04em] md:text-5xl">Background</h2>
-                    <p className="mt-4 max-w-md leading-7 text-muted-foreground">Explore my work and practical experience by category. Choose cards or a timeline.</p>
-                    <div className="mt-7 space-y-2">
-                        {categories.map((category) => (
-                            <button key={category.id} type="button" onClick={() => setSelected(category.id)} className={cn('w-full rounded-2xl border px-4 py-4 text-left transition', active?.id === category.id ? 'border-foreground bg-foreground text-background' : 'border-border/60 bg-card/40 hover:bg-card')}>
-                                <div className="font-semibold">{category.label}</div>
-                                <div className={cn('mt-1 text-xs leading-5', active?.id === category.id ? 'text-background/60' : 'text-muted-foreground')}>{category.description}</div>
-                            </button>
-                        ))}
-                    </div>
-                </aside>
+            <div className="min-w-0">
                 <div className="min-w-0 space-y-5"><TimelineToggle timeline={timeline} onChange={setTimeline} />
-                    {timeline ? <JourneyTimeline content={content} entries={items} /> : items.length > 0 ? items.map((item) => <ExperienceCard key={item.id} item={item} content={content} />) : (
+                    {timeline ? <JourneyTimeline content={content} entries={items} /> : items.length > 0 ? <div className="grid gap-5 lg:grid-cols-2">{items.map((item) => <ExperienceCard key={item.id} item={item} content={content} />)}</div> : (
                         <div className="rounded-3xl border border-dashed border-border p-12 text-center text-muted-foreground">{content.emptyState}</div>
                     )}
                 </div>
