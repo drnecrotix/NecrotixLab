@@ -4,7 +4,8 @@ import { useMemo } from 'react';
 import Image from 'next/image';
 import type { Experience } from '@/types';
 import type { ExperienceContent } from '@/lib/experience-content';
-import { formatDate } from '@/lib/utils';
+import { EntryThumbnail } from './EntryThumbnail';
+import { journeyPeriod, journeyDate, journeyTimelineGroups } from '@/lib/journey-category';
 import { Timeline } from '@/components/ui/timeline';
 
 function logoClasses(logo?: string) {
@@ -29,22 +30,8 @@ function logoClasses(logo?: string) {
 }
 
 export function JourneyTimeline({ content, entries }: { content: ExperienceContent; entries: Experience[] }) {
-    const grouped = useMemo(() => {
-        const groups = new Map<string, Experience[]>();
-
-        // Keep the CMS array order instead of sorting again by date. The first
-        // occurrence of a year controls the year-group order and entries keep
-        // their drag-and-drop order inside that group.
-        for (const experience of entries) {
-            const parsedYear = new Date(experience.startDate).getFullYear();
-            const year = Number.isFinite(parsedYear) ? parsedYear.toString() : 'Other';
-            const items = groups.get(year) ?? [];
-            items.push(experience);
-            groups.set(year, items);
-        }
-
-        return Array.from(groups, ([title, experiences]) => ({ title, experiences }));
-    }, [entries]);
+    // Group adjacent years only so undated entries and manual ordering stay intact.
+    const grouped = useMemo(() => journeyTimelineGroups(entries), [entries]);
 
     const data = grouped.map((group) => ({
         title: group.title,
@@ -92,11 +79,11 @@ function JourneyTimelineEntry({ experience, content }: { experience: Experience;
                     </h3>
                     <p className="text-lg font-medium text-primary">{experience.company}</p>
                 </div>
-                <div className="flex flex-col gap-2 sm:items-end">
+                <div className="flex items-center gap-3"><EntryThumbnail src={experience.thumbnail} label={experience.position} /><div className="flex flex-col gap-2 sm:items-end">
                     <span className="w-fit rounded bg-neutral-100 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
-                        {experience.startDate ? formatDate(experience.startDate) : 'Undated'} - {experience.endDate ? formatDate(experience.endDate) : experience.isOngoing ? 'Present' : 'Open'}
+                        {journeyPeriod(experience.startDate ? journeyDate(experience.startDate) : '', experience.endDate ? journeyDate(experience.endDate) : '', experience.isOngoing) || 'Date not specified'}
                     </span>
-                </div>
+                </div></div>
             </div>
 
             {experience.description && (
