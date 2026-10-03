@@ -36,7 +36,7 @@ export function JourneyTimeline({ content, entries }: { content: ExperienceConte
     const data = grouped.map((group) => ({
         title: group.title,
         content: (
-            <div className="space-y-12">
+            <div className="space-y-4">
                 {group.experiences.map((experience) => (
                     <JourneyTimelineEntry key={experience.id} experience={experience} content={content} />
                 ))}
@@ -53,36 +53,22 @@ export function JourneyTimeline({ content, entries }: { content: ExperienceConte
 
 function JourneyTimelineEntry({ experience, content }: { experience: Experience; content: ExperienceContent }) {
     const specificLogoClasses = logoClasses(experience.logo);
+    const period = journeyPeriod(journeyDate(experience.startDate), experience.endDate ? journeyDate(experience.endDate) : '', experience.isOngoing);
 
     return (
         <article className="group/timeline relative min-w-0 rounded-2xl border border-border bg-card/50 p-4 sm:p-6 dark:border-neutral-800">
-
-
-            {experience.logo && (
-                <div className="pointer-events-none absolute right-full top-0 mr-6 hidden h-10 w-32 -translate-x-4 items-center justify-end opacity-0 transition-all duration-300 group-hover/timeline:translate-x-0 group-hover/timeline:opacity-100 md:flex md:h-16 md:w-40">
-                    <div className="relative size-full">
-                        <Image
-                            src={experience.logo}
-                            alt={`${!/^[-–—]+$/.test(experience.company.trim()) ? experience.company : ''} Logo`}
-                            fill
-                            unoptimized
-                            className={`object-contain object-right ${specificLogoClasses}`}
-                        />
-                    </div>
-                </div>
-            )}
-
             <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h3 className="text-xl font-bold leading-tight text-neutral-900 dark:text-white">
+                <div className="flex min-w-0 items-start gap-3">
+                    {experience.logo && <div className="relative size-10 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-background"><Image src={experience.logo} alt="" fill sizes="40px" unoptimized className={`object-contain p-1.5 ${specificLogoClasses}`} /></div>}
+                    <div className="min-w-0"><h3 className="break-words text-xl font-bold leading-tight text-neutral-900 dark:text-white">
                         {experience.position}
                     </h3>
-                    <p className="text-lg font-medium text-primary">{!/^[-–—]+$/.test(experience.company.trim()) ? experience.company : ''}</p>
+                    <p className="break-words text-lg font-medium text-primary">{!/^[-–—]+$/.test(experience.company.trim()) ? experience.company : ''}</p></div>
                 </div>
                 <div className="flex items-center gap-3"><EntryThumbnail src={experience.thumbnail} label={experience.position} /><div className="flex flex-col gap-2 sm:items-end">
-                    <span className="w-fit rounded bg-neutral-100 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
-                        {journeyPeriod(experience.startDate ? journeyDate(experience.startDate) : '', experience.endDate ? journeyDate(experience.endDate) : '', experience.isOngoing) || ''}
-                    </span>
+                    {period && <span className="w-fit rounded bg-neutral-100 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
+                        {period}
+                    </span>}
                 </div></div>
             </div>
 
