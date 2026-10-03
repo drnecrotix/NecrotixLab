@@ -78,3 +78,18 @@ export async function saveDetachedBookingProject(id: string, form: FormData) {
     await prisma.bookingProject.update({ where: { id }, data: { title, status, notes: String(form.get('notes') || '').trim().slice(0, 5000) } });
     revalidatePath('/admin/bookings/projects');
 }
+
+export async function updateNativeBooking(id: string, form: FormData) {
+    await admin(); const config = await bookingAddonConfig();
+    if (!config.installed || !config.active) throw new Error('Activate Booking first.');
+    const { manageNativeBooking, BookingConflict } = await import('@addons/Booking/native');
+    const { localDateTime } = await import('@addons/Booking/availability');
+    const { safeMeetingUrl } = await import('@addons/Booking/settings');
+    const operation = String(form.get('operation') || ''); const rawUrl = String(form.get('meetingUrl') || '').trim();
+    const url = safeMeetingUrl(rawUrl); if (rawUrl && !url) redirect(`/admin/bookings/${id}?error=Use+a+valid+HTTPS+meeting+URL`);
+    try { await manageNativeBooking(config, id, operation, localDateTime(String(form.get('startTime') || ''), config.timeZone), url, String(form.get('meetingInstructions') || '').trim().slice(0, 1000)); }
+    catch (error) { if (error instanceof BookingConflict) redirect(`/admin/bookings/${id}?error=${encodeURIComponent(error.message)}`); throw error; }
+    after(async () => { try { await processBookingNotifications([id]); } catch { /* Cron retries persisted deliveries. */ } });
+    revalidatePath('/admin/bookings'); revalidatePath('/admin'); revalidatePath(`/admin/bookings/${id}`);
+    redirect(`/admin/bookings/${id}?saved=1`);
+}

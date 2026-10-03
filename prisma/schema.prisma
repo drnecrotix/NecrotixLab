@@ -613,6 +613,7 @@ model StoreCheckoutSession {
 model BookingReservation {
   id           String   @id @default(cuid())
   calUid       String   @unique
+  source       String   @default("CALDIY")
   rescheduledFromUid String?
   rescheduledAt DateTime?
   status       String
@@ -699,4 +700,11 @@ model BookingNotification {
   createdAt DateTime @default(now())
   @@unique([reservationId, eventAt, kind, recipientRole])
   @@index([status, dueAt])
+}
+
+model BookingRateLimit {
+  key String @id
+  count Int @default(1)
+  expiresAt DateTime
+  @@index([expiresAt])
 }

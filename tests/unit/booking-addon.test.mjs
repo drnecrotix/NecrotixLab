@@ -8,7 +8,7 @@ test('Booking fails closed without an installed active configured package', () =
     assert.equal(bookingReady(normalizeBookingConfig(null), 'https://booking.example.com'), false);
     const services = [{ path: 'owner/consultation', title: 'Consultation' }];
     assert.equal(bookingReady(normalizeBookingConfig({ active: true, services }), 'https://booking.example.com'), false);
-    assert.equal(bookingReady(normalizeBookingConfig({ installed: true, active: true, services }), null), false);
+    assert.equal(bookingReady(normalizeBookingConfig({ installed: true, active: true, services }), null), true);
     assert.equal(bookingReady(normalizeBookingConfig({ installed: true, active: true, services }), 'https://booking.example.com'), true);
 });
 test('Booking permits only HTTPS origins and bounded event paths', () => {
@@ -32,5 +32,5 @@ test('Booking package uses the existing validated addon archive format', () => {
     const parsed = parseAddonZip(zipSync({ 'Addons/Booking/manifest.json': manifest }));
     assert.equal(parsed.id, 'booking');
     assert.equal(parsed.directory, 'Booking');
-    assert.equal(parsed.version, '1.3.1');
+    assert.equal(parsed.version, '1.4.0');
 });

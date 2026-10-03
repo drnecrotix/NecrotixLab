@@ -5,14 +5,14 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { BOOKING_PROJECT_STATUSES } from '@addons/Booking/workflow-policy';
-import { createBookingProject, saveBookingNotes, saveBookingProject, saveBookingCalendarSelection } from '../actions';
+import { createBookingProject, saveBookingNotes, saveBookingProject, saveBookingCalendarSelection, updateNativeBooking } from '../actions';
 import { CalendarActions } from '@addons/Booking/CalendarActions';
 import { canAddBookingToCalendar } from '@addons/Booking/calendar';
 import { bookingCalendarGuestPath } from '@addons/Booking/calendar-access';
 export const dynamic = 'force-dynamic';
-export default async function BookingDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function BookingDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; saved?: string }> }) {
     const session = await auth(); if (!session?.user || !['OWNER', 'ADMIN'].includes(session.user.role)) redirect('/admin');
-    const { id } = await params;
+    const { id } = await params; const query = await searchParams;
     const booking = await prisma.bookingReservation.findUnique({ where: { id }, include: { project: true, notifications: { orderBy: { createdAt: 'desc' }, take: 20 }, reminders: { orderBy: { createdAt: 'desc' }, take: 20 } } });
     if (!booking) notFound();
     const calendarPath = canAddBookingToCalendar(booking) ? bookingCalendarGuestPath(booking, process.env.AUTH_SECRET) : null;
@@ -21,6 +21,8 @@ export default async function BookingDetail({ params }: { params: Promise<{ id: 
     const button = 'min-h-11 rounded-lg bg-foreground px-4 text-sm font-semibold text-background';
     const time = (date: Date) => new Intl.DateTimeFormat('bg-BG', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Sofia' }).format(date);
     return <div className="mx-auto max-w-5xl space-y-6"><Link href="/admin/bookings" className="text-sm underline">Back to reservations</Link><header><BookingStatusBadge booking={booking} /><h1 className="mt-2 text-3xl font-bold tracking-tight">{booking.title}</h1><p className="mt-3 text-sm text-muted-foreground">{time(booking.startTime)} - {time(booking.endTime)} · Europe/Sofia</p></header>
+        {query.error && <p role="alert" className="text-sm text-rose-500">{query.error}</p>}{query.saved && <p role="status" className="text-sm text-emerald-500">Booking updated; emails queued.</p>}
+        {booking.source === 'NATIVE' && <section className="rounded-xl border border-border p-5"><h2 className="font-semibold">Управление / Manage booking</h2><form action={updateNativeBooking.bind(null, id)} className="mt-4 space-y-4"><label className="block text-sm">New date and time (Booking settings timezone)<input type="datetime-local" name="startTime" step={900} className={input} /></label><label className="block text-sm">Meeting URL<input type="url" name="meetingUrl" maxLength={2000} defaultValue={booking.meetingUrl} className={input} /></label><label className="block text-sm">Joining instructions<textarea name="meetingInstructions" maxLength={1000} defaultValue={booking.meetingInstructions} className={input} /></label><div className="flex flex-wrap gap-3">{['PENDING', 'CONFIRMED'].includes(booking.status) && <><button name="operation" value="approve" className={button}>Одобри / Approve</button><button name="operation" value="reschedule" className={button}>Пренасочи / Reschedule</button><button name="operation" value="decline" className={button}>Откажи / Decline</button></>}<button name="operation" value="details" className={button}>Save joining details</button></div><p className="text-xs text-muted-foreground">Rescheduling approves the new time and sends updated details. Choose within availability; requests are checked for conflicts.</p></form></section>}
         {canAddBookingToCalendar(booking) && <CalendarActions event={booking} downloadHref={`/api/booking/calendar/${encodeURIComponent(id)}`} />}{calendarPath && <p className="text-sm"><Link href={calendarPath} className="underline">Open private customer calendar link</Link><span className="ml-2 text-xs text-muted-foreground">Anyone with this link can view the appointment title/time. Share only with the attendee.</span></p>}
         {booking.rescheduledAt && <p className="rounded-xl border border-sky-500/30 p-4 text-sm">Пренасочен на / Rescheduled on: {time(booking.rescheduledAt)}. {booking.status === 'PENDING' ? 'Новият час очаква одобрение. / The new time awaits approval.' : 'Показаните дата и час са за тази резервация. / The date and time shown belong to this reservation.'}</p>}
         {booking.status === 'RESCHEDULED' && <p className="rounded-xl border border-border p-4 text-sm">Предишен час, заменен с нова резервация. / Previous appointment superseded by a new reservation.</p>}

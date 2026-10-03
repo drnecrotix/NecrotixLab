@@ -3,10 +3,14 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { validBookingEmail } from '@addons/Booking/notification-policy';
 import { BOOKING_ADDON_VERSION, BOOKING_CONFIG_SLUG, normalizeBookingConfig } from '@addons/Booking/settings';
 async function admin() { const session = await auth(); if (!session?.user || !['OWNER', 'ADMIN'].includes(session.user.role)) throw new Error('Forbidden'); }
 async function persist(config: ReturnType<typeof normalizeBookingConfig>) {
-    await prisma.page.upsert({ where: { slug: BOOKING_CONFIG_SLUG }, create: { slug: BOOKING_CONFIG_SLUG, title: 'Booking addon settings', status: 'DRAFT', content: config }, update: { content: config } });
+    await prisma.$transaction(async tx => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(76431091)`;
+    await tx.page.upsert({ where: { slug: BOOKING_CONFIG_SLUG }, create: { slug: BOOKING_CONFIG_SLUG, title: 'Booking addon settings', status: 'DRAFT', content: config }, update: { content: config } });
+    });
     for (const path of ['/booking', '/services', '/admin/addons', '/admin/addons/booking', '/admin', '/admin/bookings']) revalidatePath(path);
 }
 export async function setBookingAddonState(form: FormData) {
@@ -28,9 +32,9 @@ export async function saveBookingSettings(form: FormData) {
     const record = await prisma.page.findUnique({ where: { slug: BOOKING_CONFIG_SLUG }, select: { content: true } });
     const current = normalizeBookingConfig(record?.content);
     if (!current.installed) throw new Error('Install Booking first');
-    const services = Array.from({ length: 8 }, (_, index) => ({ title: form.get(`title-${index}`), description: form.get(`description-${index}`), duration: form.get(`duration-${index}`), path: form.get(`path-${index}`), category: form.get(`category-${index}`), platform: form.get(`platform-${index}`), instructions: form.get(`instructions-${index}`), eventTypeId: form.get(`eventTypeId-${index}`) }));
-    const filled = services.filter(item => String(item.path || '').trim());
-    const config = normalizeBookingConfig({ ...current, title: form.get('title'), description: form.get('description'), reminderHours: form.get('reminderHours'), autoProject: form.get('autoProject') === 'on', confirmationEmails: form.get('confirmationEmails') === 'on', calendarMode: form.get('calendarMode'), calendarRecipients: form.get('calendarRecipients'), services: filled });
-    if (config.services.length !== filled.length) redirect('/admin/addons/booking?error=Use+a+Cal.diy+path+like+username%2Fconsultation');
+    const services = Array.from({ length: 8 }, (_, index) => ({ id: form.get(`id-${index}`) || `service-${index}`, meetingUrl: form.get(`meetingUrl-${index}`), title: form.get(`title-${index}`), description: form.get(`description-${index}`), duration: form.get(`duration-${index}`), path: form.get(`path-${index}`), category: form.get(`category-${index}`), platform: form.get(`platform-${index}`), instructions: form.get(`instructions-${index}`), eventTypeId: form.get(`eventTypeId-${index}`) }));
+    const filled = services.filter(item => String(item.title || '').trim());
+    const config = normalizeBookingConfig({ ...current, title: form.get('title'), description: form.get('description'), reminderHours: form.get('reminderHours'), autoProject: form.get('autoProject') === 'on', confirmationEmails: form.get('confirmationEmails') === 'on', calendarMode: form.get('calendarMode'), calendarRecipients: form.get('calendarRecipients'), services: filled, timeZone: form.get('timeZone'), weekdays: form.getAll('weekdays').map(Number), dayStart: form.get('dayStart'), dayEnd: form.get('dayEnd'), blockedDates: String(form.get('blockedDates') || '').split(/\s+/).filter(Boolean), leadHours: form.get('leadHours'), horizonDays: form.get('horizonDays'), bufferMinutes: form.get('bufferMinutes'), approvalRequired: form.get('approvalRequired') === 'on', organizerEmail: form.get('organizerEmail') });
+    if (config.dayStart >= config.dayEnd || !config.weekdays.length || (config.organizerEmail && !validBookingEmail(config.organizerEmail))) redirect('/admin/addons/booking?error=Check+working+hours+days+and+organizer+email');
     await persist(config); redirect('/admin/addons/booking?saved=1');
 }
